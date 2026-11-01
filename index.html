@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KeyReflex Studio — 키보드 반응속도 측정 & 타자 연습</title>
+  <link rel="stylesheet" href="styles.css?v=4.0" />
+</head>
+<body>
+  <div class="app-container">
+    <!-- 1. 상단 헤더: 타이틀, 모드 전환 탭, 한/영 언어 전환 -->
+    <header class="top-header">
+      <div class="brand-group">
+        <div class="brand-logo">⌨️</div>
+        <div class="brand-title">
+          <h1>KeyReflex &amp; Typing Studio</h1>
+          <p>반투명 일러스트 손가락 가이드 기반 반응속도 측정 &amp; 한/영 타자 연습</p>
+        </div>
+      </div>
+
+      <nav class="mode-tabs" aria-label="연습 모드 선택">
+        <button class="mode-tab-btn active" data-mode="reflex_single">⚡ 순발력 측정 (5회)</button>
+        <button class="mode-tab-btn" data-mode="reflex_rush">🔥 30초 연속 리플렉스</button>
+        <button class="mode-tab-btn" data-mode="hw_diagnostic">🔧 키보드 HW 반응 측정</button>
+        <button class="mode-tab-btn" data-mode="practice_position">🎯 자리 연습</button>
+        <button class="mode-tab-btn" data-mode="practice_words">📝 낱말 연습</button>
+        <button class="mode-tab-btn" data-mode="practice_sentences">📖 짧은 글 연습</button>
+        <button class="mode-tab-btn" data-mode="practice_code">💻 코드 연습 (Code)</button>
+      </nav>
+
+      <div class="header-controls">
+        <div class="lang-toggle-group" role="group" aria-label="언어 전환">
+          <button class="lang-switch-btn active" data-lang="ko">🇰🇷 한글 (두벌식)</button>
+          <button class="lang-switch-btn" data-lang="en">🇺🇸 영문 (QWERTY)</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- 2. 상단 실시간 측정 지표 바 -->
+    <section class="metrics-bar">
+      <div class="metric-card">
+        <span class="metric-label">사람 순발력 반응속도</span>
+        <span class="metric-value highlight-cyan" id="metric-reaction">-- ms</span>
+        <span class="metric-sub" id="metric-best">최고 기록: -- ms</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">키보드 HW 입력/스위치 반응</span>
+        <span class="metric-value highlight-emerald" id="metric-hw-dwell">-- ms</span>
+        <span class="metric-sub" id="metric-hw-sub">파이프라인 지연: -- ms | 최단 눌림: -- ms</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">타건 속도</span>
+        <span class="metric-value" id="metric-speed">0</span>
+        <span class="metric-sub" id="metric-speed-unit">타/초 (KPS)</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">정확도 (Accuracy)</span>
+        <span class="metric-value" id="metric-accuracy">100%</span>
+        <span class="metric-sub">실시간 정오타 비율</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">연속 정타 콤보</span>
+        <span class="metric-value" id="metric-combo">0</span>
+        <span class="metric-sub">Combo Streak</span>
+      </div>
+    </section>
+
+    <!-- 3. 서브 필터(자리/손가락 범위 및 코딩 카테고리) 및 손 그래픽 옵션 툴바 -->
+    <section class="sub-toolbar">
+      <div class="sub-filter-group" id="sub-filter-bar">
+        <span class="sub-filter-label" id="sub-filter-label">출제 범위:</span>
+        <div class="sub-filter-buttons" id="sub-filter-buttons" style="display:flex; gap:6px; flex-wrap:wrap;">
+          <button class="sub-filter-btn active" data-filter="all">전체 자판</button>
+          <button class="sub-filter-btn" data-filter="home">기본 자리 (홈 로우)</button>
+          <button class="sub-filter-btn" data-filter="top">윗자리 (상단열)</button>
+          <button class="sub-filter-btn" data-filter="bottom">아랫자리 (하단열)</button>
+          <button class="sub-filter-btn" data-filter="weak">소지·약지 집중 훈련</button>
+        </div>
+      </div>
+
+      <div class="visual-options-group">
+        <label class="option-item">
+          <span>✋ 손 투명도</span>
+          <input type="range" id="hand-opacity-slider" min="0.15" max="0.95" step="0.05" value="0.72" />
+          <span id="hand-opacity-value">72%</span>
+        </label>
+
+        <label class="option-item" style="cursor:pointer;">
+          <input type="checkbox" id="toggle-zone-colors" checked />
+          <span>운지법 구역 색상</span>
+        </label>
+
+        <label class="option-item">
+          <span>🔊 타건음</span>
+          <select id="sound-profile-select" class="option-select">
+            <option value="thock">도각도각 (무접점)</option>
+            <option value="clicky">찰칵찰칵 (청축)</option>
+            <option value="mute">음소거 (Mute)</option>
+          </select>
+        </label>
+      </div>
+    </section>
+
+    <!-- 4. 중앙 프롬프트 & 반응속도 신호 스테이지 -->
+    <main class="stage-wrapper">
+      <div class="stage-top-bar">
+        <div class="finger-guide-pill" id="active-finger-badge">
+          <span class="badge-dot" style="background:#38bdf8"></span>
+          양손 손가락을 홈 자리(ㅁㄴㅇㄹ / ㅓㅏㅣ)에 올려두세요
+        </div>
+      </div>
+
+      <!-- 4-A. 반응속도 측정 스테이지 -->
+      <div id="reflex-stage">
+        <div class="reflex-signal-box state-idle" id="reflex-signal-box">
+          <span class="reflex-badge" id="reflex-status-badge">⚡ 단일 키 순발력 측정</span>
+          <div class="reflex-main-title" id="reflex-main-title">
+            양손을 기본 자리(ㅁㄴㅇㄹ / ㅓㅏㅣ)에 올려두세요
+          </div>
+          <p class="reflex-sub-desc" id="reflex-sub-desc">
+            신호가 초록색으로 바뀌며 특정 키와 손가락이 빛나면 가장 빠르게 해당 키를 누르세요!
+          </p>
+          <button class="primary-action-btn" id="reflex-start-btn">측정 시작 (Space)</button>
+          <div class="round-pills-row" id="reflex-round-pills"></div>
+        </div>
+      </div>
+
+      <!-- 4-B. 타자 연습 스테이지 (자리 / 낱말 / 문장 / 코드) -->
+      <div id="practice-stage">
+        <!-- 자리 연습용 단일 문자 카드 -->
+        <div class="position-card" id="position-char-card">
+          <div class="position-main-char" id="position-main-char">ㅁ</div>
+          <div class="position-sub-key" id="position-sub-key">영문 A 자리</div>
+        </div>
+
+        <!-- 코드 언어 태그 뱃지 (JavaScript, Python 등) -->
+        <div class="code-lang-pill" id="code-lang-pill" style="display:none;">
+          <span class="code-icon">💻</span>
+          <span id="code-lang-text">JavaScript</span>
+        </div>
+
+        <!-- 낱말 / 문장 / 코드 연습용 프롬프트 & 입력창 -->
+        <div class="target-text-box" id="target-text-display"></div>
+        <div class="typing-input-wrap" id="typing-input-wrapper">
+          <input
+            type="text"
+            id="typing-input"
+            placeholder="여기에 위 제시어를 따라 입력하세요..."
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="off"
+            spellcheck="false"
+          />
+        </div>
+        <div class="next-preview-text" id="next-text-preview"></div>
+      </div>
+
+      <!-- 4-C. 키보드 하드웨어(HW) 입력 반응속도 & 스위치 진단 스테이지 -->
+      <div id="hw-stage" style="display:none;">
+        <div class="hw-diagnostic-header">
+          <div>
+            <h3 class="hw-title">🔧 키보드 하드웨어 입력 반응 &amp; 스위치 성능 실시간 측정기</h3>
+            <p class="hw-desc">
+              아무 키나 빠르고 짧게 톡톡 치거나 여러 키를 동시에 눌러보세요. 스위치 눌림~해제 시간(Dwell), OS 입력 지연, 폴링 간격, 채터링 및 동시입력(NKRO)을 실시간 측정합니다.
+            </p>
+          </div>
+          <button class="secondary-btn" id="btn-reset-hw">하드웨어 측정값 초기화</button>
+        </div>
+
+        <div class="hw-grid">
+          <div class="hw-stat-box">
+            <span class="hw-box-label">⚡ OS → 브라우저 입력 파이프라인 지연</span>
+            <span class="hw-box-val" id="hw-pipeline-val">-- ms</span>
+            <span class="hw-box-sub" id="hw-pipeline-sub">평균: -- ms | 최소: -- ms (event.timeStamp 기준)</span>
+          </div>
+          <div class="hw-stat-box">
+            <span class="hw-box-label">⏱️ 스위치 눌림~해제 반응 (keydown→keyup)</span>
+            <span class="hw-box-val highlight-emerald" id="hw-dwell-val">-- ms</span>
+            <span class="hw-box-sub" id="hw-dwell-sub">최단 릴리즈 기록: -- ms | 평균: -- ms</span>
+          </div>
+          <div class="hw-stat-box">
+            <span class="hw-box-label">📡 최소 스캔 간격 &amp; 추정 폴링레이트</span>
+            <span class="hw-box-val highlight-cyan" id="hw-polling-val">-- Hz</span>
+            <span class="hw-box-sub" id="hw-polling-sub">최소 이벤트 간격(Δt): -- ms (연타/롤링 시 갱신)</span>
+          </div>
+          <div class="hw-stat-box">
+            <span class="hw-box-label">🎹 동시 입력(NKRO) &amp; 채터링(중복불량)</span>
+            <span class="hw-box-val" id="hw-nkro-val">0 키 (최대 0KRO)</span>
+            <span class="hw-box-sub" id="hw-chatter-sub">스위치 채터링(&lt;18ms 재입력): 정상 (0건)</span>
+          </div>
+        </div>
+
+        <div class="hw-log-stream" id="hw-log-stream">
+          <span class="hw-log-placeholder">키보드를 타건하면 각 키의 정밀 하드웨어 반응 로그가 여기에 실시간 표시됩니다...</span>
+        </div>
+      </div>
+    </main>
+
+    <!-- 5. 가상 키보드 + 반투명 일러스트 양손 그래픽 캔버스 -->
+    <section class="keyboard-canvas-panel" aria-label="가상 키보드 및 손가락 그래픽">
+      <svg id="keyboard-hand-svg" viewBox="0 0 980 445" xmlns="http://www.w3.org/2000/svg"></svg>
+
+      <div class="keyboard-legend-row">
+        <div class="legend-fingers">
+          <span class="legend-item"><span class="legend-dot" style="background:#f43f5e"></span>좌 소지</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#fb923c"></span>좌 약지</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#facc15"></span>좌 중지</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#4ade80"></span>좌 검지</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#2dd4bf"></span>양손 엄지</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#38bdf8"></span>우 검지</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#818cf8"></span>우 중지</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#c084fc"></span>우 약지</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#f472b6"></span>우 소지</span>
+        </div>
+        <span>💡 눌러야 할 자모에 맞춰 반투명 일러스트 손가락이 목표 키 위로 뻗어 안내합니다</span>
+      </div>
+    </section>
+
+    <!-- 6. 하단 손가락별 반응속도(ms) 및 정확도 분석 리포트 -->
+    <section class="analytics-panel">
+      <div class="analytics-header">
+        <h2>📊 손가락별 평균 반응속도 (ms) &amp; 정확도 분석</h2>
+        <div class="analytics-actions">
+          <button class="secondary-btn" id="btn-toggle-heatmap">🗺️ 키보드 반응속도 히트맵</button>
+          <button class="secondary-btn" id="btn-reset-stats">🔄 기록 초기화</button>
+        </div>
+      </div>
+      <div class="finger-stats-grid" id="finger-stats-grid"></div>
+    </section>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/sound.js"></script>
+  <script src="js/handRenderer.js?v=10.0"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

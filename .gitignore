@@ -1,0 +1,13 @@
+# Binaries and temp files
+*.obj
+*.pdb
+*.tmp
+
+# OS files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
