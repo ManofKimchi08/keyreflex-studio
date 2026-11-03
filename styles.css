@@ -910,3 +910,495 @@ body {
     grid-template-columns: repeat(5, 1fr);
   }
 }
+
+/* ==========================================================================
+   KeyReflex CodeLab - 프로그래밍 언어 실시간 실행 & 마스터리 스테이지 스타일
+   ========================================================================== */
+
+#codelab-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.codelab-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 18px;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 14px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+}
+
+.codelab-lang-selector {
+  display: inline-flex;
+  gap: 6px;
+  background: rgba(30, 41, 59, 0.8);
+  padding: 4px;
+  border-radius: 10px;
+  border: 1px solid rgba(71, 85, 105, 0.4);
+}
+
+.codelab-lang-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.codelab-lang-btn:hover {
+  color: #f1f5f9;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.codelab-lang-btn.active {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.45);
+}
+
+.codelab-problem-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.codelab-select {
+  background: #1e293b;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: #f8fafc;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 8px;
+  outline: none;
+  cursor: pointer;
+  max-width: 280px;
+  transition: border-color 0.2s;
+}
+
+.codelab-select:focus {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+}
+
+.codelab-mode-toggle {
+  display: inline-flex;
+  gap: 4px;
+  background: rgba(30, 41, 59, 0.8);
+  padding: 4px;
+  border-radius: 10px;
+  border: 1px solid rgba(71, 85, 105, 0.4);
+}
+
+.codelab-type-mode-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.codelab-type-mode-btn:hover {
+  color: #f8fafc;
+}
+
+.codelab-type-mode-btn.active {
+  background: rgba(56, 189, 248, 0.2);
+  border: 1px solid rgba(56, 189, 248, 0.5);
+  color: #38bdf8;
+}
+
+.codelab-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.codelab-run-btn {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border: none;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 7px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 2px 10px rgba(16, 185, 129, 0.4);
+  transition: all 0.2s;
+}
+
+.codelab-run-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.55);
+}
+
+.codelab-run-btn:active {
+  transform: translateY(0);
+}
+
+/* 메인 스플릿 뷰 레이아웃 */
+.codelab-split-view {
+  display: grid;
+  grid-template-columns: 1fr 420px;
+  gap: 16px;
+  min-height: 400px;
+}
+
+/* 좌측 코드 에디터 */
+.codelab-editor-panel {
+  display: flex;
+  flex-direction: column;
+  background: #090d16;
+  border: 1px solid rgba(51, 65, 85, 0.7);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.6), 0 8px 24px rgba(0, 0, 0, 0.4);
+  position: relative;
+  cursor: text;
+}
+
+.codelab-editor-panel:focus-within {
+  border-color: rgba(56, 189, 248, 0.5);
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2), inset 0 2px 8px rgba(0, 0, 0, 0.6);
+}
+
+.editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: #0f172a;
+  border-bottom: 1px solid rgba(51, 65, 85, 0.6);
+}
+
+.editor-filename {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: #38bdf8;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.editor-shortcut-hint {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.editor-body {
+  display: flex;
+  flex: 1;
+  padding: 16px 0;
+  overflow-y: auto;
+  position: relative;
+  font-family: "JetBrains Mono", Consolas, "Fira Code", monospace;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.line-numbers {
+  display: flex;
+  flex-direction: column;
+  padding: 0 12px 0 16px;
+  user-select: none;
+  color: #475569;
+  text-align: right;
+  border-right: 1px solid rgba(51, 65, 85, 0.4);
+}
+
+.code-content {
+  flex: 1;
+  padding: 0 16px;
+  white-space: pre;
+  tab-size: 4;
+}
+
+.code-line {
+  min-height: 22.4px;
+}
+
+.code-char {
+  position: relative;
+  display: inline-block;
+  color: #94a3b8;
+  transition: color 0.1s;
+}
+
+.code-char.char-pending {
+  color: #64748b;
+}
+
+.code-char.char-current {
+  color: #ffffff;
+  background: rgba(56, 189, 248, 0.35);
+  border-radius: 2px;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.6);
+  animation: cursorPulse 1s infinite alternate;
+}
+
+@keyframes cursorPulse {
+  0% { box-shadow: 0 0 4px rgba(56, 189, 248, 0.4); }
+  100% { box-shadow: 0 0 12px rgba(56, 189, 248, 0.85); background: rgba(56, 189, 248, 0.5); }
+}
+
+.code-char.char-correct {
+  color: #38bdf8;
+  font-weight: 600;
+}
+
+.code-char.char-incorrect {
+  color: #fda4af;
+  background: rgba(225, 29, 72, 0.45);
+  border-radius: 2px;
+  text-decoration: underline wavy #f43f5e;
+}
+
+.code-char.char-space-visible {
+  opacity: 0.25;
+}
+
+.code-char.blank-slot {
+  color: #f59e0b;
+  font-weight: 700;
+  background: rgba(245, 158, 11, 0.15);
+  border-bottom: 2px dashed #f59e0b;
+  padding: 0 1px;
+}
+
+#codelab-hidden-input {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* 우측 사이드 패널 */
+.codelab-side-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.codelab-card {
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(51, 65, 85, 0.6);
+  border-radius: 12px;
+  padding: 14px 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.desc-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.tier-pill {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  color: #ffffff;
+}
+
+.problem-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #f8fafc;
+  flex: 1;
+}
+
+.complexity-badge {
+  font-family: monospace;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  color: #38bdf8;
+}
+
+.problem-desc-text {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: #cbd5e1;
+}
+
+/* 테스트 케이스 카드 */
+.tests-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.tests-card-header h4, .console-card-header h4 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #f1f5f9;
+}
+
+.tests-summary-badge {
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(71, 85, 105, 0.4);
+  color: #94a3b8;
+}
+
+.tests-summary-badge.passed {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.tests-summary-badge.failed {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.test-cases-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.test-case-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid rgba(71, 85, 105, 0.35);
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.test-case-item.test-passed {
+  border-left: 3px solid #10b981;
+}
+
+.test-case-item.test-failed {
+  border-left: 3px solid #ef4444;
+}
+
+.test-row-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.test-case-name {
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.test-case-badge {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.test-case-details {
+  font-family: monospace;
+  font-size: 11px;
+  color: #94a3b8;
+  display: flex;
+  gap: 12px;
+}
+
+/* 콘솔 & 지표 */
+.console-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.exec-time-pill {
+  font-size: 11px;
+  font-weight: 600;
+  color: #38bdf8;
+}
+
+.console-output {
+  min-height: 65px;
+  max-height: 110px;
+  background: #020617;
+  border: 1px solid rgba(30, 41, 59, 0.9);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-family: monospace;
+  font-size: 11.5px;
+  color: #4ade80;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  margin-bottom: 10px;
+}
+
+.console-output.has-error {
+  color: #f87171;
+}
+
+.console-placeholder {
+  color: #475569;
+}
+
+.codelab-typing-metrics {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #94a3b8;
+  padding-top: 6px;
+  border-top: 1px solid rgba(51, 65, 85, 0.4);
+}
+
+.codelab-typing-metrics b {
+  color: #f1f5f9;
+}
+
+@media (max-width: 1050px) {
+  .codelab-split-view {
+    grid-template-columns: 1fr;
+  }
+}

@@ -192,6 +192,8 @@ window.CHAR_TO_KEY[' '] = { code: 'Space', shift: false };
 window.decomposeCharToKeyStrokes = function(ch) {
   if (!ch) return [];
   if (ch === ' ') return [{ code: 'Space', shift: false, char: ' ' }];
+  if (ch === '\n') return [{ code: 'Enter', shift: false, char: '\n' }];
+  if (ch === '\t') return [{ code: 'Tab', shift: false, char: '\t' }];
 
   const code = ch.charCodeAt(0);
   // 한글 완성형 (가 ~ 힣)

@@ -36,6 +36,21 @@ class TypingReflexApp {
     // 키보드 하드웨어(HW) 입력 반응 측정 상태 초기화
     this.initHwMetrics();
 
+    // CodeLab 3대 언어(JavaScript, Python, C) 실행 & 마스터리 상태
+    this.codeRunner = new window.CodeRunner();
+    this.codeLab = {
+      lang: 'javascript', // 'javascript' | 'python' | 'c'
+      typeMode: 'flow',   // 'flow' | 'skeleton'
+      lessonIndex: 0,
+      currentLesson: null,
+      fullText: '',
+      cursorIdx: 0,
+      startTime: null,
+      totalStrokes: 0,
+      correctStrokes: 0,
+      isRunning: false
+    };
+
     // 누적 통계 (LocalStorage 연동)
     this.stats = this.loadStats();
 
@@ -148,6 +163,31 @@ class TypingReflexApp {
     this.elSubFilterBar = document.getElementById('sub-filter-bar');
     this.elSubFilterLabel = document.getElementById('sub-filter-label');
     this.elSubFilterButtons = document.getElementById('sub-filter-buttons');
+
+    // CodeLab 스테이지 요소
+    this.elCodeLabStage = document.getElementById('codelab-stage');
+    this.elCodeLangBtns = document.querySelectorAll('.codelab-lang-btn');
+    this.elCodeProblemSelect = document.getElementById('codelab-problem-select');
+    this.elCodeTypeModeBtns = document.querySelectorAll('.codelab-type-mode-btn');
+    this.elCodeRunBtn = document.getElementById('codelab-run-btn');
+    this.elCodeResetBtn = document.getElementById('codelab-reset-btn');
+    this.elCodeNextBtn = document.getElementById('codelab-next-btn');
+    this.elCodeEditorPanel = document.getElementById('codelab-editor-panel');
+    this.elCodeFilename = document.getElementById('codelab-filename');
+    this.elCodeLineNumbers = document.getElementById('codelab-line-numbers');
+    this.elCodeContent = document.getElementById('codelab-code-content');
+    this.elCodeHiddenInput = document.getElementById('codelab-hidden-input');
+    this.elCodeTierBadge = document.getElementById('codelab-tier-badge');
+    this.elCodeProblemTitle = document.getElementById('codelab-problem-title');
+    this.elCodeComplexityBadge = document.getElementById('codelab-complexity-badge');
+    this.elCodeProblemDesc = document.getElementById('codelab-problem-desc');
+    this.elCodeTestsSummary = document.getElementById('codelab-tests-summary');
+    this.elCodeTestsList = document.getElementById('codelab-tests-list');
+    this.elCodeExecTime = document.getElementById('codelab-exec-time');
+    this.elCodeConsoleOutput = document.getElementById('codelab-console-output');
+    this.elCodeKpm = document.getElementById('codelab-kpm');
+    this.elCodeAcc = document.getElementById('codelab-acc');
+    this.elCodeTime = document.getElementById('codelab-time');
 
     // 키보드 하드웨어 진단 스테이지 요소
     this.elHwPipelineVal = document.getElementById('hw-pipeline-val');
@@ -517,7 +557,7 @@ class TypingReflexApp {
   renderSubFilterButtons() {
     if (!this.elSubFilterBar || !this.elSubFilterButtons) return;
 
-    if (this.currentMode === 'hw_diagnostic') {
+    if (this.currentMode === 'hw_diagnostic' || this.currentMode === 'practice_code') {
       this.elSubFilterBar.style.display = 'none';
       return;
     }
@@ -610,12 +650,20 @@ class TypingReflexApp {
       this.elReflexStage.style.display = 'none';
       this.elPracticeStage.style.display = 'none';
       this.elHwStage.style.display = 'flex';
+      if (this.elCodeLabStage) this.elCodeLabStage.style.display = 'none';
       this.updateFingerBadge(null);
       this.updateHwDashboardUI();
+    } else if (this.currentMode === 'practice_code') {
+      this.elReflexStage.style.display = 'none';
+      this.elPracticeStage.style.display = 'none';
+      this.elHwStage.style.display = 'none';
+      if (this.elCodeLabStage) this.elCodeLabStage.style.display = 'flex';
+      this.startCodeLabMode();
     } else {
       this.elReflexStage.style.display = 'none';
       this.elPracticeStage.style.display = 'flex';
       this.elHwStage.style.display = 'none';
+      if (this.elCodeLabStage) this.elCodeLabStage.style.display = 'none';
       this.startPracticeMode();
     }
   }
@@ -1390,6 +1438,454 @@ class TypingReflexApp {
       container.appendChild(card);
     });
   }
+
+  // =========================================================================
+  // 5. KeyReflex CodeLab: 실시간 실행형 알고리즘 & 3대 언어 마스터리 엔진
+  // =========================================================================
+
+  startCodeLabMode() {
+    this.populateCodeLabProblems();
+    this.loadCodeLabLesson(this.codeLab.lang, this.codeLab.lessonIndex);
+    if (this.elCodeHiddenInput) {
+      setTimeout(() => this.elCodeHiddenInput.focus(), 80);
+    }
+  }
+
+  populateCodeLabProblems() {
+    if (!this.elCodeProblemSelect || !window.CODE_CURRICULUM) return;
+    const lessons = window.CODE_CURRICULUM[this.codeLab.lang] || [];
+    this.elCodeProblemSelect.innerHTML = '';
+
+    const tiers = {
+      1: 'Tier 1: 문법 & 연산자 (Syntax)',
+      2: 'Tier 2: 필수 자료구조 (Data Structures)',
+      3: 'Tier 3: 100대 실전 알고리즘 (Algorithms)',
+      4: 'Tier 4: 실무 디자인 패턴 (Patterns)'
+    };
+
+    const grouped = {};
+    lessons.forEach((l, idx) => {
+      if (!grouped[l.tier]) grouped[l.tier] = [];
+      grouped[l.tier].push({ ...l, index: idx });
+    });
+
+    Object.keys(grouped).sort().forEach(tierNum => {
+      const optGroup = document.createElement('optgroup');
+      optGroup.label = tiers[tierNum] || `Tier ${tierNum}`;
+      grouped[tierNum].forEach(item => {
+        const opt = document.createElement('option');
+        opt.value = item.index;
+        opt.textContent = `[T${item.tier}] ${item.title}`;
+        if (item.index === this.codeLab.lessonIndex) opt.selected = true;
+        optGroup.appendChild(opt);
+      });
+      this.elCodeProblemSelect.appendChild(optGroup);
+    });
+  }
+
+  setCodeLabLanguage(lang) {
+    if (!['javascript', 'python', 'c'].includes(lang)) return;
+    this.codeLab.lang = lang;
+    this.codeLab.lessonIndex = 0;
+
+    if (this.elCodeLangBtns) {
+      this.elCodeLangBtns.forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-codelang') === lang);
+      });
+    }
+
+    this.populateCodeLabProblems();
+    this.loadCodeLabLesson(lang, 0);
+  }
+
+  setCodeLabTypeMode(typeMode) {
+    if (!['flow', 'skeleton'].includes(typeMode)) return;
+    this.codeLab.typeMode = typeMode;
+
+    if (this.elCodeTypeModeBtns) {
+      this.elCodeTypeModeBtns.forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-typemode') === typeMode);
+      });
+    }
+
+    this.loadCodeLabLesson(this.codeLab.lang, this.codeLab.lessonIndex);
+  }
+
+  loadCodeLabLesson(lang, index) {
+    const list = window.CODE_CURRICULUM[lang] || [];
+    if (!list[index]) index = 0;
+    this.codeLab.lessonIndex = index;
+    const lesson = list[index];
+    this.codeLab.currentLesson = lesson;
+
+    const filenames = { javascript: 'solution.js', python: 'solution.py', c: 'solution.c' };
+    if (this.elCodeFilename) {
+      this.elCodeFilename.textContent = filenames[lang] || 'solution.txt';
+    }
+
+    // 모드에 따른 텍스트 설정 (Flow vs Skeleton)
+    const rawText = this.codeLab.typeMode === 'flow' ? lesson.code : lesson.skeleton;
+    this.codeLab.fullText = rawText.replace(/\r\n/g, '\n');
+    this.codeLab.cursorIdx = 0;
+    this.codeLab.startTime = null;
+    this.codeLab.totalStrokes = 0;
+    this.codeLab.correctStrokes = 0;
+
+    // 문제 설명 카드 렌더링
+    if (this.elCodeTierBadge) this.elCodeTierBadge.textContent = `Tier ${lesson.tier}`;
+    if (this.elCodeProblemTitle) this.elCodeProblemTitle.textContent = lesson.title;
+    if (this.elCodeComplexityBadge) {
+      this.elCodeComplexityBadge.textContent = `${lesson.complexity.time} | ${lesson.complexity.space}`;
+    }
+    if (this.elCodeProblemDesc) this.elCodeProblemDesc.textContent = lesson.description;
+
+    // 테스트 케이스 목록 렌더링
+    this.renderCodeLabTestsList(lesson.tests);
+    if (this.elCodeTestsSummary) {
+      this.elCodeTestsSummary.className = 'tests-summary-badge';
+      this.elCodeTestsSummary.textContent = '대기 중 ⏳';
+    }
+    if (this.elCodeConsoleOutput) {
+      this.elCodeConsoleOutput.className = 'console-output';
+      this.elCodeConsoleOutput.innerHTML = '<span class="console-placeholder">> 코드를 타이핑 완료하거나 [코드 실행]을 누르면 결과가 출력됩니다.</span>';
+    }
+    if (this.elCodeExecTime) this.elCodeExecTime.textContent = '실행 시간: -- ms';
+
+    // 에디터 렌더링
+    this.renderCodeLabEditor();
+    this.updateCodeLabTargetGuidance();
+    this.updateCodeLabMetricsUI();
+
+    if (this.elCodeHiddenInput) {
+      this.elCodeHiddenInput.value = '';
+      this.elCodeHiddenInput.focus();
+    }
+  }
+
+  renderCodeLabTestsList(tests) {
+    if (!this.elCodeTestsList) return;
+    this.elCodeTestsList.innerHTML = '';
+    (tests || []).forEach((t, i) => {
+      const item = document.createElement('div');
+      item.className = 'test-case-item';
+      item.id = `codelab-test-item-${i}`;
+      
+      const inStr = JSON.stringify(t.input);
+      const expStr = JSON.stringify(t.expected);
+
+      item.innerHTML = `
+        <div class="test-row-header">
+          <span class="test-case-name">${t.name || `테스트 ${i + 1}`}</span>
+          <span class="test-case-badge" style="color:#94a3b8">대기 중</span>
+        </div>
+        <div class="test-case-details">
+          <span>입력: <code>${inStr}</code></span>
+          <span>기대값: <code>${expStr}</code></span>
+        </div>
+      `;
+      this.elCodeTestsList.appendChild(item);
+    });
+  }
+
+  renderCodeLabEditor() {
+    if (!this.elCodeContent || !this.elCodeLineNumbers) return;
+    this.elCodeContent.innerHTML = '';
+    this.elCodeLineNumbers.innerHTML = '';
+
+    const lines = this.codeLab.fullText.split('\n');
+    let globalCharIdx = 0;
+
+    lines.forEach((line, lineIdx) => {
+      // 줄 번호
+      const numSpan = document.createElement('span');
+      numSpan.textContent = String(lineIdx + 1);
+      this.elCodeLineNumbers.appendChild(numSpan);
+
+      // 코드 줄
+      const lineDiv = document.createElement('div');
+      lineDiv.className = 'code-line';
+
+      for (let c = 0; c < line.length; c++) {
+        const charSpan = document.createElement('span');
+        const ch = line[c];
+        charSpan.className = 'code-char char-pending';
+        charSpan.setAttribute('data-idx', String(globalCharIdx));
+        
+        // 스켈레톤 블랭크 자리 식별
+        const isBlank = line.substring(c, c + 4) === '____' || 
+                        (c >= 1 && line.substring(c-1, c+3) === '____') ||
+                        (c >= 2 && line.substring(c-2, c+2) === '____') ||
+                        (c >= 3 && line.substring(c-3, c+1) === '____');
+        if (isBlank) {
+          charSpan.classList.add('blank-slot');
+        }
+
+        charSpan.textContent = ch === ' ' ? ' ' : ch;
+        lineDiv.appendChild(charSpan);
+        globalCharIdx++;
+      }
+
+      // 개행 문자 EOL 표현용 더미
+      if (lineIdx < lines.length - 1) {
+        const eolSpan = document.createElement('span');
+        eolSpan.className = 'code-char char-pending char-eol';
+        eolSpan.setAttribute('data-idx', String(globalCharIdx));
+        eolSpan.textContent = ' ';
+        lineDiv.appendChild(eolSpan);
+        globalCharIdx++;
+      }
+
+      this.elCodeContent.appendChild(lineDiv);
+    });
+
+    this.updateCodeCharClasses();
+  }
+
+  updateCodeCharClasses() {
+    if (!this.elCodeContent) return;
+    const cur = this.codeLab.cursorIdx;
+    const allChars = this.elCodeContent.querySelectorAll('.code-char');
+
+    allChars.forEach(el => {
+      const idx = parseInt(el.getAttribute('data-idx'), 10);
+      el.classList.remove('char-current', 'char-correct', 'char-incorrect');
+      if (idx < cur) {
+        el.classList.add('char-correct');
+      } else if (idx === cur) {
+        el.classList.add('char-current');
+      } else {
+        el.classList.add('char-pending');
+      }
+    });
+
+    // 활성 커서 위치로 에디터 자동 스크롤
+    const activeEl = this.elCodeContent.querySelector(`[data-idx="${cur}"]`);
+    if (activeEl && this.elCodeEditorPanel) {
+      activeEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  }
+
+  updateCodeLabTargetGuidance() {
+    const text = this.codeLab.fullText;
+    const cur = this.codeLab.cursorIdx;
+    if (cur >= text.length) {
+      this.renderer.clearTargets();
+      this.updateFingerBadge(null);
+      return;
+    }
+
+    const ch = text[cur];
+    let keyStrokes = [];
+
+    if (ch === '\n') {
+      keyStrokes = [{ code: 'Enter', shift: false, char: '\n' }];
+    } else if (ch === ' ') {
+      keyStrokes = [{ code: 'Space', shift: false, char: ' ' }];
+    } else if (ch === '\t') {
+      keyStrokes = [{ code: 'Tab', shift: false, char: '\t' }];
+    } else if (window.CHAR_TO_KEY && window.CHAR_TO_KEY[ch]) {
+      keyStrokes = [{ ...window.CHAR_TO_KEY[ch], char: ch }];
+    }
+
+    if (keyStrokes.length > 0) {
+      const stroke = keyStrokes[0];
+      this.renderer.setTargetKey(stroke.code, stroke.shift);
+
+      // 상단 손가락 안내 뱃지 갱신
+      const kData = window.KEY_MAP[stroke.code];
+      if (kData && window.FINGER_INFO[kData.finger]) {
+        const fInfo = window.FINGER_INFO[kData.finger];
+        const shiftNote = stroke.shift ? ' (Shift 동시 입력)' : '';
+        this.updateFingerBadge(`담당 손가락: ${fInfo.name} → [ ${ch === ' ' ? 'Space' : ch} ]${shiftNote}`, fInfo.color);
+      }
+    } else {
+      this.renderer.clearTargets();
+    }
+  }
+
+  handleCodeLabInputKey(ch) {
+    if (this.currentMode !== 'practice_code') return;
+    const text = this.codeLab.fullText;
+    const cur = this.codeLab.cursorIdx;
+
+    if (cur >= text.length) {
+      return;
+    }
+
+    if (!this.codeLab.startTime) {
+      this.codeLab.startTime = performance.now();
+    }
+
+    this.codeLab.totalStrokes++;
+    const targetChar = text[cur];
+
+    // 공백 4개 자동 매칭 (들여쓰기 편의: Tab 입력 시 4칸 공백 스킵 처리)
+    if (ch === 'Tab' && text.substring(cur, cur + 4) === '    ') {
+      this.codeLab.cursorIdx += 4;
+      this.codeLab.correctStrokes += 4;
+      if (window.soundEngine) window.soundEngine.playKey(true);
+      this.updateCodeCharClasses();
+      this.updateCodeLabTargetGuidance();
+      this.updateCodeLabMetricsUI();
+      return;
+    }
+
+    // 일반 문자 매칭 검사
+    const isCorrect = (ch === targetChar) || (ch === ' ' && targetChar === ' ');
+    if (isCorrect) {
+      this.codeLab.cursorIdx++;
+      this.codeLab.correctStrokes++;
+      if (window.soundEngine) window.soundEngine.playKey(true);
+
+      // 키보드 시각 피드백
+      const strokes = window.decomposeCharToKeyStrokes(targetChar);
+      if (strokes && strokes[0]) {
+        this.renderer.triggerKeyPress(strokes[0].code, true);
+      }
+    } else {
+      if (window.soundEngine) window.soundEngine.playKey(false);
+      const targetSpan = this.elCodeContent.querySelector(`[data-idx="${cur}"]`);
+      if (targetSpan) {
+        targetSpan.classList.add('char-incorrect');
+        setTimeout(() => targetSpan.classList.remove('char-incorrect'), 300);
+      }
+    }
+
+    this.updateCodeCharClasses();
+    this.updateCodeLabTargetGuidance();
+    this.updateCodeLabMetricsUI();
+
+    // 마지막 문자까지 타이핑 완료 시 자동 실행
+    if (this.codeLab.cursorIdx >= text.length) {
+      setTimeout(() => this.executeCodeLabTests(), 200);
+    }
+  }
+
+  handleCodeLabBackspace() {
+    if (this.codeLab.cursorIdx > 0) {
+      this.codeLab.cursorIdx--;
+      this.updateCodeCharClasses();
+      this.updateCodeLabTargetGuidance();
+      this.updateCodeLabMetricsUI();
+    }
+  }
+
+  advanceCodeLabNextLesson() {
+    const list = window.CODE_CURRICULUM[this.codeLab.lang] || [];
+    const nextIdx = (this.codeLab.lessonIndex + 1) % list.length;
+    if (this.elCodeProblemSelect) this.elCodeProblemSelect.value = nextIdx;
+    this.loadCodeLabLesson(this.codeLab.lang, nextIdx);
+  }
+
+  updateCodeLabMetricsUI() {
+    if (!this.elCodeKpm || !this.elCodeAcc || !this.elCodeTime) return;
+    const now = performance.now();
+    const elapsedSec = this.codeLab.startTime ? Math.max(0.1, (now - this.codeLab.startTime) / 1000) : 0;
+    
+    const kpm = elapsedSec > 0 ? Math.round((this.codeLab.correctStrokes / elapsedSec) * 60) : 0;
+    const acc = this.codeLab.totalStrokes > 0 ? Math.round((this.codeLab.correctStrokes / this.codeLab.totalStrokes) * 100) : 100;
+
+    this.elCodeKpm.textContent = String(kpm);
+    this.elCodeAcc.textContent = `${acc}%`;
+    this.elCodeTime.textContent = `${elapsedSec.toFixed(1)}s`;
+
+    // 상단 공통 지표 갱신
+    if (this.elMetricSpeed) this.elMetricSpeed.textContent = (kpm / 60).toFixed(1);
+    if (this.elMetricAccuracy) this.elMetricAccuracy.textContent = `${acc}%`;
+  }
+
+  async executeCodeLabTests() {
+    const lesson = this.codeLab.currentLesson;
+    if (!lesson) return;
+
+    if (this.elCodeTestsSummary) {
+      this.elCodeTestsSummary.className = 'tests-summary-badge';
+      this.elCodeTestsSummary.textContent = '실행 중 ⚙️...';
+    }
+
+    if (this.elCodeRunBtn) {
+      this.elCodeRunBtn.disabled = true;
+      this.elCodeRunBtn.textContent = '실행 중...';
+    }
+
+    const codeToRun = this.codeLab.typeMode === 'flow' ? lesson.code : this.codeLab.fullText;
+    let result = null;
+
+    try {
+      if (this.codeLab.lang === 'javascript') {
+        result = await this.codeRunner.runJavaScript(codeToRun, lesson.entryPoint, lesson.tests);
+      } else if (this.codeLab.lang === 'python') {
+        result = await this.codeRunner.runPython(codeToRun, lesson.entryPoint, lesson.tests, (status) => {
+          if (this.elCodeConsoleOutput) this.elCodeConsoleOutput.textContent = status;
+        });
+      } else if (this.codeLab.lang === 'c') {
+        result = this.codeRunner.runC(codeToRun, lesson.entryPoint, lesson.tests);
+      }
+    } catch (e) {
+      result = { success: false, error: e.toString(), tests: [], logs: [], allPassed: false, elapsedMs: 0 };
+    } finally {
+      if (this.elCodeRunBtn) {
+        this.elCodeRunBtn.disabled = false;
+        this.elCodeRunBtn.textContent = '▶ 코드 실행 (Ctrl+Enter)';
+      }
+    }
+
+    // 결과 렌더링
+    if (this.elCodeExecTime) {
+      this.elCodeExecTime.textContent = `실행 시간: ${result.elapsedMs || 0} ms`;
+    }
+
+    // 콘솔 출력 렌더링
+    if (this.elCodeConsoleOutput) {
+      if (result.success) {
+        this.elCodeConsoleOutput.className = 'console-output';
+        const logText = (result.logs && result.logs.length > 0) ? result.logs.join('\n') : '';
+        const summaryText = result.allPassed 
+          ? `🎉 [SUCCESS] 모든 테스트 케이스를 성공적으로 통과했습니다! (All ${lesson.tests.length}/${lesson.tests.length} Passed)`
+          : `⚠️ [FAILED] 일부 테스트 케이스에서 불일치가 발생했습니다.`;
+        this.elCodeConsoleOutput.textContent = logText ? `${logText}\n\n${summaryText}` : summaryText;
+      } else {
+        this.elCodeConsoleOutput.className = 'console-output has-error';
+        this.elCodeConsoleOutput.textContent = `[에러 발생]: ${result.error || '실행 오류'}`;
+      }
+    }
+
+    // 테스트 케이스 카드 갱신
+    if (result.tests && result.tests.length > 0) {
+      result.tests.forEach((tRes, idx) => {
+        const item = document.getElementById(`codelab-test-item-${idx}`);
+        if (item) {
+          item.className = 'test-case-item ' + (tRes.passed ? 'test-passed' : 'test-failed');
+          const badge = item.querySelector('.test-case-badge');
+          if (badge) {
+            badge.style.color = tRes.passed ? '#34d399' : '#f87171';
+            badge.textContent = tRes.passed ? '통과 ✅' : '실패 ❌';
+          }
+          let actBox = item.querySelector('.test-actual-val');
+          if (!actBox) {
+            actBox = document.createElement('div');
+            actBox.className = 'test-actual-val';
+            actBox.style.fontSize = '11px';
+            actBox.style.fontFamily = 'monospace';
+            item.appendChild(actBox);
+          }
+          actBox.innerHTML = `실제 반환값: <code style="color:${tRes.passed ? '#34d399':'#f87171'}">${JSON.stringify(tRes.actual)}</code>`;
+        }
+      });
+    }
+
+    // 요약 뱃지 갱신
+    if (this.elCodeTestsSummary) {
+      if (result.allPassed) {
+        this.elCodeTestsSummary.className = 'tests-summary-badge passed';
+        this.elCodeTestsSummary.textContent = `모두 통과 (${lesson.tests.length}/${lesson.tests.length}) ✅`;
+      } else {
+        this.elCodeTestsSummary.className = 'tests-summary-badge failed';
+        this.elCodeTestsSummary.textContent = `테스트 실패 ❌`;
+      }
+    }
+  }
+
 }
 
 window.addEventListener('DOMContentLoaded', () => {

@@ -188,10 +188,106 @@
             <span class="hw-box-val" id="hw-nkro-val">0 키 (최대 0KRO)</span>
             <span class="hw-box-sub" id="hw-chatter-sub">스위치 채터링(&lt;18ms 재입력): 정상 (0건)</span>
           </div>
+        </div>        <div class="hw-log-stream" id="hw-log-stream">
+          <span class="hw-log-placeholder">키보드를 타건하면 각 키의 정밀 하드웨어 반응 로그가 여기에 실시간 표시됩니다...</span>
+        </div>
+      </div>
+
+      <!-- 4-D. KeyReflex CodeLab: 실시간 실행형 알고리즘 & 언어 마스터리 스테이지 -->
+      <div id="codelab-stage" style="display:none;">
+        <div class="codelab-header">
+          <!-- 언어 탭 (JavaScript, Python, C) -->
+          <div class="codelab-lang-selector" role="group" aria-label="프로그래밍 언어 선택">
+            <button class="codelab-lang-btn active" data-codelang="javascript">
+              <span class="lang-icon">🟡</span> JavaScript
+            </button>
+            <button class="codelab-lang-btn" data-codelang="python">
+              <span class="lang-icon">🐍</span> Python
+            </button>
+            <button class="codelab-lang-btn" data-codelang="c">
+              <span class="lang-icon">🔷</span> C 언어
+            </button>
+          </div>
+
+          <!-- 문제/스니펫 선택 드롭다운 -->
+          <div class="codelab-problem-picker">
+            <label for="codelab-problem-select">선택 코스:</label>
+            <select id="codelab-problem-select" class="codelab-select"></select>
+          </div>
+
+          <!-- 듀얼 타건 모드 (Flow vs Skeleton) -->
+          <div class="codelab-mode-toggle" role="group" aria-label="타건 모드 선택">
+            <button class="codelab-type-mode-btn active" data-typemode="flow" title="전체 코드를 정밀하게 따라치며 구문 각인">
+              🌊 전체 타건 (Flow)
+            </button>
+            <button class="codelab-type-mode-btn" data-typemode="skeleton" title="핵심 조건문만 빈칸으로 두고 직접 인출하여 타이핑">
+              🧩 빈칸 인출 (Skeleton)
+            </button>
+          </div>
+
+          <!-- 실행 및 제어 액션 버튼 -->
+          <div class="codelab-actions">
+            <button class="codelab-run-btn" id="codelab-run-btn" title="인브라우저 샌드박스에서 즉시 실행하고 테스트 케이스 채점 (Ctrl+Enter)">
+              ▶ 코드 실행 (Ctrl+Enter)
+            </button>
+            <button class="secondary-btn" id="codelab-reset-btn" title="현재 문제 초기화">🔄 초기화</button>
+            <button class="secondary-btn" id="codelab-next-btn" title="다음 문제">⏭️ 다음</button>
+          </div>
         </div>
 
-        <div class="hw-log-stream" id="hw-log-stream">
-          <span class="hw-log-placeholder">키보드를 타건하면 각 키의 정밀 하드웨어 반응 로그가 여기에 실시간 표시됩니다...</span>
+        <!-- 메인 스플릿 뷰: 좌측 에디터 (60%) vs 우측 채점/설명 패널 (40%) -->
+        <div class="codelab-split-view">
+          <!-- 좌측: 멀티라인 코드 에디터 -->
+          <div class="codelab-editor-panel" id="codelab-editor-panel">
+            <div class="editor-header">
+              <span class="editor-filename" id="codelab-filename">solution.js</span>
+              <span class="editor-shortcut-hint">💡 줄바꿈은 Enter, 들여쓰기는 Tab/Space로 자동 처리됩니다</span>
+            </div>
+            <div class="editor-body" id="codelab-editor-body">
+              <div class="line-numbers" id="codelab-line-numbers"></div>
+              <div class="code-content" id="codelab-code-content"></div>
+              <!-- 숨김 포커스 입력기 -->
+              <textarea id="codelab-hidden-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+            </div>
+          </div>
+
+          <!-- 우측: 알고리즘 설명 및 실시간 테스트 케이스 채점 콘솔 -->
+          <div class="codelab-side-panel">
+            <!-- 문제 설명 카드 -->
+            <div class="codelab-card codelab-desc-card">
+              <div class="desc-card-header">
+                <span class="tier-pill" id="codelab-tier-badge">Tier 3</span>
+                <h3 class="problem-title" id="codelab-problem-title">이진 탐색 (Binary Search)</h3>
+                <span class="complexity-badge" id="codelab-complexity-badge">O(log N)</span>
+              </div>
+              <p class="problem-desc-text" id="codelab-problem-desc"></p>
+            </div>
+
+            <!-- 테스트 케이스 채점 결과 -->
+            <div class="codelab-card codelab-tests-card">
+              <div class="tests-card-header">
+                <h4>🧪 테스트 케이스 채점</h4>
+                <span class="tests-summary-badge" id="codelab-tests-summary">대기 중 ⏳</span>
+              </div>
+              <div class="test-cases-list" id="codelab-tests-list"></div>
+            </div>
+
+            <!-- 런타임 콘솔 & 타건 지표 -->
+            <div class="codelab-card codelab-console-card">
+              <div class="console-card-header">
+                <h4>💻 실행 콘솔 &amp; 지표</h4>
+                <span class="exec-time-pill" id="codelab-exec-time">실행 시간: -- ms</span>
+              </div>
+              <div class="console-output" id="codelab-console-output">
+                <span class="console-placeholder">> 코드를 타이핑 완료하거나 [코드 실행]을 누르면 결과가 출력됩니다.</span>
+              </div>
+              <div class="codelab-typing-metrics" id="codelab-typing-metrics">
+                <span class="metric-mini">타건 속도: <b id="codelab-kpm">0</b> KPM</span>
+                <span class="metric-mini">정확도: <b id="codelab-acc">100%</b></span>
+                <span class="metric-mini">경과 시간: <b id="codelab-time">0.0s</b></span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </main>
@@ -232,6 +328,8 @@
   <script src="js/data.js"></script>
   <script src="js/sound.js"></script>
   <script src="js/handRenderer.js?v=10.0"></script>
+    <script src="js/codeCurriculum.js"></script>
+  <script src="js/codeRunner.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
