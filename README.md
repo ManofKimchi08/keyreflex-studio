@@ -7,7 +7,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Web-success.svg)](#)
-[![Version](https://img.shields.io/badge/Release-v1.0.0-informational.svg)](https://github.com/ManofKimchi08/keyreflex-studio/releases)
+[![Version](https://img.shields.io/badge/Release-v1.1.0-informational.svg)](https://github.com/ManofKimchi08/keyreflex-studio/releases)
 [![Pure Vanilla](https://img.shields.io/badge/Tech-HTML5%20%7C%20SVG%20%7C%20Web%20Audio-orange.svg)](#)
 
 <img src="docs/images/keyreflex_main.png" alt="KeyReflex Studio 메인 화면" width="950" />
@@ -38,11 +38,39 @@
 
 ---
 
-### 3. 🎯 체계적인 7가지 연습 모드
+### 3. 💻 KeyReflex CodeLab: 3대 언어(JavaScript, Python, C) 실시간 실행형 타자 & 알고리즘 마스터리
+단순한 텍스트 입력을 넘어 **실제 동작하는 프로그래밍 언어의 구문 감각, 100대 실전 알고리즘 템플릿, 그리고 브라우저 내 즉시 실행 및 테스트 케이스 자동 채점**을 하나로 통합한 인터랙티브 코드 훈련 환경입니다.
+
+<div align="center">
+<img src="docs/images/codelab_main.png" alt="KeyReflex CodeLab 실행 화면" width="950" />
+</div>
+
+- **Tri-Engine 인브라우저 샌드박스 (Zero Configuration)**:
+  - **🟡 JavaScript (ES6+)**: Function 클로저 샌드박스 및 콘솔 가로채기로 즉시 채점
+  - **🐍 Python 3**: Pyodide WebAssembly(WASM) 기반 완전한 인브라우저 파이썬 인터프리터 구동
+  - **🔷 C 언어**: 브라우저 내장 경량 C99 가상머신으로 포인터 연산(`*a = *b`), 배열 순회, 문자열 조작 즉시 실행
+- **듀얼 타건 훈련 시스템 (Dual Practice Mode)**:
+  - **🌊 전체 타건 (Flow Mode)**: 실제 IDE와 동일하게 줄바꿈(Enter) 및 들여쓰기(Tab / 4칸 공백 스킵)를 지원하며 구문 구조 전체를 손가락 근육 기억에 각인
+  - **🧩 빈칸 인출 (Skeleton Mode)**: 핵심 조건문이나 알고리즘 로직을 `____` 빈칸으로 처리하여 머릿속에서 직접 논리를 인출해 타이핑
+- **실시간 테스트 케이스 자동 채점 (`Ctrl + Enter`)**:
+  - 작성된 코드를 즉시 실행하여 여러 개의 테스트 케이스(Input / Expected)를 대조하고 일치 여부를 실시간 검증
+  - 실행 시간(ms), 타건 속도(KPM), 정확도 종합 리포트 및 상세 콘솔 로그 제공
+- **4-Tier 체계적 프로그래밍 커리큘럼**:
+  - **Tier 1 (문법 & 연산자)**: 화살표 함수, 구조분해할당, 컴프리헨션, 포인터 스왑
+  - **Tier 2 (자료구조)**: 큐/덱(Deque), 해시맵, 동적 버퍼, 투 포인터
+  - **Tier 3 (100대 실전 알고리즘)**: 이진 탐색(Binary Search), 투 썸(Two Sum), 팰린드롬, DP 피보나치
+  - **Tier 4 (실무 디자인 패턴)**: 디바운스(Debounce), 쓰로틀(Throttle), 옵저버 패턴
+
+---
+
+### 4. 🎯 체계적인 7가지 연습 모드
 1. **⚡ 순발력 측정 (5회)**: 무작위 점등 키를 가장 빠른 반응속도로 타건하는 정밀 리플렉스 테스트.
 2. **🔥 30초 연속 리플렉스**: 30초 동안 콤보를 유지하며 최고 반응속도와 정타율을 측정하는 챌린지.
 3. **🔧 키보드 HW 반응 측정**: 스위치 작동점 및 소프트웨어 인풋 랙을 심층 분석하는 하드웨어 벤치마크.
 4. **🎯 자리 연습**: 홈 로우(기본자리), 윗자리(상단열), 아랫자리(하단열), 소지·약지 집중 훈련 선택 연습.
+5. **📝 낱말 연습**: 개발자 필수 영단어, 일상 빈출 영단어 등 테마별 단어 타자 연습.
+6. **📜 짧은 글 연습**: 소나기, 메밀꽃 필 무렵, 윤동주 시 등 한국 대표 문학 명작 타이핑.
+7. **💻 코드 연습 (CodeLab)**: JavaScript, Python, C 3대 언어 알고리즘 템플릿 실시간 타자 및 자동 채점.
 5. **📖 낱말 연습**: 엄선된 실전 한글/영문 단어 타이핑.
 6. **📜 짧은 글 연습**: 명언 및 실전 문장 연속 입력 훈련.
 7. **💻 코드 연습 (Programming Code)**: JavaScript, Python, C++, HTML 등 실제 프로그래밍 특수문자 및 예약어 타건 연습.
@@ -89,15 +117,23 @@ keyreflex-studio/
 ├── docs/
 │   └── images/              # README 및 문서용 고해상도 스크린샷
 │       ├── keyreflex_main.png
-│       └── hand_guide_comparison.png
+│       ├── hand_guide_comparison.png
+│       ├── codelab_main.png
+│       ├── codelab_python.png
+│       └── codelab_c.png
 ├── js/
 │   ├── app.js               # 핵심 훈련 모드 상태 머신 & 통계 분석 엔진
 │   ├── data.js              # ANSI 쿼티 & 두벌식 키보드 레이아웃, 한글 자모 데이터셋
 │   ├── handRenderer.js      # 2D 캐노니컬 벡터 손 실루엣 & IK 타건 애니메이션 렌더러
-│   └── sound.js             # Web Audio API 기반 기계식/무접점 타건 합성음 엔진
+│   ├── sound.js             # Web Audio API 기반 기계식/무접점 타건 합성음 엔진
+│   ├── codeCurriculum.js    # 3대 언어(JS, Python, C) 4-Tier 알고리즘 템플릿 & 테스트 케이스
+│   └── codeRunner.js        # 인브라우저 삼중 언어(JS 클로저, Pyodide WASM, C99) 실행 샌드박스
 ├── index.html               # 메인 인터페이스 (반응형 다크 모드 UI)
 ├── styles.css               # 현대적 모던 글래스모피즘 스타일시트
-├── Launcher.cs              # C# 단일 파일 임베디드 리소스 런처 소스 코드
+├── KeyReflex-Studio.exe     # 원클릭 무설치 단일 독립 데스크톱 실행 파일
+├── LICENSE                  # MIT 라이선스
+└── README.md                # 종합 프로젝트 문서
+```스 런처 소스 코드
 ├── KeyReflex-Studio.exe     # 원클릭 독립 실행 파일 (153 KB)
 └── README.md                # 종합 프로젝트 매뉴얼
 ```
