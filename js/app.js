@@ -189,6 +189,26 @@ class TypingReflexApp {
     this.elCodeAcc = document.getElementById('codelab-acc');
     this.elCodeTime = document.getElementById('codelab-time');
 
+    // CodeLab 상세 해설 & 모달 & 실시간 힌트 바 엘리먼트
+    this.elCodeTabBtns = document.querySelectorAll('.desc-tab-btn');
+    this.elCodeTabOverview = document.getElementById('codelab-tab-overview');
+    this.elCodeTabExplanation = document.getElementById('codelab-tab-explanation');
+    this.elCodeExplanationContainer = document.getElementById('codelab-explanation-container');
+    this.elCodeQuickTags = document.getElementById('codelab-quick-tags');
+    this.elCodeLineHint = document.getElementById('codelab-current-line-hint');
+    this.elCodeExplainToggleBtn = document.getElementById('codelab-explain-toggle-btn');
+    this.elCodeCardModalBtn = document.getElementById('codelab-card-modal-btn');
+    this.elCodeOpenModalBtn = document.getElementById('codelab-open-modal-btn');
+    this.elCodeModalOverlay = document.getElementById('codelab-modal-overlay');
+    this.elModalCloseBtn = document.getElementById('modal-close-btn');
+    this.elModalConfirmBtn = document.getElementById('modal-confirm-btn');
+    this.elModalProblemTitle = document.getElementById('modal-problem-title');
+    this.elModalTierBadge = document.getElementById('modal-tier-badge');
+    this.elModalLangBadge = document.getElementById('modal-lang-badge');
+    this.elModalCodeMeta = document.getElementById('modal-code-meta');
+    this.elModalCodeBlock = document.getElementById('modal-code-block');
+    this.elModalDetailsContainer = document.getElementById('modal-details-container');
+
     // 키보드 하드웨어 진단 스테이지 요소
     this.elHwPipelineVal = document.getElementById('hw-pipeline-val');
     this.elHwPipelineSub = document.getElementById('hw-pipeline-sub');
@@ -260,6 +280,155 @@ class TypingReflexApp {
           window.soundEngine.enabled = true;
           window.soundEngine.profile = val;
           window.soundEngine.playKey(true);
+        }
+      });
+    }
+
+    // ==========================================
+    // KeyReflex CodeLab 이벤트 바인딩
+    // ==========================================
+    if (this.elCodeLangBtns) {
+      this.elCodeLangBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const lang = btn.getAttribute('data-codelang');
+          this.setCodeLabLanguage(lang);
+        });
+      });
+    }
+
+    if (this.elCodeProblemSelect) {
+      this.elCodeProblemSelect.addEventListener('change', (e) => {
+        const idx = parseInt(e.target.value, 10);
+        this.loadCodeLabLesson(this.codeLab.lang, idx);
+      });
+    }
+
+    if (this.elCodeTypeModeBtns) {
+      this.elCodeTypeModeBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const mode = btn.getAttribute('data-typemode');
+          this.setCodeLabTypeMode(mode);
+        });
+      });
+    }
+
+    if (this.elCodeRunBtn) {
+      this.elCodeRunBtn.addEventListener('click', () => {
+        this.executeCodeLabTests();
+      });
+    }
+
+    if (this.elCodeResetBtn) {
+      this.elCodeResetBtn.addEventListener('click', () => {
+        this.loadCodeLabLesson(this.codeLab.lang, this.codeLab.lessonIndex);
+      });
+    }
+
+    if (this.elCodeNextBtn) {
+      this.elCodeNextBtn.addEventListener('click', () => {
+        this.advanceCodeLabNextLesson();
+      });
+    }
+
+    if (this.elCodeEditorPanel && this.elCodeHiddenInput) {
+      this.elCodeEditorPanel.addEventListener('click', () => {
+        this.elCodeHiddenInput.focus();
+      });
+    }
+
+    // 설명 탭 전환 (개요 vs 라인별 상세 해설)
+    if (this.elCodeTabBtns) {
+      this.elCodeTabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const tab = btn.getAttribute('data-desctab');
+          this.switchCodeLabDescTab(tab);
+        });
+      });
+    }
+
+    // 상단 💡 코드 상세 해설 버튼 클릭
+    if (this.elCodeExplainToggleBtn) {
+      this.elCodeExplainToggleBtn.addEventListener('click', () => {
+        const isExpActive = this.elCodeTabExplanation && this.elCodeTabExplanation.classList.contains('active');
+        if (!isExpActive) {
+          this.switchCodeLabDescTab('explanation');
+        } else {
+          this.openCodeLabModal();
+        }
+      });
+    }
+
+    // 모달 열기 버튼 (🔍 아이콘 및 푸터 버튼)
+    if (this.elCodeCardModalBtn) {
+      this.elCodeCardModalBtn.addEventListener('click', () => this.openCodeLabModal());
+    }
+    if (this.elCodeOpenModalBtn) {
+      this.elCodeOpenModalBtn.addEventListener('click', () => this.openCodeLabModal());
+    }
+
+    // 모달 닫기 버튼
+    if (this.elModalCloseBtn) {
+      this.elModalCloseBtn.addEventListener('click', () => this.closeCodeLabModal());
+    }
+    if (this.elModalConfirmBtn) {
+      this.elModalConfirmBtn.addEventListener('click', () => this.closeCodeLabModal());
+    }
+    if (this.elCodeModalOverlay) {
+      this.elCodeModalOverlay.addEventListener('click', (e) => {
+        if (e.target === this.elCodeModalOverlay) this.closeCodeLabModal();
+      });
+    }
+
+    // 전역 단축키 (F1: 해설 모달, ESC: 모달 닫기)
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'F1') {
+        if (this.currentMode === 'practice_code') {
+          e.preventDefault();
+          this.openCodeLabModal();
+        }
+      } else if (e.key === 'Escape') {
+        if (this.elCodeModalOverlay && this.elCodeModalOverlay.style.display !== 'none') {
+          this.closeCodeLabModal();
+        }
+      }
+    });
+
+    if (this.elCodeHiddenInput) {
+      this.elCodeHiddenInput.addEventListener('keydown', (e) => {
+        if (this.currentMode !== 'practice_code') return;
+
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+          e.preventDefault();
+          this.executeCodeLabTests();
+          return;
+        }
+
+        if (e.key === 'Tab') {
+          e.preventDefault();
+          this.handleCodeLabInputKey('Tab');
+          return;
+        }
+
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          this.handleCodeLabInputKey('\n');
+          return;
+        }
+
+        if (e.key === 'Backspace') {
+          e.preventDefault();
+          this.handleCodeLabBackspace();
+          return;
+        }
+      });
+
+      this.elCodeHiddenInput.addEventListener('input', (e) => {
+        if (this.currentMode !== 'practice_code') return;
+        const val = e.target.value;
+        e.target.value = '';
+        if (!val) return;
+        for (let i = 0; i < val.length; i++) {
+          this.handleCodeLabInputKey(val[i]);
         }
       });
     }
@@ -1551,10 +1720,14 @@ class TypingReflexApp {
     }
     if (this.elCodeExecTime) this.elCodeExecTime.textContent = '실행 시간: -- ms';
 
+    // 상세 해설 렌더링
+    this.renderCodeLabExplanation(lesson);
+
     // 에디터 렌더링
     this.renderCodeLabEditor();
     this.updateCodeLabTargetGuidance();
     this.updateCodeLabMetricsUI();
+    this.updateCodeLabLineHint();
 
     if (this.elCodeHiddenInput) {
       this.elCodeHiddenInput.value = '';
@@ -1727,6 +1900,7 @@ class TypingReflexApp {
       this.updateCodeCharClasses();
       this.updateCodeLabTargetGuidance();
       this.updateCodeLabMetricsUI();
+      this.updateCodeLabLineHint();
       return;
     }
 
@@ -1754,6 +1928,7 @@ class TypingReflexApp {
     this.updateCodeCharClasses();
     this.updateCodeLabTargetGuidance();
     this.updateCodeLabMetricsUI();
+    this.updateCodeLabLineHint();
 
     // 마지막 문자까지 타이핑 완료 시 자동 실행
     if (this.codeLab.cursorIdx >= text.length) {
@@ -1767,6 +1942,7 @@ class TypingReflexApp {
       this.updateCodeCharClasses();
       this.updateCodeLabTargetGuidance();
       this.updateCodeLabMetricsUI();
+      this.updateCodeLabLineHint();
     }
   }
 
@@ -1883,6 +2059,185 @@ class TypingReflexApp {
         this.elCodeTestsSummary.className = 'tests-summary-badge failed';
         this.elCodeTestsSummary.textContent = `테스트 실패 ❌`;
       }
+    }
+  }
+
+
+  // =========================================================================
+  // KeyReflex CodeLab: 코드 상세 해설 (Deep-Dive) & 모달 & 실시간 라인 힌트 로직
+  // =========================================================================
+
+  switchCodeLabDescTab(tabName) {
+    if (this.elCodeTabBtns) {
+      this.elCodeTabBtns.forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-desctab') === tabName);
+      });
+    }
+    if (this.elCodeTabOverview) {
+      this.elCodeTabOverview.classList.toggle('active', tabName === 'overview');
+    }
+    if (this.elCodeTabExplanation) {
+      this.elCodeTabExplanation.classList.toggle('active', tabName === 'explanation');
+    }
+    if (this.elCodeHiddenInput) {
+      setTimeout(() => this.elCodeHiddenInput.focus(), 60);
+    }
+  }
+
+  openCodeLabModal() {
+    const lesson = this.codeLab.currentLesson;
+    if (!lesson || !this.elCodeModalOverlay) return;
+
+    const langNames = { javascript: 'JavaScript (ES6+)', python: 'Python 3 (Pyodide)', c: 'C 언어 (C99)' };
+    if (this.elModalProblemTitle) this.elModalProblemTitle.textContent = lesson.title;
+    if (this.elModalTierBadge) this.elModalTierBadge.textContent = `Tier ${lesson.tier}`;
+    if (this.elModalLangBadge) this.elModalLangBadge.textContent = langNames[this.codeLab.lang] || this.codeLab.lang;
+    if (this.elModalCodeMeta) this.elModalCodeMeta.textContent = `${lesson.complexity.time} / ${lesson.complexity.space}`;
+    if (this.elModalCodeBlock) this.elModalCodeBlock.textContent = lesson.code;
+
+    if (this.elModalDetailsContainer) {
+      this.elModalDetailsContainer.innerHTML = this.buildExplanationHTML(lesson);
+    }
+
+    this.elCodeModalOverlay.style.display = 'flex';
+  }
+
+  closeCodeLabModal() {
+    if (this.elCodeModalOverlay) {
+      this.elCodeModalOverlay.style.display = 'none';
+    }
+    if (this.elCodeHiddenInput) {
+      setTimeout(() => this.elCodeHiddenInput.focus(), 80);
+    }
+  }
+
+  buildExplanationHTML(lesson) {
+    const exp = lesson.explanation;
+    if (!exp) {
+      return `<p style="color:#94a3b8; font-size:13px;">${lesson.description}</p>`;
+    }
+
+    const conceptsHtml = (exp.keyConcepts || []).map(c => `<span class="concept-chip">${c}</span>`).join('');
+    
+    const linesHtml = (exp.lineByLine || []).map(item => `
+      <div class="line-explain-item" data-line="${item.line}">
+        <div class="line-explain-header">
+          <span class="line-num-badge">L${item.line}</span>
+          <code class="line-code-snippet">${this.escapeHtml(item.code)}</code>
+        </div>
+        <p class="line-explain-text">${item.explain}</p>
+      </div>
+    `).join('');
+
+    const pitfallsHtml = (exp.pitfalls || []).map(p => `
+      <div class="pitfall-item">${p}</div>
+    `).join('');
+
+    return `
+      <!-- 요약 & 핵심 개념 -->
+      <div class="explain-summary-card" style="background:rgba(30,41,59,0.5); padding:12px; border-radius:10px; border:1px solid rgba(71,85,105,0.4);">
+        <p style="margin:0 0 8px 0; font-size:13px; line-height:1.6; color:#e2e8f0;">${exp.summary || lesson.description}</p>
+        <div class="concept-chips-container" style="margin:0;">${conceptsHtml}</div>
+      </div>
+
+      <!-- 라인별 상세 분석 -->
+      <div>
+        <div class="explain-section-title">📝 라인별 상세 분석 (Line-by-Line Breakdown)</div>
+        <div class="line-by-line-list" style="margin-top:8px;">${linesHtml}</div>
+      </div>
+
+      <!-- 복잡도 분석 -->
+      <div>
+        <div class="explain-section-title">⚡ 복잡도 도출 근거 (Complexity Analysis)</div>
+        <div class="complexity-box" style="margin-top:8px;">
+          <div class="complexity-row">
+            <div class="complexity-header-line">
+              <span class="complexity-tag">시간 복잡도</span>
+              <span class="complexity-val">${exp.complexity?.time || lesson.complexity.time}</span>
+            </div>
+            <span class="complexity-why">${exp.complexity?.timeWhy || ''}</span>
+          </div>
+          <div class="complexity-row" style="margin-top:6px;">
+            <div class="complexity-header-line">
+              <span class="complexity-tag">공간 복잡도</span>
+              <span class="complexity-val">${exp.complexity?.space || lesson.complexity.space}</span>
+            </div>
+            <span class="complexity-why">${exp.complexity?.spaceWhy || ''}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 실무 주의점 -->
+      <div>
+        <div class="explain-section-title">⚠️ 실무 주의점 & 모범 사례 (Pro-Tips & Pitfalls)</div>
+        <div class="pitfalls-box" style="margin-top:8px;">${pitfallsHtml}</div>
+      </div>
+    `;
+  }
+
+  escapeHtml(str) {
+    if (!str) return '';
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  renderCodeLabExplanation(lesson) {
+    if (!lesson) return;
+    const exp = lesson.explanation;
+
+    // 1. 개요 탭의 빠른 태그 렌더링
+    if (this.elCodeQuickTags) {
+      if (exp && exp.keyConcepts) {
+        this.elCodeQuickTags.innerHTML = exp.keyConcepts.map(c => `<span class="concept-chip">${c}</span>`).join('');
+      } else {
+        this.elCodeQuickTags.innerHTML = '';
+      }
+    }
+
+    // 2. 상세 해설 탭 렌더링
+    if (this.elCodeExplanationContainer) {
+      this.elCodeExplanationContainer.innerHTML = this.buildExplanationHTML(lesson);
+    }
+  }
+
+  updateCodeLabLineHint() {
+    if (!this.elCodeLineHint) return;
+    const lesson = this.codeLab.currentLesson;
+    if (!lesson) return;
+
+    // 현재 cursorIdx 위치의 라인 번호 계산 (1-based)
+    const textBefore = this.codeLab.fullText.substring(0, this.codeLab.cursorIdx);
+    const lineNum = (textBefore.match(/\n/g) || []).length + 1;
+
+    // 해당 라인의 코드 추출
+    const lines = this.codeLab.fullText.split('\n');
+    const curLineCode = lines[lineNum - 1] !== undefined ? lines[lineNum - 1].trim() : '';
+
+    // 라인별 해설 매칭
+    let explainText = '';
+    if (lesson.explanation && lesson.explanation.lineByLine) {
+      const match = lesson.explanation.lineByLine.find(item => item.line === lineNum);
+      if (match) {
+        explainText = match.explain;
+      }
+    }
+
+    if (!explainText) {
+      explainText = lesson.description || '코드를 정밀하게 입력하세요.';
+    }
+
+    this.elCodeLineHint.innerHTML = `<b>[Line ${lineNum}]</b> <span style="color:#e2e8f0; font-family:monospace; margin-right:6px;">${this.escapeHtml(curLineCode)}</span> <span style="color:#94a3b8;">→ ${this.escapeHtml(explainText)}</span>`;
+
+    // 사이드 패널 라인별 리스트의 활성 라인 하이라이트
+    if (this.elCodeExplanationContainer) {
+      this.elCodeExplanationContainer.querySelectorAll('.line-explain-item').forEach(item => {
+        const itemLine = parseInt(item.getAttribute('data-line'), 10);
+        item.classList.toggle('active-line', itemLine === lineNum);
+      });
     }
   }
 

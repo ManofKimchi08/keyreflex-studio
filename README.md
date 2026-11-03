@@ -7,7 +7,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Web-success.svg)](#)
-[![Version](https://img.shields.io/badge/Release-v1.1.0-informational.svg)](https://github.com/ManofKimchi08/keyreflex-studio/releases)
+[![Version](https://img.shields.io/badge/Release-v1.1.1-informational.svg)](https://github.com/ManofKimchi08/keyreflex-studio/releases)
 [![Pure Vanilla](https://img.shields.io/badge/Tech-HTML5%20%7C%20SVG%20%7C%20Web%20Audio-orange.svg)](#)
 
 <img src="docs/images/keyreflex_main.png" alt="KeyReflex Studio 메인 화면" width="950" />
@@ -60,6 +60,20 @@
   - **Tier 2 (자료구조)**: 큐/덱(Deque), 해시맵, 동적 버퍼, 투 포인터
   - **Tier 3 (100대 실전 알고리즘)**: 이진 탐색(Binary Search), 투 썸(Two Sum), 팰린드롬, DP 피보나치
   - **Tier 4 (실무 디자인 패턴)**: 디바운스(Debounce), 쓰로틀(Throttle), 옵저버 패턴
+- **💡 라인별 코드 상세 해설 & 핵심 원리 (Deep-Dive Explanation)**:
+  - **라인별 정밀 분석**: 코드의 각 줄이 수행하는 역할, 문법적 의미, 함수 반환값 해설 제공
+  - **실시간 라인 힌트 바**: 타이핑 중인 현재 라인 번호와 코드의 상세 해설이 에디터 하단에 실시간으로 연동되어 "내가 지금 치는 코드가 무엇을 하는지" 직관적으로 이해
+  - **복잡도 도출 근거 (Complexity Analysis)**: 왜 시간 복잡도가 $O(\log N)$인지, 왜 공간 복잡도가 $O(1)$인지 구체적 수학적/구조적 이유 서술
+  - **실무 꿀팁 & 주의사항 (Pro-Tips & Pitfalls)**: 정수 오버플로우 방지, 널 종단 문자, 얕은 복사 방지 등 실무 주의점 제시
+  - **전체 해설 모달 다이얼로그 (`단축키: F1`)**: 소스 코드 전문과 라인별 해설, 핵심 개념 칩을 전체 화면에서 시원하게 정독 가능
+
+<div align="center">
+
+| 💡 사이드 패널 라인별 상세 해설 탭 | 📖 전체 화면 코드 해설 모달 (F1) |
+| :---: | :---: |
+| <img src="docs/images/codelab_explanation_tab.png" alt="상세 해설 탭" width="460" /> | <img src="docs/images/codelab_modal_view.png" alt="전체 해설 모달" width="460" /> |
+
+</div>
 
 ---
 
@@ -120,7 +134,9 @@ keyreflex-studio/
 │       ├── hand_guide_comparison.png
 │       ├── codelab_main.png
 │       ├── codelab_python.png
-│       └── codelab_c.png
+│       ├── codelab_c.png
+│       ├── codelab_explanation_tab.png
+│       └── codelab_modal_view.png
 ├── js/
 │   ├── app.js               # 핵심 훈련 모드 상태 머신 & 통계 분석 엔진
 │   ├── data.js              # ANSI 쿼티 & 두벌식 키보드 레이아웃, 한글 자모 데이터셋
