@@ -47,29 +47,65 @@ class KeyboardHandRenderer {
 
     const defs = document.createElementNS(this.NS, 'defs');
     defs.innerHTML = `
-      <!-- 키보드 하우징 그라데이션 -->
+      <!-- Option B: 아노다이징 웜 차콜 알루미늄 섀시 그라데이션 -->
       <linearGradient id="boardBgGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stop-color="#1e293b" />
-        <stop offset="100%" stop-color="#0f172a" />
+        <stop offset="0%" stop-color="#292732" />
+        <stop offset="50%" stop-color="#1E1D25" />
+        <stop offset="100%" stop-color="#141319" />
       </linearGradient>
 
-      <!-- 기본 키캡 그라데이션 -->
-      <linearGradient id="keyCapGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stop-color="#334155" />
-        <stop offset="100%" stop-color="#1e293b" />
+      <!-- 리세스 스위치 플레이트 (딥 매트 블랙) -->
+      <linearGradient id="plateRecessGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="#0E0D12" />
+        <stop offset="100%" stop-color="#141319" />
       </linearGradient>
 
-      <!-- 정밀 캐노니컬 인간 손 필 (반투명 화이트-슬레이트) -->
+      <!-- 3D 이중사출 Alpha / Space 키캡 상단 표면 (웜 오프화이트 PBT) -->
+      <linearGradient id="keyCapAlphaGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="#F0ECE3" />
+        <stop offset="100%" stop-color="#DCD6C8" />
+      </linearGradient>
+
+      <!-- 3D Alpha 키캡 하단 베벨 스커트 -->
+      <linearGradient id="keySkirtAlphaGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="#B0A899" />
+        <stop offset="100%" stop-color="#877F72" />
+      </linearGradient>
+
+      <!-- 3D 이중사출 Modifier 키캡 상단 표면 (다크 슬레이트 차콜) -->
+      <linearGradient id="keyCapModGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="#454252" />
+        <stop offset="100%" stop-color="#2E2C38" />
+      </linearGradient>
+
+      <!-- 3D Modifier 키캡 하단 베벨 스커트 -->
+      <linearGradient id="keySkirtModGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="#24222D" />
+        <stop offset="100%" stop-color="#15141B" />
+      </linearGradient>
+
+      <!-- 3D 포인트 Accent Enter 키캡 (시그니처 앰버 오렌지) -->
+      <linearGradient id="keyCapAccentGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="#FB923C" />
+        <stop offset="100%" stop-color="#EA580C" />
+      </linearGradient>
+
+      <linearGradient id="keySkirtAccentGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="#B43D09" />
+        <stop offset="100%" stop-color="#7C2D12" />
+      </linearGradient>
+
+      <!-- 정밀 캐노니컬 인간 손 필 (반투명 웜 알라바스터) -->
       <linearGradient id="refHandFill" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stop-color="#ffffff" stop-opacity="0.94" />
-        <stop offset="50%" stop-color="#f8fafc" stop-opacity="0.90" />
-        <stop offset="100%" stop-color="#f1f5f9" stop-opacity="0.84" />
+        <stop offset="0%" stop-color="#FFFDF9" stop-opacity="0.95" />
+        <stop offset="55%" stop-color="#F7F3EA" stop-opacity="0.90" />
+        <stop offset="100%" stop-color="#EDE7DA" stop-opacity="0.84" />
       </linearGradient>
 
-      <!-- 활성(타겟) 손가락 에너제틱 오라 그라데이션 -->
+      <!-- 활성(타겟) 손가락/키 앰버 오렌지 하이라이트 그라데이션 -->
       <linearGradient id="handActiveGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.95" />
-        <stop offset="100%" stop-color="#6366f1" stop-opacity="0.85" />
+        <stop offset="0%" stop-color="#FB923C" stop-opacity="0.96" />
+        <stop offset="100%" stop-color="#EA580C" stop-opacity="0.92" />
       </linearGradient>
 
       <!-- 발광 오라 필터 -->
@@ -80,29 +116,53 @@ class KeyboardHandRenderer {
 
       <!-- 소프트 드롭 섀도우 -->
       <filter id="handShadow" x="-15%" y="-15%" width="130%" height="130%">
-        <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#020617" flood-opacity="0.45" />
+        <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#09080C" flood-opacity="0.5" />
       </filter>
     `;
     this.svg.appendChild(defs);
 
-    // 키보드 베젤 프레임
+    // 외곽 아노다이징 섀시 프레임
     const frame = document.createElementNS(this.NS, 'rect');
     frame.setAttribute('x', '10');
-    frame.setAttribute('y', '8');
+    frame.setAttribute('y', '6');
     frame.setAttribute('width', '960');
-    frame.setAttribute('height', '340');
-    frame.setAttribute('rx', '18');
+    frame.setAttribute('height', '344');
+    frame.setAttribute('rx', '16');
     frame.setAttribute('fill', 'url(#boardBgGrad)');
-    frame.setAttribute('stroke', '#334155');
+    frame.setAttribute('stroke', '#3C3847');
     frame.setAttribute('stroke-width', '2');
     this.svg.appendChild(frame);
+
+    // 내부 리세스 스위치 플레이트
+    const plate = document.createElementNS(this.NS, 'rect');
+    plate.setAttribute('x', '19');
+    plate.setAttribute('y', '15');
+    plate.setAttribute('width', '942');
+    plate.setAttribute('height', '326');
+    plate.setAttribute('rx', '10');
+    plate.setAttribute('fill', 'url(#plateRecessGrad)');
+    plate.setAttribute('stroke', '#25232E');
+    plate.setAttribute('stroke-width', '1');
+    this.svg.appendChild(plate);
+
+    // 코너 CNC 육각 나사 디테일
+    [[16, 12], [964, 12], [16, 344], [964, 344]].forEach(([sx, sy]) => {
+      const screw = document.createElementNS(this.NS, 'circle');
+      screw.setAttribute('cx', String(sx));
+      screw.setAttribute('cy', String(sy));
+      screw.setAttribute('r', '2.5');
+      screw.setAttribute('fill', '#22202A');
+      screw.setAttribute('stroke', '#4A4658');
+      screw.setAttribute('stroke-width', '0.9');
+      this.svg.appendChild(screw);
+    });
 
     // 키보드 레이어
     this.keyboardGroup = document.createElementNS(this.NS, 'g');
     this.keyboardGroup.setAttribute('id', 'keyboard-layer');
     this.svg.appendChild(this.keyboardGroup);
 
-    // 키캡 생성
+    // 3D 이중사출 PBT 키캡 생성
     window.KEYBOARD_ROWS.forEach((row, rIdx) => {
       let curX = this.START_X;
       const curY = this.START_Y + rIdx * (this.ROW_H + this.GAP);
@@ -111,78 +171,105 @@ class KeyboardHandRenderer {
         const kw = Math.round(key.w * this.UNIT + (key.w - 1) * this.GAP);
         const kh = this.ROW_H;
         key.cx = Math.round(curX + kw / 2);
-        key.cy = Math.round(curY + kh / 2);
+        key.cy = Math.round(curY + (kh - 4) / 2);
         key.wPx = kw;
         key.hPx = kh;
 
+        const isAccent = key.code === 'Enter';
+        const isDarkMod = Boolean(key.isModifier) && !isAccent && key.code !== 'Space';
+        const roleClass = isAccent ? 'key-role-accent' : (isDarkMod ? 'key-role-mod' : 'key-role-alpha');
+
         const g = document.createElementNS(this.NS, 'g');
-        g.setAttribute('class', `key-unit key-${key.code}`);
+        g.setAttribute('class', `key-unit key-group ${roleClass} key-${key.code}`);
         g.setAttribute('data-code', key.code);
 
+        // 1) 3D 키캡 하단 스커트/베벨 립
+        const skirt = document.createElementNS(this.NS, 'rect');
+        skirt.setAttribute('class', 'key-skirt');
+        skirt.setAttribute('x', curX);
+        skirt.setAttribute('y', curY + 1);
+        skirt.setAttribute('width', kw);
+        skirt.setAttribute('height', kh - 1);
+        skirt.setAttribute('rx', '8');
+        skirt.setAttribute('fill', isAccent ? 'url(#keySkirtAccentGrad)' : (isDarkMod ? 'url(#keySkirtModGrad)' : 'url(#keySkirtAlphaGrad)'));
+        skirt.setAttribute('stroke', isDarkMod ? '#111015' : (isAccent ? '#68210B' : '#6F685D'));
+        skirt.setAttribute('stroke-width', '1');
+        g.appendChild(skirt);
+
+        // 2) 스컬프티드 상단 키 표면 (.key-cap)
+        const dishW = kw - 6;
+        const dishH = kh - 8;
+        const dishX = curX + 3;
+        const dishY = curY + 1.5;
+
         const rect = document.createElementNS(this.NS, 'rect');
-        rect.setAttribute('x', curX);
-        rect.setAttribute('y', curY);
-        rect.setAttribute('width', kw);
-        rect.setAttribute('height', kh);
-        rect.setAttribute('rx', '8');
-        rect.setAttribute('fill', 'url(#keyCapGrad)');
-        rect.setAttribute('stroke', '#475569');
-        rect.setAttribute('stroke-width', '1.5');
+        rect.setAttribute('class', 'key-cap');
+        rect.setAttribute('x', dishX);
+        rect.setAttribute('y', dishY);
+        rect.setAttribute('width', dishW);
+        rect.setAttribute('height', dishH);
+        rect.setAttribute('rx', '6');
+        rect.setAttribute('fill', isAccent ? 'url(#keyCapAccentGrad)' : (isDarkMod ? 'url(#keyCapModGrad)' : 'url(#keyCapAlphaGrad)'));
+        rect.setAttribute('stroke', isAccent ? '#FDBA74' : (isDarkMod ? '#524E61' : '#FAF7F0'));
+        rect.setAttribute('stroke-opacity', isDarkMod ? '0.45' : '0.8');
+        rect.setAttribute('stroke-width', '1');
         g.appendChild(rect);
 
+        // 3) 운지 구역 / 타겟 발광 오버레이 (.zone-tint)
         const zoneTint = document.createElementNS(this.NS, 'rect');
-        zoneTint.setAttribute('x', curX);
-        zoneTint.setAttribute('y', curY);
-        zoneTint.setAttribute('width', kw);
-        zoneTint.setAttribute('height', kh);
-        zoneTint.setAttribute('rx', '8');
+        zoneTint.setAttribute('x', dishX);
+        zoneTint.setAttribute('y', dishY);
+        zoneTint.setAttribute('width', dishW);
+        zoneTint.setAttribute('height', dishH);
+        zoneTint.setAttribute('rx', '6');
         zoneTint.setAttribute('class', 'zone-tint');
         const fInfo = window.FINGER_INFO[key.finger];
-        zoneTint.setAttribute('fill', fInfo ? fInfo.lightColor : 'transparent');
+        zoneTint.setAttribute('fill', fInfo ? fInfo.color : 'transparent');
+        zoneTint.setAttribute('fill-opacity', this.showFingerZoneColors && fInfo ? (isDarkMod ? '0.18' : '0.16') : '0');
         zoneTint.setAttribute('stroke', fInfo ? fInfo.color : 'transparent');
-        zoneTint.setAttribute('stroke-width', '1.5');
-        zoneTint.setAttribute('stroke-opacity', '0.35');
+        zoneTint.setAttribute('stroke-width', '1.75');
+        zoneTint.setAttribute('stroke-opacity', this.showFingerZoneColors && fInfo ? '0.68' : '0');
         g.appendChild(zoneTint);
 
         if (key.code === 'KeyF' || key.code === 'KeyJ') {
           const bump = document.createElementNS(this.NS, 'rect');
           bump.setAttribute('x', key.cx - 8);
-          bump.setAttribute('y', curY + kh - 12);
+          bump.setAttribute('y', curY + dishH - 6);
           bump.setAttribute('width', 16);
-          bump.setAttribute('height', 3);
-          bump.setAttribute('rx', 1.5);
-          bump.setAttribute('fill', '#94a3b8');
-          bump.setAttribute('opacity', '0.7');
+          bump.setAttribute('height', 2.5);
+          bump.setAttribute('rx', 1.25);
+          bump.setAttribute('fill', '#6F685D');
+          bump.setAttribute('opacity', '0.85');
           g.appendChild(bump);
         }
 
         const mainLabel = document.createElementNS(this.NS, 'text');
         mainLabel.setAttribute('class', 'key-label-main');
         mainLabel.setAttribute('x', key.cx);
-        mainLabel.setAttribute('y', key.cy + (key.isModifier || key.code === 'Space' ? 4 : 5));
+        mainLabel.setAttribute('y', curY + Math.round(dishH / 2) + (key.isModifier || key.code === 'Space' ? 6 : 7));
         mainLabel.setAttribute('text-anchor', 'middle');
-        mainLabel.setAttribute('fill', '#f1f5f9');
-        mainLabel.setAttribute('font-size', key.isModifier ? '12px' : '15px');
-        mainLabel.setAttribute('font-weight', '700');
+        mainLabel.setAttribute('fill', isAccent ? '#FFFFFF' : (isDarkMod ? '#ECE8DF' : '#1E1B24'));
+        mainLabel.setAttribute('font-size', key.isModifier ? '11.5px' : '15px');
+        mainLabel.setAttribute('font-weight', '800');
         g.appendChild(mainLabel);
 
         const subLabel = document.createElementNS(this.NS, 'text');
         subLabel.setAttribute('class', 'key-label-sub');
-        subLabel.setAttribute('x', curX + 9);
-        subLabel.setAttribute('y', curY + 15);
-        subLabel.setAttribute('fill', '#64748b');
-        subLabel.setAttribute('font-size', '10px');
-        subLabel.setAttribute('font-weight', '600');
+        subLabel.setAttribute('x', dishX + 6);
+        subLabel.setAttribute('y', dishY + 12);
+        subLabel.setAttribute('fill', isAccent ? '#FFEDD5' : (isDarkMod ? '#9E99A8' : '#736C61'));
+        subLabel.setAttribute('font-size', '9.5px');
+        subLabel.setAttribute('font-weight', '700');
         g.appendChild(subLabel);
 
         const metricLabel = document.createElementNS(this.NS, 'text');
         metricLabel.setAttribute('class', 'key-metric-label');
         metricLabel.setAttribute('x', key.cx);
-        metricLabel.setAttribute('y', curY + kh - 6);
+        metricLabel.setAttribute('y', curY + dishH - 2);
         metricLabel.setAttribute('text-anchor', 'middle');
-        metricLabel.setAttribute('fill', '#38bdf8');
+        metricLabel.setAttribute('fill', isDarkMod || isAccent ? '#2DD4BF' : '#0F766E');
         metricLabel.setAttribute('font-size', '9px');
-        metricLabel.setAttribute('font-weight', '700');
+        metricLabel.setAttribute('font-weight', '800');
         metricLabel.style.display = 'none';
         g.appendChild(metricLabel);
 
@@ -195,7 +282,9 @@ class KeyboardHandRenderer {
           zoneTint: zoneTint,
           mainLabel: mainLabel,
           subLabel: subLabel,
-          metricLabel: metricLabel
+          metricLabel: metricLabel,
+          isDarkMod,
+          isAccent
         };
 
         curX += kw + this.GAP;
@@ -467,13 +556,34 @@ class KeyboardHandRenderer {
     }
   }
 
+  /**
+   * 기본 운지 구역 오버레이 스타일 복원 (공용 헬퍼)
+   */
+  applyIdleZoneAppearance(keyEl) {
+    if (!keyEl) return;
+    const fInfo = window.FINGER_INFO[keyEl.data.finger];
+    if (this.showFingerZoneColors && fInfo) {
+      keyEl.zoneTint.setAttribute('fill', fInfo.color);
+      keyEl.zoneTint.setAttribute('fill-opacity', keyEl.isDarkMod ? '0.18' : '0.16');
+      keyEl.zoneTint.setAttribute('stroke', fInfo.color);
+      keyEl.zoneTint.setAttribute('stroke-opacity', '0.68');
+    } else {
+      keyEl.zoneTint.setAttribute('fill', 'transparent');
+      keyEl.zoneTint.setAttribute('fill-opacity', '0');
+      keyEl.zoneTint.setAttribute('stroke', 'transparent');
+      keyEl.zoneTint.setAttribute('stroke-opacity', '0');
+    }
+  }
+
   highlightKeyAndMoveFinger(code, fingerId, isTarget = true) {
     const keyEl = this.keyElements[code];
     if (keyEl) {
       this.activeTargetCodes.add(code);
-      keyEl.group.classList.add('key-target');
+      keyEl.group.classList.add('key-target', 'is-target');
       keyEl.zoneTint.setAttribute('fill', 'url(#handActiveGrad)');
-      keyEl.zoneTint.setAttribute('stroke-opacity', '0.8');
+      keyEl.zoneTint.setAttribute('fill-opacity', '0.96');
+      keyEl.zoneTint.setAttribute('stroke', '#FED7AA');
+      keyEl.zoneTint.setAttribute('stroke-opacity', '0.95');
     }
 
     const f = this.fingerStates[fingerId];
@@ -497,13 +607,8 @@ class KeyboardHandRenderer {
     this.activeTargetCodes.forEach((code) => {
       const keyEl = this.keyElements[code];
       if (keyEl) {
-        keyEl.group.classList.remove('key-target');
-        const fInfo = window.FINGER_INFO[keyEl.data.finger];
-        keyEl.zoneTint.setAttribute(
-          'fill',
-          this.showFingerZoneColors && fInfo ? fInfo.lightColor : 'transparent'
-        );
-        keyEl.zoneTint.setAttribute('stroke-opacity', this.showFingerZoneColors ? '0.35' : '0');
+        keyEl.group.classList.remove('key-target', 'is-target');
+        this.applyIdleZoneAppearance(keyEl);
       }
     });
     this.activeTargetCodes.clear();
@@ -616,11 +721,9 @@ class KeyboardHandRenderer {
    */
   setShowZoneColors(show) {
     this.showFingerZoneColors = show;
-    Object.values(this.keyElements).forEach(({ data, zoneTint }) => {
-      if (this.activeTargetCodes.has(data.code)) return;
-      const fInfo = window.FINGER_INFO[data.finger];
-      zoneTint.setAttribute('fill', show && fInfo ? fInfo.lightColor : 'transparent');
-      zoneTint.setAttribute('stroke-opacity', show ? '0.35' : '0');
+    Object.values(this.keyElements).forEach((keyEl) => {
+      if (this.activeTargetCodes.has(keyEl.data.code)) return;
+      this.applyIdleZoneAppearance(keyEl);
     });
 
     if (this.fingerLabelElements) {
@@ -635,34 +738,38 @@ class KeyboardHandRenderer {
    */
   renderHeatmap(keyStats) {
     this.heatmapMode = !this.heatmapMode;
-    Object.values(this.keyElements).forEach(({ data, zoneTint, metricLabel }) => {
+    Object.values(this.keyElements).forEach((keyEl) => {
+      const { data, group, zoneTint, metricLabel } = keyEl;
       if (!this.heatmapMode) {
+        group.classList.remove('is-heatmap');
         metricLabel.style.display = 'none';
-        const fInfo = window.FINGER_INFO[data.finger];
-        zoneTint.setAttribute(
-          'fill',
-          this.showFingerZoneColors && fInfo ? fInfo.lightColor : 'transparent'
-        );
+        this.applyIdleZoneAppearance(keyEl);
         return;
       }
 
+      group.classList.add('is-heatmap');
       const stat = keyStats[data.code];
       if (stat && stat.count > 0) {
         const ms = Math.round(stat.totalMs / stat.count);
         metricLabel.textContent = `${ms}ms`;
         metricLabel.style.display = 'block';
 
-        let color = 'rgba(74, 222, 128, 0.4)';
-        if (ms > 350) color = 'rgba(239, 68, 68, 0.5)';
-        else if (ms > 220) color = 'rgba(251, 191, 36, 0.45)';
-        else if (ms > 150) color = 'rgba(56, 189, 248, 0.4)';
+        let color = '#14B8A6';
+        if (ms > 350) color = '#E11D48';
+        else if (ms > 220) color = '#F97316';
+        else if (ms > 150) color = '#0284C7';
 
         zoneTint.setAttribute('fill', color);
+        zoneTint.setAttribute('fill-opacity', '0.42');
+        zoneTint.setAttribute('stroke', color);
+        zoneTint.setAttribute('stroke-opacity', '0.9');
       } else {
         metricLabel.style.display = 'none';
         zoneTint.setAttribute('fill', 'transparent');
+        zoneTint.setAttribute('fill-opacity', '0');
       }
     });
+    return this.heatmapMode;
   }
 }
 

@@ -62,6 +62,55 @@ class SoundEngine {
       gain.connect(this.ctx.destination);
       osc.start(now);
       osc.stop(now + 0.06);
+    } else if (this.profile === 'tactile') {
+      // 갈축(Brown) 쫀득한 2단 택타일 타건음
+      const pitchShift = (Math.random() - 0.5) * 35;
+      const bumpOsc = this.ctx.createOscillator();
+      const bumpGain = this.ctx.createGain();
+      bumpOsc.type = 'triangle';
+      bumpOsc.frequency.setValueAtTime(1750 + pitchShift, now);
+      bumpOsc.frequency.exponentialRampToValueAtTime(680, now + 0.013);
+      bumpGain.gain.setValueAtTime(0.14, now);
+      bumpGain.gain.exponentialRampToValueAtTime(0.001, now + 0.015);
+      bumpOsc.connect(bumpGain);
+      bumpGain.connect(this.ctx.destination);
+      bumpOsc.start(now);
+      bumpOsc.stop(now + 0.016);
+
+      const bodyOsc = this.ctx.createOscillator();
+      const bodyGain = this.ctx.createGain();
+      bodyOsc.type = 'triangle';
+      bodyOsc.frequency.setValueAtTime(220 + pitchShift * 0.4, now + 0.008);
+      bodyOsc.frequency.exponentialRampToValueAtTime(78, now + 0.048);
+      bodyGain.gain.setValueAtTime(0.001, now);
+      bodyGain.gain.setValueAtTime(0.23, now + 0.008);
+      bodyGain.gain.exponentialRampToValueAtTime(0.001, now + 0.052);
+      bodyOsc.connect(bodyGain);
+      bodyGain.connect(this.ctx.destination);
+      bodyOsc.start(now + 0.008);
+      bodyOsc.stop(now + 0.055);
+    } else if (this.profile === 'linear') {
+      // 적축(Red) 정숙하고 부드러운 리니어 타건음
+      const pitchShift = (Math.random() - 0.5) * 18;
+      const osc = this.ctx.createOscillator();
+      const filter = this.ctx.createBiquadFilter();
+      const gain = this.ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(160 + pitchShift, now);
+      osc.frequency.exponentialRampToValueAtTime(60, now + 0.044);
+
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(720, now);
+
+      gain.gain.setValueAtTime(0.24, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.054);
     } else if (this.profile === 'clicky') {
       // 경쾌한 청축 클릭음
       const osc = this.ctx.createOscillator();

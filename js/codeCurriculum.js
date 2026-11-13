@@ -626,6 +626,165 @@ window.CODE_CURRICULUM = {
       tests: [
         { input: ['KeyReflex'], expected: 'Saved: KeyReflex', name: '값 업데이트' }
       ]
+    },
+    {
+      id: 'js_lru_cache_map',
+      title: 'Map 순서 보장을 이용한 O(1) LRU 캐시',
+      tier: 4,
+      category: 'Design Pattern',
+      complexity: { time: 'O(1)', space: 'O(K)' },
+      description: 'ES6 Map의 삽입 순서 유지 특성을 이용해 최근 사용 순서(LRU) 기반 캐시 시뮬레이터를 구현합니다.',
+      explanation: {
+      "summary": "ES6 Map은 키의 삽입 순서를 O(1)로 유지하므로, 조회/갱신 시 키를 삭제 후 재삽입하면 가장 앞(keys().next().value)이 가장 오래된(LRU) 항목이 됩니다.",
+      "keyConcepts": [
+            "LRU 캐시 교체 알고리즘",
+            "ES6 Map 삽입 순서 보장",
+            "구조분해할당 ([op, k, v])",
+            "Iterator (.keys().next().value)"
+      ],
+      "lineByLine": [
+            {
+                  "line": 1,
+                  "code": "function simulateLRU(capacity, ops) {",
+                  "explain": "캐시 최대 용량 capacity와 연산 목록 ops를 받아 get 결과를 반환하는 함수입니다."
+            },
+            {
+                  "line": 2,
+                  "code": "    const cache = new Map();",
+                  "explain": "키-값 쌍을 삽입 순서대로 O(1)에 관리할 Map 인스턴스를 생성합니다."
+            },
+            {
+                  "line": 3,
+                  "code": "    const out = [];",
+                  "explain": "get 연산의 조회 결과들을 순서대로 담을 결과 배열입니다."
+            },
+            {
+                  "line": 4,
+                  "code": "    for (const [op, k, v] of ops) {",
+                  "explain": "배열 구조분해할당으로 연산 타입(get/put), 키 k, 값 v를 꺼내며 순회합니다."
+            },
+            {
+                  "line": 5,
+                  "code": "        if (op === 'get') {",
+                  "explain": "캐시 조회 연산인 경우를 분기합니다."
+            },
+            {
+                  "line": 6,
+                  "code": "            if (!cache.has(k)) { out.push(-1); continue; }",
+                  "explain": "캐시 미스(Miss)이면 -1을 기록하고 다음 연산으로 넘어갑니다."
+            },
+            {
+                  "line": 7,
+                  "code": "            const val = cache.get(k);",
+                  "explain": "저장된 값을 임시 변수 val에 읽어옵니다."
+            },
+            {
+                  "line": 8,
+                  "code": "            cache.delete(k);",
+                  "explain": "방금 조회된 키를 최신 위치로 옮기기 위해 기존 순서에서 삭제합니다."
+            },
+            {
+                  "line": 9,
+                  "code": "            cache.set(k, val);",
+                  "explain": "맨 뒤(가장 최근 사용 위치)에 다시 삽입하여 LRU 순서를 갱신합니다."
+            },
+            {
+                  "line": 10,
+                  "code": "            out.push(val);",
+                  "explain": "캐시 히트 값을 결과 배열에 추가합니다."
+            },
+            {
+                  "line": 11,
+                  "code": "        } else if (op === 'put') {",
+                  "explain": "캐시 저장/갱신 연산인 경우입니다."
+            },
+            {
+                  "line": 12,
+                  "code": "            if (cache.has(k)) cache.delete(k);",
+                  "explain": "이미 존재하는 키라면 위치 갱신을 위해 기존 엔트리를 삭제합니다."
+            },
+            {
+                  "line": 13,
+                  "code": "            else if (cache.size >= capacity) cache.delete(cache.keys().next().value);",
+                  "explain": "새 키인데 용량이 꽉 찼다면 가장 오래전 삽입된 첫 번째 키를 O(1)로 축출(Evict)합니다."
+            },
+            {
+                  "line": 14,
+                  "code": "            cache.set(k, v);",
+                  "explain": "새 엔트리를 가장 최근(맨 뒤) 위치에 저장합니다."
+            },
+            {
+                  "line": 15,
+                  "code": "        }",
+                  "explain": "연산 분기 종료"
+            },
+            {
+                  "line": 16,
+                  "code": "    }",
+                  "explain": "ops 반복문 종료"
+            },
+            {
+                  "line": 17,
+                  "code": "    return out;",
+                  "explain": "누적된 모든 get 조회 결과를 반환합니다."
+            },
+            {
+                  "line": 18,
+                  "code": "}",
+                  "explain": "함수 종료"
+            }
+      ],
+      "complexity": {
+            "time": "O(1)",
+            "timeWhy": "Map의 has/get/delete/set과 keys().next()가 모두 평균 O(1) 상수 시간에 처리되므로 연산당 O(1)입니다.",
+            "space": "O(K)",
+            "spaceWhy": "최대 capacity(K)개의 엔트리만 Map에 유지되므로 공간 복잡도는 O(K)입니다."
+      },
+      "pitfalls": [
+            "일반 객체({})는 정수처럼 보이는 문자열 키('2', '10')를 숫자 오름차순으로 정렬해 버리므로 LRU 캐시에는 반드시 Map을 사용해야 합니다."
+      ]
+},
+      entryPoint: 'simulateLRU',
+      code: `function simulateLRU(capacity, ops) {
+    const cache = new Map();
+    const out = [];
+    for (const [op, k, v] of ops) {
+        if (op === 'get') {
+            if (!cache.has(k)) { out.push(-1); continue; }
+            const val = cache.get(k);
+            cache.delete(k);
+            cache.set(k, val);
+            out.push(val);
+        } else if (op === 'put') {
+            if (cache.has(k)) cache.delete(k);
+            else if (cache.size >= capacity) cache.delete(cache.keys().next().value);
+            cache.set(k, v);
+        }
+    }
+    return out;
+}`,
+      skeleton: `function simulateLRU(capacity, ops) {
+    const cache = new Map();
+    const out = [];
+    for (const [op, k, v] of ops) {
+        if (op === 'get') {
+            if (!cache.has(k)) { out.push(-1); continue; }
+            const val = cache.get(k);
+            ____;
+            cache.set(k, ____);
+            out.push(val);
+        } else if (op === 'put') {
+            if (cache.has(k)) cache.delete(k);
+            else if (cache.size >= capacity) cache.delete(____);
+            cache.set(k, v);
+        }
+    }
+    return out;
+}`,
+      tests: [
+        { input: [2, [['put', 1, 10], ['put', 2, 20], ['get', 1], ['put', 3, 30], ['get', 2], ['get', 3]]], expected: [10, -1, 30], name: '용량 초과 시 LRU 축출' },
+        { input: [2, [['put', 1, 1], ['put', 2, 2], ['put', 1, 100], ['put', 3, 3], ['get', 2], ['get', 1]]], expected: [-1, 100], name: 'put 갱신 시 최근 사용 순서 반영' }
+      ]
     }
   ],
 
@@ -751,32 +910,32 @@ window.CODE_CURRICULUM = {
                   "explain": "양방향 큐 자료구조인 deque 클래스를 표준 라이브러리에서 가져옵니다."
             },
             {
-                  "line": 2,
+                  "line": 3,
                   "code": "def rotate_queue(items: list, k: int) -> list:",
                   "explain": "리스트 items와 회전 횟수 k를 입력받는 함수를 정의합니다."
             },
             {
-                  "line": 3,
+                  "line": 4,
                   "code": "    q = deque(items)",
                   "explain": "일반 리스트를 O(1) 앞뒤 삽입/삭제가 가능한 deque 객체로 변환합니다."
             },
             {
-                  "line": 4,
+                  "line": 5,
                   "code": "    for _ in range(k):",
                   "explain": "k번 회전 동작을 반복합니다."
             },
             {
-                  "line": 5,
+                  "line": 6,
                   "code": "        if q:",
                   "explain": "큐가 비어있는 상태에서 popleft 시 에러가 나지 않도록 방어합니다."
             },
             {
-                  "line": 6,
+                  "line": 7,
                   "code": "            q.append(q.popleft())",
                   "explain": "맨 앞의 요소를 O(1)로 꺼내어(popleft) 맨 뒤로 다시 붙여(append) 원형 회전을 수행합니다."
             },
             {
-                  "line": 7,
+                  "line": 8,
                   "code": "    return list(q)",
                   "explain": "최종 회전된 deque를 다시 표준 파이썬 리스트로 변환하여 반환합니다."
             }
@@ -811,6 +970,110 @@ def rotate_queue(items: list, k: int) -> list:
       tests: [
         { input: [[1, 2, 3, 4, 5], 2], expected: [3, 4, 5, 1, 2], name: '2회 회전' },
         { input: [['a', 'b', 'c'], 3], expected: ['a', 'b', 'c'], name: '제자리 회전' }
+      ]
+    },
+    {
+      id: 'py_stack_brackets',
+      title: '스택(Stack)을 이용한 올바른 괄호 검사',
+      tier: 2,
+      category: 'Data Structure',
+      complexity: { time: 'O(N)', space: 'O(N)' },
+      description: '파이썬 리스트를 스택(LIFO)으로 사용하고 딕셔너리로 괄호 짝을 매핑하여 문자열 s의 유효성을 판별합니다.',
+      explanation: {
+      "summary": "여는 괄호는 스택에 push하고 닫는 괄호가 나올 때 스택 최상단과 딕셔너리 매핑 값이 일치하는지 pop()으로 검증하는 전형적인 LIFO 스택 패턴입니다.",
+      "keyConcepts": [
+            "스택 자료구조 (LIFO)",
+            "딕셔너리 괄호 매핑",
+            "조기 반환 (Early Return)",
+            "Truthiness (not stack)"
+      ],
+      "lineByLine": [
+            {
+                  "line": 1,
+                  "code": "def is_valid_brackets(s: str) -> bool:",
+                  "explain": "괄호 문자열 s를 받아 모든 괄호가 올바르게 짝지어졌는지 bool로 반환합니다."
+            },
+            {
+                  "line": 2,
+                  "code": "    pairs = {')': '(', ']': '[', '}': '{'}",
+                  "explain": "닫는 괄호를 키(Key)로, 짝이 되는 여는 괄호를 값(Value)으로 매핑한 딕셔너리를 정의합니다."
+            },
+            {
+                  "line": 3,
+                  "code": "    stack = []",
+                  "explain": "미결된 여는 괄호들을 쌓아둘 빈 리스트(스택)를 초기화합니다."
+            },
+            {
+                  "line": 4,
+                  "code": "    for ch in s:",
+                  "explain": "입력 문자열의 각 문자를 왼쪽부터 순서대로 탐색합니다."
+            },
+            {
+                  "line": 5,
+                  "code": "        if ch in pairs:",
+                  "explain": "현재 문자가 닫는 괄호(), ], } 중 하나인지 딕셔너리 조회로 확인합니다."
+            },
+            {
+                  "line": 6,
+                  "code": "            if not stack or stack.pop() != pairs[ch]:",
+                  "explain": "스택이 비어 있거나 맨 위 여는 괄호가 현재 닫는 괄호의 짝과 다르면 즉시 False를 반환합니다."
+            },
+            {
+                  "line": 7,
+                  "code": "                return False",
+                  "explain": "올바르지 않은 괄호 쌍을 발견해 조기 종료합니다."
+            },
+            {
+                  "line": 8,
+                  "code": "        else:",
+                  "explain": "여는 괄호((, [, {)인 경우 분기합니다."
+            },
+            {
+                  "line": 9,
+                  "code": "            stack.append(ch)",
+                  "explain": "여는 괄호를 스택 최상단에 push합니다."
+            },
+            {
+                  "line": 10,
+                  "code": "    return len(stack) == 0",
+                  "explain": "순회 후 스택이 완전히 비어 있어야만 모든 여는 괄호가 정상적으로 닫힌 것입니다."
+            }
+      ],
+      "complexity": {
+            "time": "O(N)",
+            "timeWhy": "문자열 길이 N만큼 한 번 순회하며 스택의 append/pop과 딕셔너리 조회 모두 O(1)입니다.",
+            "space": "O(N)",
+            "spaceWhy": "모든 문자가 여는 괄호인 최악의 경우 스택에 최대 N개 문자가 저장됩니다."
+      },
+      "pitfalls": [
+            "루프 종료 후 단순히 True를 반환하면 '((('처럼 닫히지 않은 여는 괄호가 남았을 때 오답이 되므로 반드시 스택 공백 여부를 검사해야 합니다."
+      ]
+},
+      entryPoint: 'is_valid_brackets',
+      code: `def is_valid_brackets(s: str) -> bool:
+    pairs = {')': '(', ']': '[', '}': '{'}
+    stack = []
+    for ch in s:
+        if ch in pairs:
+            if not stack or stack.pop() != pairs[ch]:
+                return False
+        else:
+            stack.append(ch)
+    return len(stack) == 0`,
+      skeleton: `def is_valid_brackets(s: str) -> bool:
+    pairs = {')': '(', ']': '[', '}': '{'}
+    stack = []
+    for ch in s:
+        if ch in pairs:
+            if not stack or ____ != pairs[ch]:
+                return False
+        else:
+            stack.append(ch)
+    return ____`,
+      tests: [
+        { input: ['({[]})'], expected: true, name: '중첩 괄호 통과' },
+        { input: ['(]'], expected: false, name: '불일치 괄호 실패' },
+        { input: ['((('], expected: false, name: '미닫힘 괄호 검출' }
       ]
     },
     {
@@ -1103,6 +1366,252 @@ def rotate_queue(items: list, k: int) -> list:
         { input: [1], expected: 1, name: '1번째 수' },
         { input: [10], expected: 55, name: '10번째 수' }
       ]
+    },
+    {
+      id: 'py_memoize_closure',
+      title: '데코레이터(@memoize) & 클로저 캐싱',
+      tier: 4,
+      category: 'Design Pattern',
+      complexity: { time: 'O(N)', space: 'O(N)' },
+      description: '파이썬 데코레이터와 클로저(*args)로 재귀 호출 결과를 자동 캐싱하는 메모이제이션 패턴을 구현합니다.',
+      explanation: {
+      "summary": "함수를 인자로 받아 캐시 딕셔너리를 클로저에 보관하는 @memoize 데코레이터를 직접 구현해, 중복 재귀 계산(계단 오르기 O(2^N))을 O(N)으로 가속합니다.",
+      "keyConcepts": [
+            "파이썬 데코레이터 (@)",
+            "클로저(Closure) 상태 유지",
+            "가변 인자 언패킹 (*args)",
+            "하향식 메모이제이션 (Top-Down DP)"
+      ],
+      "lineByLine": [
+            {
+                  "line": 1,
+                  "code": "def memoize(fn):",
+                  "explain": "원본 함수 fn을 감싸 캐싱 기능을 부여하는 고차 데코레이터 함수를 정의합니다."
+            },
+            {
+                  "line": 2,
+                  "code": "    cache = {}",
+                  "explain": "호출 인자 조합을 키로 결과를 저장할 클로저 딕셔너리입니다."
+            },
+            {
+                  "line": 3,
+                  "code": "    def wrapper(*args):",
+                  "explain": "임의 개수의 위치 인자를 튜플 args로 받아 처리하는 내부 래퍼 함수입니다."
+            },
+            {
+                  "line": 4,
+                  "code": "        if args not in cache:",
+                  "explain": "아직 계산되지 않은 인자 튜플이라면 원본 함수 실행이 필요합니다."
+            },
+            {
+                  "line": 5,
+                  "code": "            cache[args] = fn(*args)",
+                  "explain": "원본 함수 fn에 인자를 언패킹 전달해 결과를 구하고 cache에 기록합니다."
+            },
+            {
+                  "line": 6,
+                  "code": "        return cache[args]",
+                  "explain": "이미 저장되었거나 방금 저장한 캐시 결과를 O(1)에 반환합니다."
+            },
+            {
+                  "line": 7,
+                  "code": "    return wrapper",
+                  "explain": "캐시 상태를 품은 wrapper 클로저를 반환합니다."
+            },
+            {
+                  "line": 9,
+                  "code": "@memoize",
+                  "explain": "count_stairs = memoize(count_stairs)와 동일한 문법적 설탕(Decorator)입니다."
+            },
+            {
+                  "line": 10,
+                  "code": "def count_stairs(n: int) -> int:",
+                  "explain": "한 번에 1칸 또는 2칸씩 n계단을 오르는 경우의 수를 계산합니다."
+            },
+            {
+                  "line": 11,
+                  "code": "    if n <= 2:",
+                  "explain": "0이하이면 0, 1계단은 1, 2계단은 2로 재귀 기저 조건을 처리합니다."
+            },
+            {
+                  "line": 12,
+                  "code": "        return max(0, n)",
+                  "explain": "음수 방지를 겸해 기저 값을 반환합니다."
+            },
+            {
+                  "line": 13,
+                  "code": "    return count_stairs(n - 1) + count_stairs(n - 2)",
+                  "explain": "재귀 호출 시 데코레이터가 개입해 중복 계산을 O(1) 캐시 히트로 치환합니다."
+            }
+      ],
+      "complexity": {
+            "time": "O(N)",
+            "timeWhy": "1부터 n까지 각 부분 문제가 최초 1회씩만 실제 계산되고 이후에는 cache에서 O(1) 조회됩니다.",
+            "space": "O(N)",
+            "spaceWhy": "cache 딕셔너리 엔트리 N개와 최대 깊이 N의 호출 스택이 사용됩니다."
+      },
+      "pitfalls": [
+            "가변 자료형(list, dict 등 unhashable)을 인자로 넘기면 튜플 args가 딕셔너리 키가 될 수 없어 TypeError가 발생합니다."
+      ]
+},
+      entryPoint: 'count_stairs',
+      code: `def memoize(fn):
+    cache = {}
+    def wrapper(*args):
+        if args not in cache:
+            cache[args] = fn(*args)
+        return cache[args]
+    return wrapper
+
+@memoize
+def count_stairs(n: int) -> int:
+    if n <= 2:
+        return max(0, n)
+    return count_stairs(n - 1) + count_stairs(n - 2)`,
+      skeleton: `def memoize(fn):
+    cache = {}
+    def wrapper(*args):
+        if ____ not in cache:
+            cache[args] = ____(*args)
+        return cache[args]
+    return wrapper
+
+@memoize
+def count_stairs(n: int) -> int:
+    if n <= 2:
+        return max(0, n)
+    return count_stairs(n - 1) + count_stairs(n - 2)`,
+      tests: [
+        { input: [2], expected: 2, name: '2계단 경우의 수' },
+        { input: [5], expected: 8, name: '5계단 경우의 수' },
+        { input: [30], expected: 1346269, name: '대규모 n=30 고속 메모이제이션' }
+      ]
+    },
+    {
+      id: 'py_sliding_rate_limiter',
+      title: '슬라이딩 윈도우 API 호출 제한기 (Rate Limiter)',
+      tier: 4,
+      category: 'Design Pattern',
+      complexity: { time: 'O(N)', space: 'O(L)' },
+      description: 'deque 슬라이딩 윈도우로 최근 window초 동안 최대 limit회까지만 요청을 허용하는 API 게이트웨이 필터를 구현합니다.',
+      explanation: {
+      "summary": "백엔드 API 게이트웨이에서 DoS 및 과도한 트래픽을 제어하는 슬라이딩 윈도우 로그 방식의 Rate Limiter를 collections.deque로 O(N) 분할 상환 시간에 구현합니다.",
+      "keyConcepts": [
+            "API Rate Limiter 패턴",
+            "슬라이딩 윈도우 (Sliding Window)",
+            "양단 큐 (deque) 만료 제거",
+            "분할 상환 복잡도 O(1)/요청"
+      ],
+      "lineByLine": [
+            {
+                  "line": 1,
+                  "code": "from collections import deque",
+                  "explain": "앞쪽 만료 타임스탬프를 O(1)에 제거하기 위해 양방향 큐 deque를 불러옵니다."
+            },
+            {
+                  "line": 3,
+                  "code": "def allow_requests(timestamps: list, window: int, limit: int) -> list:",
+                  "explain": "정렬된 요청 시각 목록과 시간 창 크기, 허용 횟수 상한을 입력으로 받습니다."
+            },
+            {
+                  "line": 4,
+                  "code": "    q = deque()",
+                  "explain": "현재 활성 윈도우 내에 허용된 요청 시각만 보관하는 큐입니다."
+            },
+            {
+                  "line": 5,
+                  "code": "    results = []",
+                  "explain": "각 요청의 허용(True)/거부(False) 여부를 담을 결과 리스트입니다."
+            },
+            {
+                  "line": 6,
+                  "code": "    for ts in timestamps:",
+                  "explain": "들어오는 모든 요청 타임스탬프를 시간순으로 검사합니다."
+            },
+            {
+                  "line": 7,
+                  "code": "        while q and q[0] <= ts - window:",
+                  "explain": "현재 시각 기준 window 범위 밖으로 벗어난 오래된 기록을 모두 만료시킵니다."
+            },
+            {
+                  "line": 8,
+                  "code": "            q.popleft()",
+                  "explain": "윈도우를 벗어난 가장 오래된 타임스탬프를 큐 앞에서 O(1)로 제거합니다."
+            },
+            {
+                  "line": 9,
+                  "code": "        if len(q) < limit:",
+                  "explain": "유효 윈도우 내 요청 수가 제한 횟수 limit 미만이면 요청을 수락할 수 있습니다."
+            },
+            {
+                  "line": 10,
+                  "code": "            q.append(ts)",
+                  "explain": "허용된 요청의 시각을 큐에 등록합니다."
+            },
+            {
+                  "line": 11,
+                  "code": "            results.append(True)",
+                  "explain": "요청 통과(HTTP 200) 상태를 기록합니다."
+            },
+            {
+                  "line": 12,
+                  "code": "        else:",
+                  "explain": "윈도우 내 이미 limit만큼 요청이 찬 경우입니다."
+            },
+            {
+                  "line": 13,
+                  "code": "            results.append(False)",
+                  "explain": "요청 제한(HTTP 429 Too Many Requests) 상태를 기록합니다."
+            },
+            {
+                  "line": 14,
+                  "code": "    return results",
+                  "explain": "모든 요청에 대한 판별 결과 불리언 리스트를 반환합니다."
+            }
+      ],
+      "complexity": {
+            "time": "O(N)",
+            "timeWhy": "각 타임스탬프는 큐에 최대 1번 들어가고 최대 1번 popleft() 되므로 전체 요청 N개에 대해 총 O(N)입니다.",
+            "space": "O(L)",
+            "spaceWhy": "큐에는 최대 허용 수 limit(L)개 이상의 원소가 남지 않으며 결과 배열 크기는 N입니다."
+      },
+      "pitfalls": [
+            "거부된 요청(False)의 타임스탬프까지 큐에 append()해 버리면 정당한 후속 요청까지 연쇄 차단되는 버그가 발생하므로, 반드시 허용된 요청만 큐에 넣어야 합니다."
+      ]
+},
+      entryPoint: 'allow_requests',
+      code: `from collections import deque
+
+def allow_requests(timestamps: list, window: int, limit: int) -> list:
+    q = deque()
+    results = []
+    for ts in timestamps:
+        while q and q[0] <= ts - window:
+            q.popleft()
+        if len(q) < limit:
+            q.append(ts)
+            results.append(True)
+        else:
+            results.append(False)
+    return results`,
+      skeleton: `from collections import deque
+
+def allow_requests(timestamps: list, window: int, limit: int) -> list:
+    q = deque()
+    results = []
+    for ts in timestamps:
+        while q and ____:
+            q.popleft()
+        if len(q) < limit:
+            q.append(ts)
+            results.append(True)
+        else:
+            results.append(False)
+    return results`,
+      tests: [
+        { input: [[1, 2, 3, 3, 10, 11], 5, 2], expected: [true, true, false, false, true, true], name: '윈도우 만료 및 제한 복구' },
+        { input: [[0, 5, 6], 5, 1], expected: [true, true, false], name: '윈도우 경계(t=5) 정확한 만료' }
+      ]
     }
   ],
 
@@ -1153,22 +1662,22 @@ def rotate_queue(items: list, k: int) -> list:
                   "explain": "swap 함수 종료"
             },
             {
-                  "line": 6,
+                  "line": 7,
                   "code": "int test_swap(int x, int y) {",
                   "explain": "swap 동작을 검증하기 위한 래퍼 함수입니다."
             },
             {
-                  "line": 7,
+                  "line": 8,
                   "code": "    swap(&x, &y);",
                   "explain": "주소 연산자(&)를 붙여 변수 x, y의 실제 메모리 주소를 swap 함수에 전달합니다."
             },
             {
-                  "line": 8,
+                  "line": 9,
                   "code": "    return x * 100 + y;",
                   "explain": "교환된 두 정수를 하나의 숫자로 조합하여 반환합니다."
             },
             {
-                  "line": 9,
+                  "line": 10,
                   "code": "}",
                   "explain": "test_swap 종료"
             }
@@ -1372,6 +1881,139 @@ int test_swap(int x, int y) {
       tests: [
         { input: [[10, 20, 30, 40], 4], expected: 100, name: '4개 원소 합' },
         { input: [[-5, 5, -10, 10], 4], expected: 0, name: '0이 되는 합' }
+      ]
+    },
+    {
+      id: 'c_palindrome_ptr',
+      title: '양방향 char 포인터 문자열 회문 판별',
+      tier: 2,
+      category: 'Pointers & Strings',
+      complexity: { time: 'O(N)', space: 'O(1)' },
+      description: '양끝을 가리키는 두 const char* 포인터를 중앙으로 좁히며 C 문자열이 회문인지 판별합니다.',
+      explanation: {
+      "summary": "널 종료 문자열(Null-terminated string)의 끝 주소까지 right 포인터를 전진시킨 뒤, left와 right가 교차하기 전까지 역참조 비교(*left != *right)를 수행합니다.",
+      "keyConcepts": [
+            "널 종료 문자 ('\\0')",
+            "const char* 포인터 산술",
+            "포인터 대소 비교 (left < right)",
+            "제자리 O(1) 공간 검사"
+      ],
+      "lineByLine": [
+            {
+                  "line": 1,
+                  "code": "int is_palindrome_c(const char* s) {",
+                  "explain": "읽기 전용 C 문자열 시작 주소를 받아 회문이면 1, 아니면 0을 반환합니다."
+            },
+            {
+                  "line": 2,
+                  "code": "    const char* left = s;",
+                  "explain": "문자열 맨 앞 문자를 가리키는 왼쪽 포인터를 초기화합니다."
+            },
+            {
+                  "line": 3,
+                  "code": "    const char* right = s;",
+                  "explain": "문자열 끝으로 전진시킬 오른쪽 포인터를 시작 위치로 둡니다."
+            },
+            {
+                  "line": 4,
+                  "code": "    if (*s == '\\0') return 1;",
+                  "explain": "빈 문자열은 0글자 회문이므로 right - 1 역참조 언더플로우를 막기 위해 즉시 1을 반환합니다."
+            },
+            {
+                  "line": 5,
+                  "code": "    while (*(right + 1) != '\\0') {",
+                  "explain": "다음 칸이 널 종단자 '\\0'이 아닐 동안 계속 전진하여 마지막 유효 문자 위치에 멈춥니다."
+            },
+            {
+                  "line": 6,
+                  "code": "        right++;",
+                  "explain": "right 포인터를 1바이트(char 크기) 뒤로 이동합니다."
+            },
+            {
+                  "line": 7,
+                  "code": "    }",
+                  "explain": "문자열 끝 탐색 루프 종료"
+            },
+            {
+                  "line": 8,
+                  "code": "    while (left < right) {",
+                  "explain": "두 포인터가 같은 배열 내에서 아직 교차하지 않았을 때만 대칭 문자를 비교합니다."
+            },
+            {
+                  "line": 9,
+                  "code": "        if (*left != *right) return 0;",
+                  "explain": "대칭 위치의 ASCII 문자가 하나라도 다르면 즉시 0(거짓)을 반환합니다."
+            },
+            {
+                  "line": 10,
+                  "code": "        left++;",
+                  "explain": "왼쪽 포인터를 오른쪽으로 한 칸 전진시킵니다."
+            },
+            {
+                  "line": 11,
+                  "code": "        right--;",
+                  "explain": "오른쪽 포인터를 왼쪽으로 한 칸 후진시킵니다."
+            },
+            {
+                  "line": 12,
+                  "code": "    }",
+                  "explain": "포인터 비교 루프 종료"
+            },
+            {
+                  "line": 13,
+                  "code": "    return 1;",
+                  "explain": "모든 대칭 문자가 일치하므로 1(참)을 반환합니다."
+            },
+            {
+                  "line": 14,
+                  "code": "}",
+                  "explain": "함수 종료"
+            }
+      ],
+      "complexity": {
+            "time": "O(N)",
+            "timeWhy": "문자열 끝 탐색 O(N) + 대칭 비교 O(N/2)로 선형 시간에 실행됩니다.",
+            "space": "O(1)",
+            "spaceWhy": "추가 문자열 복사 버퍼 없이 포인터 변수 2개(left, right)만 사용합니다."
+      },
+      "pitfalls": [
+            "빈 문자열(\"\")에 대해 무작정 s + strlen(s) - 1을 역참조하면 시작 주소보다 앞선 잘못된 메모리를 읽는 UB(Undefined Behavior)가 발생하므로 반드시 *s == '\\0' 가드를 먼저 두어야 합니다."
+      ]
+},
+      entryPoint: 'is_palindrome_c',
+      code: `int is_palindrome_c(const char* s) {
+    const char* left = s;
+    const char* right = s;
+    if (*s == '\\0') return 1;
+    while (*(right + 1) != '\\0') {
+        right++;
+    }
+    while (left < right) {
+        if (*left != *right) return 0;
+        left++;
+        right--;
+    }
+    return 1;
+}`,
+      skeleton: `int is_palindrome_c(const char* s) {
+    const char* left = s;
+    const char* right = s;
+    if (*s == '\\0') return 1;
+    while (*(right + 1) != ____) {
+        right++;
+    }
+    while (left < right) {
+        if (____ != *right) return 0;
+        left++;
+        ____;
+    }
+    return 1;
+}`,
+      tests: [
+        { input: ['racecar'], expected: 1, name: '홀수 길이 회문 (racecar)' },
+        { input: ['noon'], expected: 1, name: '짝수 길이 회문 (noon)' },
+        { input: ['pointer'], expected: 0, name: '비회문 문자열 (pointer)' },
+        { input: [''], expected: 1, name: '빈 문자열 안전 처리' }
       ]
     },
     {
@@ -1584,22 +2226,22 @@ int test_swap(int x, int y) {
                   "explain": "reverse_array 종료"
             },
             {
-                  "line": 12,
+                  "line": 13,
                   "code": "int reverse_first_elem(int arr[], int size) {",
                   "explain": "뒤집힌 배열의 첫 번째 원소를 반환하는 테스트 래퍼 함수입니다."
             },
             {
-                  "line": 13,
+                  "line": 14,
                   "code": "    reverse_array(arr, size);",
                   "explain": "배열을 제자리 뒤집기합니다."
             },
             {
-                  "line": 14,
+                  "line": 15,
                   "code": "    return arr[0];",
                   "explain": "뒤집힌 후의 맨 첫 번째 원소를 반환합니다."
             },
             {
-                  "line": 15,
+                  "line": 16,
                   "code": "}",
                   "explain": "함수 종료"
             }
@@ -1650,6 +2292,262 @@ int reverse_first_elem(int arr[], int size) {
       tests: [
         { input: [[1, 2, 3, 4, 5], 5], expected: 5, name: '뒤집힌 후 첫 요소 5' },
         { input: [[99, 100], 2], expected: 100, name: '2개 원소 뒤집기' }
+      ]
+    },
+    {
+      id: 'c_bitmask_flags',
+      title: '비트마스크(Bitmask) 권한 플래그 제어',
+      tier: 4,
+      category: 'Systems & Bitwise',
+      complexity: { time: 'O(1)', space: 'O(1)' },
+      description: 'C 비트 연산자(|=, &= ~, ^=)를 조합하여 OS/임베디드 권한 비트를 세트·해제·반전합니다.',
+      explanation: {
+      "summary": "하나의 정수 변수에 여러 boolean 상태(READ/WRITE/EXEC 등)를 압축 저장하고 |= (추가), &= ~ (제거), ^= (토글) 연산으로 O(1)에 제어하는 시스템 프로그래밍 표준 패턴입니다.",
+      "keyConcepts": [
+            "비트 OR 대입 (|=) 셋",
+            "비트 NOT + AND (&= ~) 클리어",
+            "비트 XOR 대입 (^=) 토글",
+            "비트 마스크 검사 (&)"
+      ],
+      "lineByLine": [
+            {
+                  "line": 1,
+                  "code": "int manage_permissions(int flags, int grant, int revoke, int toggle) {",
+                  "explain": "초기 플래그와 부여/회수/반전 마스크를 받아 최종 유효 권한 비트를 반환합니다."
+            },
+            {
+                  "line": 2,
+                  "code": "    int read_bit = 1 << 0;",
+                  "explain": "0번 비트(값 1)를 읽기 권한 마스크 상수로 정의합니다."
+            },
+            {
+                  "line": 3,
+                  "code": "    flags |= grant;",
+                  "explain": "grant 마스크에 켜진 비트들을 OR 연산으로 기존 flags에 추가(Set)합니다."
+            },
+            {
+                  "line": 4,
+                  "code": "    flags &= ~revoke;",
+                  "explain": "revoke 비트를 보수(~)로 뒤집은 뒤 AND 연산하여 해당 비트만 안전하게 제거(Clear)합니다."
+            },
+            {
+                  "line": 5,
+                  "code": "    flags ^= toggle;",
+                  "explain": "toggle 마스크와 XOR 연산하여 해당 비트의 상태를 0↔1 반전(Toggle)합니다."
+            },
+            {
+                  "line": 6,
+                  "code": "    if ((flags & read_bit) == 0) {",
+                  "explain": "C에서는 == 연산자가 &보다 우선순위가 높으므로 반드시 괄호로 (flags & read_bit)를 감싸야 합니다."
+            },
+            {
+                  "line": 7,
+                  "code": "        return 0;",
+                  "explain": "최소 읽기 권한마저 상실했다면 전체 권한 무효(0)를 반환합니다."
+            },
+            {
+                  "line": 8,
+                  "code": "    }",
+                  "explain": "읽기 권한 확인 블록 종료"
+            },
+            {
+                  "line": 9,
+                  "code": "    return flags;",
+                  "explain": "모든 비트 연산을 거친 최종 권한 플래그 정수를 반환합니다."
+            },
+            {
+                  "line": 10,
+                  "code": "}",
+                  "explain": "함수 종료"
+            }
+      ],
+      "complexity": {
+            "time": "O(1)",
+            "timeWhy": "모든 비트 단위 논리 연산은 CPU 단일 클럭 사이클 수준으로 상수 시간 O(1)에 처리됩니다.",
+            "space": "O(1)",
+            "spaceWhy": "추가 메모리 할당 없이 32비트 정수 레지스터 하나에 최대 32개의 플래그를 압축 저장합니다."
+      },
+      "pitfalls": [
+            "flags & mask == 0으로 괄호 없이 작성하면 연산자 우선순위 때문에 flags & (mask == 0)으로 해석되어 치명적인 보안 버그가 발생합니다."
+      ]
+},
+      entryPoint: 'manage_permissions',
+      code: `int manage_permissions(int flags, int grant, int revoke, int toggle) {
+    int read_bit = 1 << 0;
+    flags |= grant;
+    flags &= ~revoke;
+    flags ^= toggle;
+    if ((flags & read_bit) == 0) {
+        return 0;
+    }
+    return flags;
+}`,
+      skeleton: `int manage_permissions(int flags, int grant, int revoke, int toggle) {
+    int read_bit = 1 << 0;
+    flags ____ grant;
+    flags &= ____;
+    flags ____ toggle;
+    if ((flags & read_bit) == 0) {
+        return 0;
+    }
+    return flags;
+}`,
+      tests: [
+        { input: [1, 2, 0, 4], expected: 7, name: 'READ(1) + WRITE(2) ^ EXEC(4) = 7' },
+        { input: [7, 0, 2, 4], expected: 1, name: 'WRITE 제거 + EXEC 반전 -> READ만 남음' },
+        { input: [7, 0, 1, 2], expected: 0, name: 'READ 상실 시 0 반환 가드' }
+      ]
+    },
+    {
+      id: 'c_ring_buffer_sum',
+      title: '고정 크기 원형 버퍼(Ring Buffer) 쓰기 & 체크섬',
+      tier: 4,
+      category: 'Systems & Embedded',
+      complexity: { time: 'O(N + C)', space: 'O(C)' },
+      description: '동적 할당 없이 고정 배열과 모듈러 인덱스((head + 1) % cap)로 임베디드 원형 큐를 구현합니다.',
+      explanation: {
+      "summary": "커널/통신/오디오 드라이버 등에서 힙 할당(malloc) 없이 최신 데이터 C개만 덮어쓰며 유지하는 원형 버퍼(Circular Ring Buffer)의 인덱스 래핑과 체크섬 계산을 구현합니다.",
+      "keyConcepts": [
+            "원형 버퍼 (Ring Buffer)",
+            "모듈러 랩어라운드 (% cap)",
+            "고정 스택 버퍼 (No malloc)",
+            "유효 슬롯 카운트 추적"
+      ],
+      "lineByLine": [
+            {
+                  "line": 1,
+                  "code": "int ring_buffer_checksum(int vals[], int n, int cap) {",
+                  "explain": "센서 스트림 vals[n]을 용량 cap 원형 버퍼에 순서대로 기록한 뒤 남은 값들의 합을 구합니다."
+            },
+            {
+                  "line": 2,
+                  "code": "    int buf[16];",
+                  "explain": "동적 힙 메모리 할당 없이 스택에 최대 16슬롯 고정 크기 버퍼를 선언합니다."
+            },
+            {
+                  "line": 3,
+                  "code": "    int head = 0;",
+                  "explain": "다음 데이터가 덮어써질 현재 쓰기 커서(Write Pointer) 인덱스입니다."
+            },
+            {
+                  "line": 4,
+                  "code": "    int count = 0;",
+                  "explain": "버퍼에 실제로 채워진 유효 원소 개수(최대 cap)를 추적합니다."
+            },
+            {
+                  "line": 5,
+                  "code": "    for (int i = 0; i < n; i++) {",
+                  "explain": "입력 스트림에서 들어오는 n개의 값을 순차 처리합니다."
+            },
+            {
+                  "line": 6,
+                  "code": "        buf[head] = vals[i];",
+                  "explain": "현재 head 위치에 새 값을 저장하며, 가득 찼다면 가장 오래된 슬롯을 덮어씁니다."
+            },
+            {
+                  "line": 7,
+                  "code": "        head = (head + 1) % cap;",
+                  "explain": "나머지(%) 연산을 이용해 배열 끝(cap)에 도달하면 인덱스 0으로 순환(Wrap-around)시킵니다."
+            },
+            {
+                  "line": 8,
+                  "code": "        if (count < cap) {",
+                  "explain": "아직 버퍼가 꽉 차지 않았을 때만 유효 데이터 수를 증가시킵니다."
+            },
+            {
+                  "line": 9,
+                  "code": "            count++;",
+                  "explain": "초기 미초기화 쓰레기 값이 합산되는 것을 방지하기 위해 count를 갱신합니다."
+            },
+            {
+                  "line": 10,
+                  "code": "        }",
+                  "explain": "카운트 증가 조건문 종료"
+            },
+            {
+                  "line": 11,
+                  "code": "    }",
+                  "explain": "스트림 기록 루프 종료"
+            },
+            {
+                  "line": 12,
+                  "code": "    int sum = 0;",
+                  "explain": "버퍼 내 유효한 최신 원소들의 체크섬 누산기를 초기화합니다."
+            },
+            {
+                  "line": 13,
+                  "code": "    for (int j = 0; j < count; j++) {",
+                  "explain": "0부터 실제 유효 개수 count까지만 순회합니다."
+            },
+            {
+                  "line": 14,
+                  "code": "        sum += buf[j];",
+                  "explain": "원형 버퍼에 남아 있는 최신 값들을 모두 더합니다."
+            },
+            {
+                  "line": 15,
+                  "code": "    }",
+                  "explain": "체크섬 합산 루프 종료"
+            },
+            {
+                  "line": 16,
+                  "code": "    return sum;",
+                  "explain": "최종 버퍼 체크섬 정수를 반환합니다."
+            },
+            {
+                  "line": 17,
+                  "code": "}",
+                  "explain": "함수 종료"
+            }
+      ],
+      "complexity": {
+            "time": "O(N + C)",
+            "timeWhy": "n개의 스트림 입력을 O(1)씩 기록한 뒤 유효 크기 count(<= cap)만큼 합산하므로 O(N + C)입니다.",
+            "space": "O(1)",
+            "spaceWhy": "고정 크기 스택 배열 int buf[16]만 사용하므로 입력 크기 N이 커져도 메모리 사용량이 늘어나지 않습니다."
+      },
+      "pitfalls": [
+            "버퍼가 아직 cap만큼 채워지지 않았을 때 count 대신 cap 전체를 순회하면 초기화되지 않은 쓰레기 값이 합산될 수 있습니다."
+      ]
+},
+      entryPoint: 'ring_buffer_checksum',
+      code: `int ring_buffer_checksum(int vals[], int n, int cap) {
+    int buf[16];
+    int head = 0;
+    int count = 0;
+    for (int i = 0; i < n; i++) {
+        buf[head] = vals[i];
+        head = (head + 1) % cap;
+        if (count < cap) {
+            count++;
+        }
+    }
+    int sum = 0;
+    for (int j = 0; j < count; j++) {
+        sum += buf[j];
+    }
+    return sum;
+}`,
+      skeleton: `int ring_buffer_checksum(int vals[], int n, int cap) {
+    int buf[16];
+    int head = 0;
+    int count = 0;
+    for (int i = 0; i < n; i++) {
+        buf[head] = ____;
+        head = ____;
+        if (count < cap) {
+            count++;
+        }
+    }
+    int sum = 0;
+    for (int j = 0; j < count; j++) {
+        sum += ____;
+    }
+    return sum;
+}`,
+      tests: [
+        { input: [[10, 20, 30, 40, 50], 5, 3], expected: 120, name: '용량 3 초과 랩어라운드 합 (40+50+30)' },
+        { input: [[5, 15], 2, 4], expected: 20, name: '미포화 상태 유효 원소 2개 합' }
       ]
     }
   ]

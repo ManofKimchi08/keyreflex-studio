@@ -3,18 +3,21 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>KeyReflex Studio — 키보드 반응속도 측정 & 타자 연습</title>
-  <link rel="stylesheet" href="styles.css?v=4.0" />
+  <title>KeyReflex Studio — 커스텀 메카니컬 반응속도 측정 &amp; 타자 연습</title>
+  <link rel="stylesheet" href="styles.css?v=5.0" />
 </head>
-<body>
+<body class="theme-tactile-mech">
   <div class="app-container">
     <!-- 1. 상단 헤더: 타이틀, 모드 전환 탭, 한/영 언어 전환 -->
     <header class="top-header">
       <div class="brand-group">
-        <div class="brand-logo">⌨️</div>
+        <div class="brand-logo" aria-hidden="true">⌨</div>
         <div class="brand-title">
-          <h1>KeyReflex &amp; Typing Studio</h1>
-          <p>반투명 일러스트 손가락 가이드 기반 반응속도 측정 &amp; 한/영 타자 연습</p>
+          <div class="brand-title-row">
+            <h1>KeyReflex Studio</h1>
+            <span class="hw-model-badge">TACTILE MECH · v1.4</span>
+          </div>
+          <p>이중사출 메카니컬 키보드 &amp; 2D 손 가이드 기반 반응속도 · 한/영 · CodeLab 스튜디오</p>
         </div>
       </div>
 
@@ -94,6 +97,8 @@
           <span>🔊 타건음</span>
           <select id="sound-profile-select" class="option-select">
             <option value="thock">도각도각 (무접점)</option>
+            <option value="tactile">사각사각 (갈축 택타일)</option>
+            <option value="linear">서걱서걱 (적축 리니어)</option>
             <option value="clicky">찰칵찰칵 (청축)</option>
             <option value="mute">음소거 (Mute)</option>
           </select>
@@ -213,15 +218,20 @@
           <div class="codelab-problem-picker">
             <label for="codelab-problem-select">선택 코스:</label>
             <select id="codelab-problem-select" class="codelab-select"></select>
+            <span class="codelab-progress-pill" id="codelab-progress-pill" title="테스트 케이스를 모두 통과한 문제 수">완료 0/25</span>
+            <span class="codelab-pyodide-pill state-idle" id="codelab-pyodide-status" style="display:none;" title="Python WebAssembly(Pyodide) 런타임 준비 상태">🐍 대기</span>
           </div>
 
-          <!-- 듀얼 타건 모드 (Flow vs Skeleton) -->
+          <!-- 트리플 타건 모드 (Flow vs Skeleton vs Sandbox) -->
           <div class="codelab-mode-toggle" role="group" aria-label="타건 모드 선택">
             <button class="codelab-type-mode-btn active" data-typemode="flow" title="전체 코드를 정밀하게 따라치며 구문 각인">
               🌊 전체 타건 (Flow)
             </button>
-            <button class="codelab-type-mode-btn" data-typemode="skeleton" title="핵심 조건문만 빈칸으로 두고 직접 인출하여 타이핑">
+            <button class="codelab-type-mode-btn" data-typemode="skeleton" title="핵심 로직 빈칸(____)만 기억에서 인출하여 직접 채우기">
               🧩 빈칸 인출 (Skeleton)
+            </button>
+            <button class="codelab-type-mode-btn" data-typemode="sandbox" title="코드를 자유롭게 수정·리팩터링하고 즉시 테스트 실행">
+              🛠️ 자유 수정 (Sandbox)
             </button>
           </div>
 
@@ -230,7 +240,7 @@
             <button class="codelab-run-btn" id="codelab-run-btn" title="인브라우저 샌드박스에서 즉시 실행하고 테스트 케이스 채점 (Ctrl+Enter)">
               ▶ 코드 실행 (Ctrl+Enter)
             </button>
-            <button class="secondary-btn highlight-btn" id="codelab-explain-toggle-btn" title="현재 코드의 라인별 원리와 문법 상세 해설 보기 (단축키: F1)">💡 코드 상세 해설 (F1)</button>
+            <button class="secondary-btn highlight-btn" id="codelab-explain-toggle-btn" title="사이드 상세 해설 탭 또는 전체 해설 모달 열기 (단축키: F1)">💡 코드 상세 해설 (F1)</button>
             <button class="secondary-btn" id="codelab-reset-btn" title="현재 문제 초기화">🔄 초기화</button>
             <button class="secondary-btn" id="codelab-next-btn" title="다음 문제">⏭️ 다음</button>
           </div>
@@ -242,13 +252,25 @@
           <div class="codelab-editor-panel" id="codelab-editor-panel">
             <div class="editor-header">
               <span class="editor-filename" id="codelab-filename">solution.js</span>
-              <span class="editor-shortcut-hint">💡 줄바꿈은 Enter, 들여쓰기는 Tab/Space로 자동 처리됩니다</span>
+              <span class="editor-shortcut-hint" id="codelab-editor-mode-hint">💡 줄바꿈: Enter · 들여쓰기: Tab · 실행: Ctrl+Enter</span>
+              <div class="editor-header-tools">
+                <button type="button" class="editor-tool-btn" id="codelab-hint-btn" style="display:none;" title="현재 빈칸 정답 힌트 보기 (F2)">👁️ 빈칸 힌트</button>
+                <button type="button" class="editor-tool-btn" id="codelab-sandbox-reset-btn" style="display:none;" title="자유 수정 에디터를 원래 레슨 코드로 복원">↺ 원본 복원</button>
+                <button type="button" class="editor-tool-btn" id="codelab-kbd-toggle-btn" title="하단 가상 키보드 및 손 가이드 표시/접기">⌨️ 키보드 접기</button>
+              </div>
+            </div>
+            <div class="editor-ime-banner" id="codelab-ime-banner" style="display:none;">
+              ⚠️ 한글(IME)이 켜져 있습니다. <strong>한/영</strong> 키를 눌러 영문 입력으로 전환하세요.
             </div>
             <div class="editor-body" id="codelab-editor-body">
               <div class="line-numbers" id="codelab-line-numbers"></div>
               <div class="code-content" id="codelab-code-content"></div>
+              <div class="sandbox-editor-wrap" id="codelab-sandbox-wrap" style="display:none;">
+                <pre class="sandbox-highlight-pre" id="codelab-sandbox-highlight" aria-hidden="true"></pre>
+                <textarea id="codelab-sandbox-textarea" class="sandbox-code-textarea" style="display:none;" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" aria-label="자유 코드 수정 에디터"></textarea>
+              </div>
               <!-- 숨김 포커스 입력기 -->
-              <textarea id="codelab-hidden-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+              <textarea id="codelab-hidden-input" inputmode="latin" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
             </div>
             <!-- 실시간 현재 라인 해설 힌트 바 -->
             <div class="codelab-editor-footer" id="codelab-editor-footer">
@@ -258,33 +280,41 @@
             </div>
           </div>
 
+          <!-- 패널 분할 드래그 리사이저 -->
+          <div class="codelab-split-resizer" id="codelab-split-resizer" role="separator" aria-orientation="vertical" title="드래그하여 좌우 폭 조절 (더블클릭: 기본 비율 복원)">
+            <span class="resizer-grip" aria-hidden="true"></span>
+          </div>
+
           <!-- 우측: 알고리즘 설명 및 실시간 테스트 케이스 채점 콘솔 -->
-          <div class="codelab-side-panel">
+          <div class="codelab-side-panel" id="codelab-side-panel">
             <!-- 문제 설명 및 상세 해설 카드 -->
-            <div class="codelab-card codelab-desc-card">
+            <div class="codelab-card codelab-desc-card" id="codelab-desc-card">
               <div class="desc-card-header">
-                <span class="tier-pill" id="codelab-tier-badge">Tier 3</span>
+                <span class="tier-pill tier-3" id="codelab-tier-badge">Tier 3</span>
                 <h3 class="problem-title" id="codelab-problem-title">이진 탐색 (Binary Search)</h3>
                 <span class="complexity-badge" id="codelab-complexity-badge">O(log N)</span>
+                <button type="button" class="desc-tab-btn-icon" id="codelab-desc-collapse-btn" title="문제 설명 접기/펼치기" aria-expanded="true">▾</button>
               </div>
 
-              <!-- 탭 전환 버튼 바 -->
-              <div class="desc-tabs-bar" role="tablist">
-                <button class="desc-tab-btn active" data-desctab="overview" id="btn-tab-overview">📋 문제 개요</button>
-                <button class="desc-tab-btn" data-desctab="explanation" id="btn-tab-explanation">💡 라인별 상세 해설 & 원리</button>
-                <button class="desc-tab-btn-icon" id="codelab-card-modal-btn" title="전체 해설 넓게 보기 (단축키: F1)">🔍</button>
-              </div>
+              <div class="desc-card-collapsible" id="codelab-desc-body">
+                <!-- 탭 전환 버튼 바 -->
+                <div class="desc-tabs-bar" role="tablist">
+                  <button class="desc-tab-btn active" data-desctab="overview" id="btn-tab-overview">📋 문제 개요</button>
+                  <button class="desc-tab-btn" data-desctab="explanation" id="btn-tab-explanation">💡 라인별 상세 해설</button>
+                  <button class="desc-tab-btn-icon" id="codelab-card-modal-btn" title="전체 해설 넓게 보기 (단축키: F1)">🔍</button>
+                </div>
 
-              <!-- 탭 1: 기본 개요 컨텐츠 -->
-              <div class="desc-tab-content active" id="codelab-tab-overview">
-                <p class="problem-desc-text" id="codelab-problem-desc"></p>
-                <div class="quick-concept-tags" id="codelab-quick-tags"></div>
-              </div>
+                <!-- 탭 1: 기본 개요 컨텐츠 -->
+                <div class="desc-tab-content active" id="codelab-tab-overview">
+                  <p class="problem-desc-text" id="codelab-problem-desc"></p>
+                  <div class="quick-concept-tags" id="codelab-quick-tags"></div>
+                </div>
 
-              <!-- 탭 2: 라인별 상세 해설 컨텐츠 -->
-              <div class="desc-tab-content" id="codelab-tab-explanation">
-                <div class="explanation-scroll-box" id="codelab-explanation-container">
-                  <!-- 동적 렌더링 영역 -->
+                <!-- 탭 2: 라인별 상세 해설 컨텐츠 -->
+                <div class="desc-tab-content" id="codelab-tab-explanation">
+                  <div class="explanation-scroll-box" id="codelab-explanation-container">
+                    <!-- 동적 렌더링 영역 -->
+                  </div>
                 </div>
               </div>
             </div>
@@ -312,6 +342,10 @@
                 <span class="metric-mini">정확도: <b id="codelab-acc">100%</b></span>
                 <span class="metric-mini">경과 시간: <b id="codelab-time">0.0s</b></span>
               </div>
+              <div class="codelab-weak-symbols" id="codelab-weak-symbols">
+                <span class="weak-sym-label">🎯 취약 기호:</span>
+                <span class="weak-sym-list" id="codelab-weak-sym-list">타이핑을 시작하면 느리거나 오타 난 기호 Top 5가 집계됩니다</span>
+              </div>
             </div>
           </div>
         </div>
@@ -334,7 +368,7 @@
           <span class="legend-item"><span class="legend-dot" style="background:#c084fc"></span>우 약지</span>
           <span class="legend-item"><span class="legend-dot" style="background:#f472b6"></span>우 소지</span>
         </div>
-        <span>💡 눌러야 할 자모에 맞춰 반투명 일러스트 손가락이 목표 키 위로 뻗어 안내합니다</span>
+        <span class="keyboard-hint-text">💡 눌러야 할 자모에 맞춰 반투명 일러스트 손가락이 목표 키 위로 뻗어 안내합니다</span>
       </div>
     </section>
 
@@ -356,7 +390,7 @@
     <div class="codelab-modal-content">
       <div class="codelab-modal-header">
         <div class="modal-title-area">
-          <span class="modal-tier-pill" id="modal-tier-badge">Tier 3</span>
+          <span class="modal-tier-pill tier-3" id="modal-tier-badge">Tier 3</span>
           <h2 id="modal-problem-title">이진 탐색 (Binary Search)</h2>
           <span class="modal-lang-badge" id="modal-lang-badge">JavaScript</span>
         </div>
@@ -383,9 +417,9 @@
 
   <script src="js/data.js"></script>
   <script src="js/sound.js"></script>
-  <script src="js/handRenderer.js?v=10.0"></script>
-    <script src="js/codeCurriculum.js"></script>
+  <script src="js/handRenderer.js?v=11.0"></script>
+  <script src="js/codeCurriculum.js"></script>
   <script src="js/codeRunner.js"></script>
-  <script src="js/app.js"></script>
+  <script src="js/app.js?v=5.0"></script>
 </body>
 </html>

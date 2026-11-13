@@ -38,17 +38,26 @@ class TypingReflexApp {
 
     // CodeLab 3대 언어(JavaScript, Python, C) 실행 & 마스터리 상태
     this.codeRunner = new window.CodeRunner();
+    this._nonCodeLang = 'ko';
     this.codeLab = {
       lang: 'javascript', // 'javascript' | 'python' | 'c'
-      typeMode: 'flow',   // 'flow' | 'skeleton'
+      typeMode: 'flow',   // 'flow' | 'skeleton' | 'sandbox'
       lessonIndex: 0,
       currentLesson: null,
       fullText: '',
+      sandboxText: '',
       cursorIdx: 0,
       startTime: null,
       totalStrokes: 0,
       correctStrokes: 0,
-      isRunning: false
+      isRunning: false,
+      lastWrongIdx: null,
+      _wrongTimer: null,
+      skeletonModel: null,
+      activeBlankIdx: 0,
+      showSkeletonHint: false,
+      keyboardHidden: false,
+      solvedLessons: this.loadCodeLabProgress()
     };
 
     // 누적 통계 (LocalStorage 연동)
@@ -56,8 +65,19 @@ class TypingReflexApp {
 
     this.bindElements();
     this.bindEvents();
+    this.initCodeLabSplitResizer();
+    this.updatePyodideStatusBadge(this.codeRunner.pyodideStatus);
+    this.codeRunner.onPyodideStatusChange((status, msg) => {
+      this.updatePyodideStatusBadge(status, msg);
+    });
     this.switchMode('reflex_single');
     this.updateFingerStatsUI();
+    this.updateWeakSymbolsUI();
+  }
+
+  renderAnalytics() {
+    this.updateFingerStatsUI();
+    this.updateWeakSymbolsUI();
   }
 
   initHwMetrics() {
@@ -87,7 +107,8 @@ class TypingReflexApp {
       totalHits: 0,
       totalMisses: 0,
       fingers: {},
-      keys: {}
+      keys: {},
+      symbols: {}
     };
     Object.keys(window.FINGER_INFO).forEach(fId => {
       defaultStats.fingers[fId] = { count: 0, totalMs: 0, misses: 0 };
@@ -97,7 +118,13 @@ class TypingReflexApp {
       const saved = localStorage.getItem('typing_reflex_stats_v1');
       if (saved) {
         const parsed = JSON.parse(saved);
-        return { ...defaultStats, ...parsed, fingers: { ...defaultStats.fingers, ...(parsed.fingers || {}) } };
+        return {
+          ...defaultStats,
+          ...parsed,
+          fingers: { ...defaultStats.fingers, ...(parsed.fingers || {}) },
+          keys: { ...(parsed.keys || {}) },
+          symbols: { ...(parsed.symbols || {}) }
+        };
       }
     } catch (e) {
       console.warn('Failed to load stats:', e);
@@ -118,6 +145,7 @@ class TypingReflexApp {
     this.stats = this.loadStats();
     this.updateTopMetrics(null, 0, 100);
     this.updateFingerStatsUI();
+    this.updateWeakSymbolsUI();
     if (this.renderer.heatmapMode) {
       this.renderer.renderHeatmap(this.stats.keys);
       this.renderer.renderHeatmap(this.stats.keys);
@@ -168,15 +196,30 @@ class TypingReflexApp {
     this.elCodeLabStage = document.getElementById('codelab-stage');
     this.elCodeLangBtns = document.querySelectorAll('.codelab-lang-btn');
     this.elCodeProblemSelect = document.getElementById('codelab-problem-select');
+    this.elCodeProgressPill = document.getElementById('codelab-progress-pill');
+    this.elCodePyodideStatus = document.getElementById('codelab-pyodide-status');
     this.elCodeTypeModeBtns = document.querySelectorAll('.codelab-type-mode-btn');
     this.elCodeRunBtn = document.getElementById('codelab-run-btn');
     this.elCodeResetBtn = document.getElementById('codelab-reset-btn');
     this.elCodeNextBtn = document.getElementById('codelab-next-btn');
     this.elCodeEditorPanel = document.getElementById('codelab-editor-panel');
+    this.elCodeEditorBody = document.getElementById('codelab-editor-body');
     this.elCodeFilename = document.getElementById('codelab-filename');
+    this.elCodeEditorModeHint = document.getElementById('codelab-editor-mode-hint');
+    this.elCodeHintBtn = document.getElementById('codelab-hint-btn');
+    this.elCodeSandboxResetBtn = document.getElementById('codelab-sandbox-reset-btn');
+    this.elCodeKbdToggleBtn = document.getElementById('codelab-kbd-toggle-btn');
+    this.elCodeImeBanner = document.getElementById('codelab-ime-banner');
     this.elCodeLineNumbers = document.getElementById('codelab-line-numbers');
     this.elCodeContent = document.getElementById('codelab-code-content');
+    this.elCodeSandboxWrap = document.getElementById('codelab-sandbox-wrap');
+    this.elCodeSandboxHighlight = document.getElementById('codelab-sandbox-highlight');
+    this.elCodeSandboxTextarea = document.getElementById('codelab-sandbox-textarea');
     this.elCodeHiddenInput = document.getElementById('codelab-hidden-input');
+    this.elCodeSplitView = document.querySelector('.codelab-split-view');
+    this.elCodeSplitResizer = document.getElementById('codelab-split-resizer');
+    this.elCodeSidePanel = document.getElementById('codelab-side-panel');
+    this.elCodeDescCollapseBtn = document.getElementById('codelab-desc-collapse-btn');
     this.elCodeTierBadge = document.getElementById('codelab-tier-badge');
     this.elCodeProblemTitle = document.getElementById('codelab-problem-title');
     this.elCodeComplexityBadge = document.getElementById('codelab-complexity-badge');
@@ -188,6 +231,7 @@ class TypingReflexApp {
     this.elCodeKpm = document.getElementById('codelab-kpm');
     this.elCodeAcc = document.getElementById('codelab-acc');
     this.elCodeTime = document.getElementById('codelab-time');
+    this.elCodeWeakSymList = document.getElementById('codelab-weak-sym-list');
 
     // CodeLab 상세 해설 & 모달 & 실시간 힌트 바 엘리먼트
     this.elCodeTabBtns = document.querySelectorAll('.desc-tab-btn');
@@ -331,8 +375,123 @@ class TypingReflexApp {
     }
 
     if (this.elCodeEditorPanel && this.elCodeHiddenInput) {
-      this.elCodeEditorPanel.addEventListener('click', () => {
+      this.elCodeEditorPanel.addEventListener('click', (e) => {
+        if (this.codeLab.typeMode === 'sandbox' && this.elCodeSandboxTextarea) {
+          if (!e.target.closest('button')) {
+            this.elCodeSandboxTextarea.focus();
+          }
+          return;
+        }
+        // 빈칸(blank-slot-pill) 클릭 시 해당 빈칸으로 포커스 이동
+        const blankBtn = e.target.closest('.blank-slot-pill');
+        if (blankBtn && this.codeLab.typeMode === 'skeleton' && this.codeLab.skeletonModel) {
+          const bIdx = parseInt(blankBtn.getAttribute('data-blank-idx'), 10);
+          if (!Number.isNaN(bIdx) && this.codeLab.skeletonModel.blanks[bIdx]) {
+            this.codeLab.activeBlankIdx = bIdx;
+            this.renderCodeLabEditor();
+            this.updateCodeLabTargetGuidance();
+            this.updateCodeLabLineHint();
+          }
+        }
         this.elCodeHiddenInput.focus();
+      });
+    }
+
+    if (this.elCodePyodideStatus) {
+      this.elCodePyodideStatus.addEventListener('click', () => {
+        if (this.codeLab.lang !== 'python') return;
+        if (this.codeRunner.pyodideStatus === 'idle' || this.codeRunner.pyodideStatus === 'error') {
+          this.codeRunner.initPyodide().catch(() => { /* badge shows error state */ });
+        }
+      });
+    }
+
+    if (this.elCodeSandboxResetBtn) {
+      this.elCodeSandboxResetBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (this.codeLab.currentLesson && this.elCodeSandboxTextarea) {
+          this.codeLab.sandboxText = this.codeLab.fullText;
+          this.elCodeSandboxTextarea.value = this.codeLab.sandboxText;
+          this.syncSandboxGutter();
+          this.updateCodeLabLineHint();
+          this.elCodeSandboxTextarea.focus();
+        }
+      });
+    }
+
+    if (this.elCodeDescCollapseBtn && this.elCodeSidePanel) {
+      this.elCodeDescCollapseBtn.addEventListener('click', () => {
+        const collapsed = this.elCodeSidePanel.classList.toggle('is-desc-collapsed');
+        this.elCodeDescCollapseBtn.textContent = collapsed ? '▸' : '▾';
+        this.elCodeDescCollapseBtn.setAttribute('aria-expanded', String(!collapsed));
+      });
+    }
+
+    if (this.elCodeSandboxTextarea) {
+      this.elCodeSandboxTextarea.addEventListener('keydown', (e) => {
+        if (this.currentMode !== 'practice_code' || this.codeLab.typeMode !== 'sandbox' || this.isCodeLabModalOpen()) return;
+        if (e.key === 'Tab') {
+          e.preventDefault();
+          const ta = this.elCodeSandboxTextarea;
+          const start = ta.selectionStart;
+          const end = ta.selectionEnd;
+          if (!e.shiftKey) {
+            ta.value = ta.value.slice(0, start) + '    ' + ta.value.slice(end);
+            ta.selectionStart = ta.selectionEnd = start + 4;
+          } else {
+            const lineStart = ta.value.lastIndexOf('\n', start - 1) + 1;
+            const before = ta.value.slice(lineStart, lineStart + 4);
+            const spaces = before.match(/^ {1,4}/);
+            if (spaces) {
+              const trimLen = spaces[0].length;
+              ta.value = ta.value.slice(0, lineStart) + ta.value.slice(lineStart + trimLen);
+              ta.selectionStart = ta.selectionEnd = Math.max(lineStart, start - trimLen);
+            }
+          }
+          this.codeLab.sandboxText = ta.value;
+          this.syncSandboxGutter();
+          if (window.soundEngine) window.soundEngine.playKey(true);
+        }
+      });
+
+      this.elCodeSandboxTextarea.addEventListener('input', () => {
+        this.codeLab.sandboxText = this.elCodeSandboxTextarea.value;
+        this.syncSandboxGutter();
+        this.updateCodeLabLineHint();
+      });
+
+      ['keyup', 'click'].forEach(evName => {
+        this.elCodeSandboxTextarea.addEventListener(evName, () => {
+          this.updateCodeLabLineHint();
+        });
+      });
+
+      this.elCodeSandboxTextarea.addEventListener('scroll', () => {
+        if (this.elCodeLineNumbers) {
+          this.elCodeLineNumbers.scrollTop = this.elCodeSandboxTextarea.scrollTop;
+        }
+        if (this.elCodeSandboxHighlight) {
+          this.elCodeSandboxHighlight.scrollTop = this.elCodeSandboxTextarea.scrollTop;
+          this.elCodeSandboxHighlight.scrollLeft = this.elCodeSandboxTextarea.scrollLeft;
+        }
+      });
+    }
+
+    if (this.elCodeHintBtn) {
+      this.elCodeHintBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.toggleCodeLabSkeletonHint();
+      });
+    }
+
+    if (this.elCodeKbdToggleBtn) {
+      this.elCodeKbdToggleBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.codeLab.keyboardHidden = !this.codeLab.keyboardHidden;
+        document.body.classList.toggle('codelab-kbd-hidden', this.codeLab.keyboardHidden);
+        this.elCodeKbdToggleBtn.classList.toggle('active', this.codeLab.keyboardHidden);
+        this.elCodeKbdToggleBtn.textContent = this.codeLab.keyboardHidden ? '⌨️ 키보드 보기' : '⌨️ 키보드 접기';
+        if (this.elCodeHiddenInput) this.elCodeHiddenInput.focus();
       });
     }
 
@@ -379,29 +538,31 @@ class TypingReflexApp {
       });
     }
 
-    // 전역 단축키 (F1: 해설 모달, ESC: 모달 닫기)
+    // CodeLab 전역 단축키 (F1: 해설 모달, F2: 빈칸 힌트, ESC: 닫기, Ctrl+Enter: 실행)
     window.addEventListener('keydown', (e) => {
+      if (this.currentMode !== 'practice_code') return;
+
       if (e.key === 'F1') {
-        if (this.currentMode === 'practice_code') {
-          e.preventDefault();
-          this.openCodeLabModal();
-        }
+        e.preventDefault();
+        if (this.isCodeLabModalOpen()) this.closeCodeLabModal();
+        else this.openCodeLabModal();
+      } else if (e.key === 'F2' && this.codeLab.typeMode === 'skeleton') {
+        e.preventDefault();
+        this.toggleCodeLabSkeletonHint();
       } else if (e.key === 'Escape') {
-        if (this.elCodeModalOverlay && this.elCodeModalOverlay.style.display !== 'none') {
+        if (this.isCodeLabModalOpen()) {
           this.closeCodeLabModal();
         }
+      } else if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && !this.isCodeLabModalOpen()) {
+        e.preventDefault();
+        this.executeCodeLabTests();
       }
     });
 
     if (this.elCodeHiddenInput) {
       this.elCodeHiddenInput.addEventListener('keydown', (e) => {
-        if (this.currentMode !== 'practice_code') return;
-
-        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-          e.preventDefault();
-          this.executeCodeLabTests();
-          return;
-        }
+        if (this.currentMode !== 'practice_code' || this.isCodeLabModalOpen()) return;
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
 
         if (e.key === 'Tab') {
           e.preventDefault();
@@ -422,14 +583,24 @@ class TypingReflexApp {
         }
       });
 
-      this.elCodeHiddenInput.addEventListener('input', (e) => {
-        if (this.currentMode !== 'practice_code') return;
+      this.elCodeHiddenInput.addEventListener('compositionend', (e) => {
+        if (this.currentMode !== 'practice_code' || this.isCodeLabModalOpen()) return;
         const val = e.target.value;
         e.target.value = '';
         if (!val) return;
-        for (let i = 0; i < val.length; i++) {
-          this.handleCodeLabInputKey(val[i]);
+        this.processCodeLabTextChunk(val);
+      });
+
+      this.elCodeHiddenInput.addEventListener('input', (e) => {
+        if (this.currentMode !== 'practice_code' || this.isCodeLabModalOpen()) {
+          e.target.value = '';
+          return;
         }
+        if (e.isComposing) return;
+        const val = e.target.value;
+        e.target.value = '';
+        if (!val) return;
+        this.processCodeLabTextChunk(val);
       });
     }
 
@@ -687,6 +858,9 @@ class TypingReflexApp {
 
   setLanguage(lang) {
     this.lang = lang;
+    if (this.currentMode !== 'practice_code') {
+      this._nonCodeLang = lang;
+    }
     this.targetText = '';
     this.nextTargetText = '';
     this._nextLitItem = null;
@@ -700,6 +874,7 @@ class TypingReflexApp {
   }
 
   switchMode(mode) {
+    const prevMode = this.currentMode;
     this.currentMode = mode;
     this.clearTimers();
     this.targetText = '';
@@ -707,12 +882,31 @@ class TypingReflexApp {
     this._nextLitItem = null;
     this._nextSnippetItem = null;
 
-    if (mode === 'practice_code' && this.lang !== 'en') {
-      this.lang = 'en';
-      document.querySelectorAll('.lang-switch-btn').forEach(b => {
-        b.classList.toggle('active', b.getAttribute('data-lang') === 'en');
-      });
-      this.renderer.setLanguage('en');
+    if (mode === 'practice_code' && prevMode !== 'practice_code') {
+      this._nonCodeLang = this.lang;
+      if (this.lang !== 'en') {
+        this.lang = 'en';
+        document.querySelectorAll('.lang-switch-btn').forEach(b => {
+          b.classList.toggle('active', b.getAttribute('data-lang') === 'en');
+        });
+        this.renderer.setLanguage('en');
+      }
+    } else if (mode !== 'practice_code' && prevMode === 'practice_code') {
+      const restored = this._nonCodeLang || 'ko';
+      if (this.lang !== restored) {
+        this.lang = restored;
+        document.querySelectorAll('.lang-switch-btn').forEach(b => {
+          b.classList.toggle('active', b.getAttribute('data-lang') === restored);
+        });
+        this.renderer.setLanguage(restored);
+      }
+    }
+
+    document.body.classList.toggle('is-codelab-active', mode === 'practice_code');
+    if (mode !== 'practice_code') {
+      document.body.classList.remove('codelab-kbd-hidden');
+    } else {
+      document.body.classList.toggle('codelab-kbd-hidden', Boolean(this.codeLab.keyboardHidden));
     }
 
     document.querySelectorAll('.mode-tab-btn').forEach(b => {
@@ -773,18 +967,6 @@ class TypingReflexApp {
       if (!['all', 'novel', 'poem', 'essay'].includes(this.subOption)) {
         this.subOption = 'all';
       }
-    } else if (this.currentMode === 'practice_code') {
-      label = '언어 선택:';
-      buttons = [
-        { filter: 'all', text: '💻 전체 언어 모음' },
-        { filter: 'js', text: 'JavaScript / TypeScript' },
-        { filter: 'py', text: 'Python' },
-        { filter: 'cpp', text: 'C / C++ / Rust / Go' },
-        { filter: 'web', text: 'HTML / CSS / SQL' }
-      ];
-      if (!['all', 'js', 'py', 'cpp', 'web'].includes(this.subOption)) {
-        this.subOption = 'all';
-      }
     }
 
     if (this.elSubFilterLabel) this.elSubFilterLabel.textContent = label;
@@ -803,6 +985,8 @@ class TypingReflexApp {
     this.combo = 0;
     this.totalStrokesInSession = 0;
     this.correctStrokesInSession = 0;
+    this.targetKeyCode = null;
+    this.targetShift = false;
     this.targetText = '';
     this.nextTargetText = '';
     this._nextLitItem = null;
@@ -814,6 +998,7 @@ class TypingReflexApp {
       this.elReflexStage.style.display = 'flex';
       this.elPracticeStage.style.display = 'none';
       this.elHwStage.style.display = 'none';
+      if (this.elCodeLabStage) this.elCodeLabStage.style.display = 'none';
       this.setupReflexIdleUI();
     } else if (this.currentMode === 'hw_diagnostic') {
       this.elReflexStage.style.display = 'none';
@@ -1080,7 +1265,7 @@ class TypingReflexApp {
     this.elPositionSubKey.textContent = this.lang === 'ko' ? `영문 ${keyData.en} 자리` : `한글 ${keyData.ko} 자리`;
 
     this.renderer.setTargetKey(this.targetKeyCode, this.targetShift);
-    this.updateFingerBadge(keyData.finger, `${nextChar} (${keyData.en})`);
+    this.updateFingerBadge(keyData.finger, `${nextChar} (${keyData.en})`, this.targetShift);
     this.signalStartTime = performance.now();
   }
 
@@ -1114,43 +1299,6 @@ class TypingReflexApp {
 
       if (this.elCodeLangPill) this.elCodeLangPill.style.display = 'none';
       if (this.elPracticeStage) this.elPracticeStage.classList.remove('is-code-mode');
-    } else if (this.currentMode === 'practice_code') {
-      const enDataset = window.PRACTICE_DATASETS.en;
-      let pool = enDataset.code_snippets || [];
-
-      if (this.subOption === 'js') {
-        pool = pool.filter(item => item.lang === 'JavaScript' || item.lang === 'TypeScript');
-      } else if (this.subOption === 'py') {
-        pool = pool.filter(item => item.lang === 'Python');
-      } else if (this.subOption === 'cpp') {
-        pool = pool.filter(item => ['C', 'C++', 'Rust', 'Go'].includes(item.lang));
-      } else if (this.subOption === 'web') {
-        pool = pool.filter(item => ['HTML', 'CSS', 'SQL'].includes(item.lang));
-      }
-
-      if (pool.length === 0) pool = enDataset.code_snippets;
-
-      const pickSnippet = () => pool[Math.floor(Math.random() * pool.length)];
-      let curItem = this._nextSnippetItem;
-      if (!curItem || !pool.includes(curItem)) {
-        curItem = pickSnippet();
-      }
-      this._nextSnippetItem = pickSnippet();
-      while (pool.length > 1 && this._nextSnippetItem === curItem) {
-        this._nextSnippetItem = pickSnippet();
-      }
-
-      this.targetText = curItem.text;
-      this.nextTargetText = this._nextSnippetItem.text;
-
-      if (this.elCodeLangPill && this.elCodeLangText) {
-        this.elCodeLangPill.className = 'code-lang-pill mode-code';
-        const iconEl = this.elCodeLangPill.querySelector('.code-icon');
-        if (iconEl) iconEl.textContent = '💻';
-        this.elCodeLangText.textContent = curItem.lang;
-        this.elCodeLangPill.style.display = 'inline-flex';
-      }
-      if (this.elPracticeStage) this.elPracticeStage.classList.add('is-code-mode');
     } else {
       // 짧은 글 연습 (한/영 문학 명구절)
       const litList = dataset.literature || [];
@@ -1219,7 +1367,7 @@ class TypingReflexApp {
   }
 
   updateNextStrokeGuide() {
-    if (this.currentMode !== 'practice_words' && this.currentMode !== 'practice_sentences' && this.currentMode !== 'practice_code') return;
+    if (this.currentMode !== 'practice_words' && this.currentMode !== 'practice_sentences') return;
 
     const typed = this.typingInput.value;
     this.renderPromptCharacters(typed);
@@ -1253,8 +1401,10 @@ class TypingReflexApp {
     }
 
     if (charIdx >= this.targetText.length) {
+      this.targetKeyCode = 'Enter';
+      this.targetShift = false;
       this.renderer.setTargetKey('Enter', false);
-      this.updateFingerBadge('R_PINKY', 'Enter ↵');
+      this.updateFingerBadge('R_PINKY', 'Enter ↵', false);
       return;
     }
 
@@ -1446,8 +1596,13 @@ class TypingReflexApp {
       return;
     }
 
-    // 4) 낱말 / 문장 / 코드 연습 모드에서의 키 입력 시각 피드백 및 반응속도 측정
-    if (this.currentMode === 'practice_words' || this.currentMode === 'practice_sentences' || this.currentMode === 'practice_code') {
+    // 4) CodeLab 모드에서는 자체 hidden textarea & handleCodeLabInputKey에서 피드백/통계 처리
+    if (this.currentMode === 'practice_code') {
+      return;
+    }
+
+    // 5) 낱말 / 문장 연습 모드에서의 키 입력 시각 피드백 및 반응속도 측정
+    if (this.currentMode === 'practice_words' || this.currentMode === 'practice_sentences') {
       if (document.activeElement !== this.typingInput && !window.KEY_MAP[code]?.isModifier) {
         this.typingInput.focus();
       }
@@ -1504,37 +1659,69 @@ class TypingReflexApp {
   // 4. 통계 기록 및 UI 업데이트
   // =========================================================================
 
-  recordKeyAndFingerStat(keyCode, reactionMs, isHit) {
+  recordKeyAndFingerStat(keyCode, reactionMs, isHit, symbolChar = null) {
+    if (!this.stats.symbols) this.stats.symbols = {};
+    const isCodeSym = symbolChar && /^[{}()[\];=<>*&:'"+\-/%!|^~?.,_\\@#$`]$/.test(symbolChar);
+
+    if (isCodeSym) {
+      if (!this.stats.symbols[symbolChar]) {
+        this.stats.symbols[symbolChar] = { count: 0, totalMs: 0, misses: 0 };
+      }
+      if (isHit) {
+        this.stats.symbols[symbolChar].count++;
+        if (reactionMs !== null && reactionMs > 0) {
+          this.stats.symbols[symbolChar].totalMs += reactionMs;
+        }
+      } else {
+        this.stats.symbols[symbolChar].misses++;
+      }
+    }
+
     const keyData = window.KEY_MAP[keyCode];
-    if (!keyData) return;
+    if (!keyData) {
+      if (isCodeSym) {
+        this.saveStats();
+        this.updateWeakSymbolsUI();
+      }
+      return;
+    }
     const fingerId = keyData.finger;
 
-    if (isHit && reactionMs !== null) {
+    if (isHit) {
       this.stats.totalHits++;
-      if (!this.stats.bestReactionMs || reactionMs < this.stats.bestReactionMs) {
-        this.stats.bestReactionMs = reactionMs;
-      }
+      if (reactionMs !== null && reactionMs > 0) {
+        if (!this.stats.bestReactionMs || reactionMs < this.stats.bestReactionMs) {
+          this.stats.bestReactionMs = reactionMs;
+        }
 
+        if (!this.stats.fingers[fingerId]) {
+          this.stats.fingers[fingerId] = { count: 0, totalMs: 0, misses: 0 };
+        }
+        this.stats.fingers[fingerId].count++;
+        this.stats.fingers[fingerId].totalMs += reactionMs;
+
+        if (!this.stats.keys[keyCode]) {
+          this.stats.keys[keyCode] = { count: 0, totalMs: 0, misses: 0 };
+        }
+        this.stats.keys[keyCode].count++;
+        this.stats.keys[keyCode].totalMs += reactionMs;
+      }
+    } else {
+      this.stats.totalMisses++;
       if (!this.stats.fingers[fingerId]) {
         this.stats.fingers[fingerId] = { count: 0, totalMs: 0, misses: 0 };
       }
-      this.stats.fingers[fingerId].count++;
-      this.stats.fingers[fingerId].totalMs += reactionMs;
+      this.stats.fingers[fingerId].misses++;
 
       if (!this.stats.keys[keyCode]) {
         this.stats.keys[keyCode] = { count: 0, totalMs: 0, misses: 0 };
       }
-      this.stats.keys[keyCode].count++;
-      this.stats.keys[keyCode].totalMs += reactionMs;
-    } else {
-      this.stats.totalMisses++;
-      if (this.stats.fingers[fingerId]) {
-        this.stats.fingers[fingerId].misses++;
-      }
+      this.stats.keys[keyCode].misses++;
     }
 
     this.saveStats();
     this.updateFingerStatsUI();
+    this.updateWeakSymbolsUI();
   }
 
   updateTopMetrics(reactionMs, speedVal, accuracyVal, speedUnit = null) {
@@ -1559,7 +1746,7 @@ class TypingReflexApp {
   updateFingerBadge(fingerId, keyLabel = '', needShift = false) {
     if (!this.elFingerGuideBadge) return;
     if (!fingerId || !window.FINGER_INFO[fingerId]) {
-      this.elFingerGuideBadge.innerHTML = `<span class="badge-dot" style="background:#38bdf8"></span>양손 손가락을 홈 자리(ㅁㄴㅇㄹ / ㅓㅏㅣ)에 올려두세요`;
+      this.elFingerGuideBadge.innerHTML = `<span class="badge-dot" style="background:#f97316"></span>양손 손가락을 홈 자리(ㅁㄴㅇㄹ / ㅓㅏㅣ)에 올려두세요`;
       return;
     }
     const fInfo = window.FINGER_INFO[fingerId];
@@ -1568,6 +1755,218 @@ class TypingReflexApp {
       <span class="badge-dot" style="background:${fInfo.color}"></span>
       담당 손가락: <strong>${fInfo.name}</strong>${shiftText} → <span class="badge-key-highlight">${keyLabel}</span>
     `;
+  }
+
+  /**
+   * 4-Tier 배지 색상 위계 적용
+   */
+  applyTierBadgeClass(el, baseClass, tier) {
+    if (!el) return;
+    const t = Math.max(1, Math.min(4, Number(tier) || 1));
+    el.className = `${baseClass} tier-${t}`;
+  }
+
+  /**
+   * 좌우 스플릿 뷰 드래그 리사이저 초기화
+   */
+  initCodeLabSplitResizer() {
+    if (!this.elCodeSplitResizer || !this.elCodeSplitView) return;
+    try {
+      const saved = localStorage.getItem('keyreflex_codelab_split_pct');
+      if (saved) {
+        const pct = parseFloat(saved);
+        if (pct >= 42 && pct <= 74) {
+          this.elCodeSplitView.style.setProperty('--codelab-editor-width', `${pct.toFixed(1)}%`);
+        }
+      }
+    } catch (_) { /* ignore */ }
+
+    let dragging = false;
+    let startX = 0;
+    let startWidth = 0;
+    let totalWidth = 0;
+
+    this.elCodeSplitResizer.addEventListener('pointerdown', (e) => {
+      if (!this.elCodeEditorPanel || !this.elCodeSplitView) return;
+      dragging = true;
+      startX = e.clientX;
+      startWidth = this.elCodeEditorPanel.getBoundingClientRect().width;
+      totalWidth = this.elCodeSplitView.getBoundingClientRect().width - 10;
+      this.elCodeSplitResizer.classList.add('is-dragging');
+      document.body.style.userSelect = 'none';
+      if (this.elCodeSplitResizer.setPointerCapture) {
+        try { this.elCodeSplitResizer.setPointerCapture(e.pointerId); } catch (_) { /* ignore */ }
+      }
+    });
+
+    window.addEventListener('pointermove', (e) => {
+      if (!dragging || totalWidth <= 0) return;
+      const dx = e.clientX - startX;
+      const pct = Math.min(74, Math.max(42, ((startWidth + dx) / totalWidth) * 100));
+      this.elCodeSplitView.style.setProperty('--codelab-editor-width', `${pct.toFixed(1)}%`);
+    });
+
+    const endDrag = () => {
+      if (!dragging) return;
+      dragging = false;
+      this.elCodeSplitResizer.classList.remove('is-dragging');
+      document.body.style.userSelect = '';
+      try {
+        const cur = this.elCodeSplitView.style.getPropertyValue('--codelab-editor-width');
+        if (cur) localStorage.setItem('keyreflex_codelab_split_pct', String(parseFloat(cur)));
+      } catch (_) { /* ignore */ }
+    };
+
+    window.addEventListener('pointerup', endDrag);
+    window.addEventListener('pointercancel', endDrag);
+    this.elCodeSplitResizer.addEventListener('dblclick', () => {
+      this.elCodeSplitView.style.setProperty('--codelab-editor-width', '58%');
+      try { localStorage.removeItem('keyreflex_codelab_split_pct'); } catch (_) { /* ignore */ }
+    });
+  }
+
+  /**
+   * 오프라인 시맨틱 코드 구문 토크나이저 (JS / Python / C)
+   * 문자 단위 tok-* 클래스 배열 반환
+   */
+  tokenizeCodeForDisplay(code, lang) {
+    const src = code || '';
+    const classes = new Array(src.length).fill('');
+    const n = src.length;
+    const isPy = lang === 'python';
+    const isC = lang === 'c';
+
+    const KW = new Set([
+      'function', 'return', 'if', 'else', 'elif', 'for', 'while', 'of', 'in',
+      'new', 'async', 'await', 'def', 'import', 'from', 'as', 'pass', 'break',
+      'continue', 'and', 'or', 'not', 'is', 'lambda', 'nonlocal', 'global',
+      'yield', 'try', 'except', 'throw', 'catch', 'switch', 'case', 'default', 'do'
+    ]);
+    const TYPES = new Set([
+      'const', 'let', 'var', 'class', 'int', 'void', 'char', 'size_t', 'long',
+      'unsigned', 'short', 'float', 'double', 'bool', 'struct', 'typedef', 'sizeof',
+      'true', 'false', 'True', 'False', 'None', 'null', 'undefined', 'NULL', 'nullptr',
+      'Map', 'Set', 'Array', 'Math', 'Object', 'JSON', 'Promise', 'deque', 'defaultdict',
+      'len', 'range', 'enumerate', 'abs', 'min', 'max', 'printf', 'malloc', 'free', 'strlen', 'this'
+    ]);
+
+    const paint = (start, end, cls) => {
+      for (let k = start; k < end; k++) classes[k] = cls;
+    };
+
+    let i = 0;
+    while (i < n) {
+      const ch = src[i];
+      const next = src[i + 1] || '';
+
+      // 한 줄 주석
+      if ((!isPy && ch === '/' && next === '/') || (isPy && ch === '#')) {
+        const start = i;
+        while (i < n && src[i] !== '\n') i++;
+        paint(start, i, 'tok-cm');
+        continue;
+      }
+
+      // 블록 주석 (JS / C)
+      if (!isPy && ch === '/' && next === '*') {
+        const start = i;
+        i += 2;
+        while (i < n && !(src[i] === '*' && src[i + 1] === '/')) i++;
+        i = Math.min(n, i + 2);
+        paint(start, i, 'tok-cm');
+        continue;
+      }
+
+      // C 전처리기 (#include, #define)
+      if (isC && ch === '#') {
+        const start = i;
+        while (i < n && src[i] !== '\n') i++;
+        paint(start, i, 'tok-meta');
+        continue;
+      }
+
+      // Python 데코레이터 (@memoize)
+      if (isPy && ch === '@' && /[A-Za-z_]/.test(next)) {
+        const start = i;
+        i++;
+        while (i < n && /[A-Za-z0-9_]/.test(src[i])) i++;
+        paint(start, i, 'tok-meta');
+        continue;
+      }
+
+      // 문자열 ('...', "...", `...`)
+      if (ch === '"' || ch === "'" || ch === '`') {
+        const quote = ch;
+        const start = i;
+        i++;
+        while (i < n) {
+          if (src[i] === '\\' && i + 1 < n) {
+            i += 2;
+            continue;
+          }
+          if (src[i] === quote) {
+            i++;
+            break;
+          }
+          if (quote !== '`' && src[i] === '\n') break;
+          i++;
+        }
+        paint(start, i, 'tok-str');
+        continue;
+      }
+
+      // 숫자 리터럴
+      if (/[0-9]/.test(ch)) {
+        const start = i;
+        if (ch === '0' && (next === 'x' || next === 'X')) {
+          i += 2;
+          while (i < n && /[0-9a-fA-F]/.test(src[i])) i++;
+        } else {
+          while (i < n && /[0-9.]/.test(src[i])) i++;
+        }
+        paint(start, i, 'tok-num');
+        continue;
+      }
+
+      // 식별자 / 키워드 / 타입 / 함수
+      if (/[A-Za-z_$]/.test(ch)) {
+        const start = i;
+        while (i < n && /[A-Za-z0-9_$]/.test(src[i])) i++;
+        const word = src.slice(start, i);
+        let j = i;
+        while (j < n && src[j] === ' ') j++;
+        if (KW.has(word)) paint(start, i, 'tok-kw');
+        else if (TYPES.has(word)) paint(start, i, 'tok-type');
+        else if (src[j] === '(') paint(start, i, 'tok-fn');
+        else paint(start, i, 'tok-id');
+        continue;
+      }
+
+      // 연산자 및 구두점 기호
+      if (/[{}()[\];=<>*&+\-/%!|^~?:.,]/.test(ch)) {
+        classes[i] = 'tok-op';
+      }
+      i++;
+    }
+    return classes;
+  }
+
+  buildHighlightedCodeHTML(code, lang) {
+    const src = (code || '').replace(/\r\n/g, '\n');
+    const tokClasses = this.tokenizeCodeForDisplay(src, lang);
+    let out = '';
+    let i = 0;
+    while (i < src.length) {
+      const cls = tokClasses[i];
+      let j = i + 1;
+      while (j < src.length && tokClasses[j] === cls && src[i] !== '\n' && src[j] !== '\n') {
+        j++;
+      }
+      const chunk = this.escapeHtml(src.slice(i, j));
+      out += cls ? `<span class="${cls}">${chunk}</span>` : chunk;
+      i = j;
+    }
+    return out;
   }
 
   updateFingerStatsUI() {
@@ -1608,12 +2007,119 @@ class TypingReflexApp {
     });
   }
 
+  updateWeakSymbolsUI() {
+    if (!this.elCodeWeakSymList) return;
+    const syms = this.stats && this.stats.symbols ? Object.entries(this.stats.symbols) : [];
+    const ranked = syms
+      .map(([sym, st]) => {
+        const attempts = st.count + st.misses;
+        const avgMs = st.count > 0 ? Math.round(st.totalMs / st.count) : 0;
+        const errRate = attempts > 0 ? st.misses / attempts : 0;
+        // 취약 점수: 오타 가중치 + 지연 시간 가중치
+        const score = st.misses * 350 + errRate * 500 + (avgMs > 260 ? avgMs - 260 : 0);
+        return { sym, misses: st.misses, count: st.count, avgMs, errRate, score };
+      })
+      .filter(item => item.misses > 0 || (item.count >= 2 && item.avgMs > 240))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5);
+
+    if (ranked.length === 0) {
+      this.elCodeWeakSymList.innerHTML = '타이핑을 시작하면 느리거나 오타 난 기호 Top 5가 집계됩니다';
+      return;
+    }
+
+    this.elCodeWeakSymList.innerHTML = ranked.map(item => {
+      const cls = item.misses > 0 ? 'weak-sym-pill' : 'weak-sym-pill is-slow';
+      const detail = item.misses > 0
+        ? `오타 ${item.misses}${item.avgMs > 0 ? ` · ${item.avgMs}ms` : ''}`
+        : `${item.avgMs}ms`;
+      return `<span class="${cls}" title="정타 ${item.count}회 / 오타 ${item.misses}회"><code>${this.escapeHtml(item.sym)}</code> <small>${detail}</small></span>`;
+    }).join('');
+  }
+
+  updatePyodideStatusBadge(status, _msg = '') {
+    if (!this.elCodePyodideStatus) return;
+    const show = this.codeLab && this.codeLab.lang === 'python';
+    this.elCodePyodideStatus.style.display = show ? 'inline-flex' : 'none';
+    if (!show) return;
+
+    this.elCodePyodideStatus.className = 'codelab-pyodide-pill';
+    if (status === 'ready') {
+      this.elCodePyodideStatus.classList.add('state-ready');
+      this.elCodePyodideStatus.textContent = '🐍 Pyodide 준비됨';
+      this.elCodePyodideStatus.title = 'Python WebAssembly 런타임이 활성화되어 즉시 실행 가능합니다';
+    } else if (status === 'loading') {
+      this.elCodePyodideStatus.classList.add('state-loading');
+      this.elCodePyodideStatus.textContent = '🐍 Pyodide 로딩...';
+      this.elCodePyodideStatus.title = 'WebAssembly Python 런타임을 초기화하는 중입니다';
+    } else if (status === 'error') {
+      this.elCodePyodideStatus.classList.add('state-error');
+      this.elCodePyodideStatus.textContent = '⚠️ Pyodide 오프라인 (재시도)';
+      this.elCodePyodideStatus.title = '네트워크/CDN 연결 실패 — 클릭하여 다시 로드';
+    } else {
+      this.elCodePyodideStatus.classList.add('state-idle');
+      this.elCodePyodideStatus.textContent = '🐍 Pyodide 대기 (클릭 초기화)';
+      this.elCodePyodideStatus.title = 'Python 첫 실행 시 또는 클릭 시 WebAssembly 런타임을 초기화합니다';
+    }
+  }
+
   // =========================================================================
   // 5. KeyReflex CodeLab: 실시간 실행형 알고리즘 & 3대 언어 마스터리 엔진
   // =========================================================================
 
+  isCodeLabModalOpen() {
+    return Boolean(
+      this.elCodeModalOverlay &&
+      this.elCodeModalOverlay.style.display &&
+      this.elCodeModalOverlay.style.display !== 'none'
+    );
+  }
+
+  loadCodeLabProgress() {
+    try {
+      const raw = localStorage.getItem('typing_reflex_codelab_solved_v1');
+      if (raw) {
+        const arr = JSON.parse(raw);
+        if (Array.isArray(arr)) return new Set(arr);
+      }
+    } catch (_) {
+      // ignore storage errors
+    }
+    return new Set();
+  }
+
+  saveCodeLabProgress() {
+    try {
+      localStorage.setItem(
+        'typing_reflex_codelab_solved_v1',
+        JSON.stringify(Array.from(this.codeLab.solvedLessons))
+      );
+    } catch (_) {
+      // ignore storage errors
+    }
+  }
+
+  markCodeLabLessonSolved(lessonId) {
+    if (!lessonId) return;
+    if (!this.codeLab.solvedLessons.has(lessonId)) {
+      this.codeLab.solvedLessons.add(lessonId);
+      this.saveCodeLabProgress();
+      this.populateCodeLabProblems();
+    }
+    this.updateCodeLabProgressUI();
+  }
+
+  updateCodeLabProgressUI() {
+    if (!this.elCodeProgressPill || !window.CODE_CURRICULUM) return;
+    const totalCount = Object.values(window.CODE_CURRICULUM)
+      .reduce((acc, list) => acc + (Array.isArray(list) ? list.length : 0), 0);
+    const solvedCount = this.codeLab.solvedLessons ? this.codeLab.solvedLessons.size : 0;
+    this.elCodeProgressPill.textContent = `완료 ${solvedCount}/${totalCount}`;
+  }
+
   startCodeLabMode() {
     this.populateCodeLabProblems();
+    this.updateCodeLabProgressUI();
     this.loadCodeLabLesson(this.codeLab.lang, this.codeLab.lessonIndex);
     if (this.elCodeHiddenInput) {
       setTimeout(() => this.elCodeHiddenInput.focus(), 80);
@@ -1644,7 +2150,8 @@ class TypingReflexApp {
       grouped[tierNum].forEach(item => {
         const opt = document.createElement('option');
         opt.value = item.index;
-        opt.textContent = `[T${item.tier}] ${item.title}`;
+        const solvedMark = this.codeLab.solvedLessons.has(item.id) ? '✅ ' : '';
+        opt.textContent = `${solvedMark}[T${item.tier}] ${item.title}`;
         if (item.index === this.codeLab.lessonIndex) opt.selected = true;
         optGroup.appendChild(opt);
       });
@@ -1663,12 +2170,13 @@ class TypingReflexApp {
       });
     }
 
+    this.updatePyodideStatusBadge(this.codeRunner.pyodideStatus);
     this.populateCodeLabProblems();
     this.loadCodeLabLesson(lang, 0);
   }
 
-  setCodeLabTypeMode(typeMode) {
-    if (!['flow', 'skeleton'].includes(typeMode)) return;
+  setCodeLabTypeMode(typeMode, customCode = null) {
+    if (!['flow', 'skeleton', 'sandbox'].includes(typeMode)) return;
     this.codeLab.typeMode = typeMode;
 
     if (this.elCodeTypeModeBtns) {
@@ -1677,31 +2185,188 @@ class TypingReflexApp {
       });
     }
 
-    this.loadCodeLabLesson(this.codeLab.lang, this.codeLab.lessonIndex);
+    this.loadCodeLabLesson(this.codeLab.lang, this.codeLab.lessonIndex, customCode);
   }
 
-  loadCodeLabLesson(lang, index) {
+  toggleCodeLabSkeletonHint() {
+    if (this.codeLab.typeMode !== 'skeleton') return;
+    this.codeLab.showSkeletonHint = !this.codeLab.showSkeletonHint;
+    if (this.elCodeHintBtn) {
+      this.elCodeHintBtn.classList.toggle('active', this.codeLab.showSkeletonHint);
+      this.elCodeHintBtn.textContent = this.codeLab.showSkeletonHint ? '🙈 힌트 숨기기' : '👁️ 빈칸 힌트';
+    }
+    this.renderCodeLabEditor();
+    if (this.elCodeHiddenInput) this.elCodeHiddenInput.focus();
+  }
+
+  buildSkeletonModel(fullCode, skeletonCode) {
+    const cLines = fullCode.replace(/\r\n/g, '\n').split('\n');
+    const sLines = (skeletonCode || fullCode).replace(/\r\n/g, '\n').split('\n');
+    const rawSegments = [];
+    const blanks = [];
+
+    for (let i = 0; i < sLines.length; i++) {
+      const sLine = sLines[i];
+      const cLine = cLines[i] !== undefined ? cLines[i] : sLine;
+      const eol = i < sLines.length - 1 ? '\n' : '';
+
+      if (!sLine.includes('____')) {
+        rawSegments.push({ type: 'static', text: sLine + eol });
+        continue;
+      }
+
+      const parts = sLine.split('____');
+      let searchPos = 0;
+
+      for (let p = 0; p < parts.length - 1; p++) {
+        const prefix = parts[p];
+        const foundAt = cLine.indexOf(prefix, searchPos);
+        const ansStart = foundAt !== -1 ? foundAt + prefix.length : searchPos;
+        const nextPart = parts[p + 1];
+        const isLastBlank = p === parts.length - 2;
+
+        let ansEnd = cLine.length;
+        if (nextPart !== '') {
+          const nextIdx = isLastBlank
+            ? cLine.lastIndexOf(nextPart)
+            : cLine.indexOf(nextPart, ansStart);
+          if (nextIdx >= ansStart) ansEnd = nextIdx;
+        }
+
+        if (prefix.length > 0) {
+          rawSegments.push({ type: 'static', text: prefix });
+        }
+
+        const blank = {
+          id: blanks.length,
+          expected: cLine.slice(ansStart, ansEnd),
+          userText: '',
+          lineNum: i + 1
+        };
+        blanks.push(blank);
+        rawSegments.push({ type: 'blank', blank });
+        searchPos = ansEnd;
+      }
+
+      const tail = parts[parts.length - 1] + eol;
+      if (tail.length > 0) {
+        rawSegments.push({ type: 'static', text: tail });
+      }
+    }
+
+    // 인접한 정적 세그먼트 병합
+    const segments = [];
+    for (const seg of rawSegments) {
+      const prev = segments[segments.length - 1];
+      if (seg.type === 'static' && prev && prev.type === 'static') {
+        prev.text += seg.text;
+      } else {
+        segments.push(seg);
+      }
+    }
+
+    return { segments, blanks };
+  }
+
+  reconstructSkeletonCode() {
+    const model = this.codeLab.skeletonModel;
+    if (!model) return { code: this.codeLab.fullText, missingBlankIdx: -1 };
+
+    let missingBlankIdx = -1;
+    const code = model.segments.map(seg => {
+      if (seg.type === 'static') return seg.text;
+      if (seg.blank.userText.length === 0 && missingBlankIdx === -1) {
+        missingBlankIdx = seg.blank.id;
+      }
+      return seg.blank.userText.length > 0 ? seg.blank.userText : '____';
+    }).join('');
+
+    return { code, missingBlankIdx };
+  }
+
+  loadCodeLabLesson(lang, index, customSandboxCode = null) {
     const list = window.CODE_CURRICULUM[lang] || [];
     if (!list[index]) index = 0;
     this.codeLab.lessonIndex = index;
     const lesson = list[index];
     this.codeLab.currentLesson = lesson;
+    this.updatePyodideStatusBadge(this.codeRunner.pyodideStatus);
 
     const filenames = { javascript: 'solution.js', python: 'solution.py', c: 'solution.c' };
     if (this.elCodeFilename) {
       this.elCodeFilename.textContent = filenames[lang] || 'solution.txt';
     }
 
-    // 모드에 따른 텍스트 설정 (Flow vs Skeleton)
-    const rawText = this.codeLab.typeMode === 'flow' ? lesson.code : lesson.skeleton;
-    this.codeLab.fullText = rawText.replace(/\r\n/g, '\n');
+    clearTimeout(this.codeLab._wrongTimer);
+    this.codeLab.lastWrongIdx = null;
+    this.codeLab.showSkeletonHint = false;
+    this.codeLab.fullText = lesson.code.replace(/\r\n/g, '\n');
+    this.codeLab.sandboxText = typeof customSandboxCode === 'string'
+      ? customSandboxCode.replace(/\r\n/g, '\n')
+      : this.codeLab.fullText;
     this.codeLab.cursorIdx = 0;
     this.codeLab.startTime = null;
     this.codeLab.totalStrokes = 0;
     this.codeLab.correctStrokes = 0;
+    this.codeLab.activeBlankIdx = 0;
+    this.combo = 0;
+    this.lastStrokeTime = 0;
+
+    const isSandbox = this.codeLab.typeMode === 'sandbox';
+    const isSkeleton = this.codeLab.typeMode === 'skeleton';
+
+    if (this.elCodeEditorPanel) {
+      this.elCodeEditorPanel.classList.toggle('is-sandbox-mode', isSandbox);
+    }
+    if (this.elCodeContent) {
+      this.elCodeContent.style.display = isSandbox ? 'none' : '';
+    }
+    if (this.elCodeSandboxWrap) {
+      this.elCodeSandboxWrap.style.display = isSandbox ? 'block' : 'none';
+    }
+    if (this.elCodeSandboxTextarea) {
+      this.elCodeSandboxTextarea.style.display = isSandbox ? 'block' : 'none';
+      if (isSandbox) this.elCodeSandboxTextarea.value = this.codeLab.sandboxText;
+    }
+    if (this.elCodeHiddenInput) {
+      this.elCodeHiddenInput.style.display = isSandbox ? 'none' : '';
+    }
+    if (this.elCodeSandboxResetBtn) {
+      this.elCodeSandboxResetBtn.style.display = isSandbox ? 'inline-flex' : 'none';
+    }
+
+    if (isSkeleton) {
+      this.codeLab.skeletonModel = this.buildSkeletonModel(lesson.code, lesson.skeleton);
+      if (this.elCodeHintBtn) {
+        this.elCodeHintBtn.style.display = 'inline-flex';
+        this.elCodeHintBtn.classList.remove('active');
+        this.elCodeHintBtn.textContent = '👁️ 빈칸 힌트';
+      }
+      if (this.elCodeEditorModeHint) {
+        this.elCodeEditorModeHint.textContent = '💡 빈칸에 로직 직접 입력 · Tab/Enter: 다음 빈칸 · F2: 힌트 · 실행: Ctrl+Enter';
+      }
+    } else if (isSandbox) {
+      this.codeLab.skeletonModel = null;
+      if (this.elCodeHintBtn) this.elCodeHintBtn.style.display = 'none';
+      if (this.elCodeEditorModeHint) {
+        this.elCodeEditorModeHint.textContent = '🛠️ 자유 수정: 코드 변형·리팩터링 · Tab: 4칸 들여쓰기 · 채점: Ctrl+Enter';
+      }
+    } else {
+      this.codeLab.skeletonModel = null;
+      if (this.elCodeHintBtn) this.elCodeHintBtn.style.display = 'none';
+      if (this.elCodeEditorModeHint) {
+        this.elCodeEditorModeHint.textContent = '💡 줄바꿈: Enter · 들여쓰기: Tab · 실행: Ctrl+Enter';
+      }
+    }
+
+    if (this.elCodeImeBanner) this.elCodeImeBanner.style.display = 'none';
+    if (this.elMetricCombo) this.elMetricCombo.textContent = '0';
 
     // 문제 설명 카드 렌더링
-    if (this.elCodeTierBadge) this.elCodeTierBadge.textContent = `Tier ${lesson.tier}`;
+    if (this.elCodeTierBadge) {
+      this.elCodeTierBadge.textContent = `Tier ${lesson.tier}`;
+      this.applyTierBadgeClass(this.elCodeTierBadge, 'tier-pill', lesson.tier);
+    }
     if (this.elCodeProblemTitle) this.elCodeProblemTitle.textContent = lesson.title;
     if (this.elCodeComplexityBadge) {
       this.elCodeComplexityBadge.textContent = `${lesson.complexity.time} | ${lesson.complexity.space}`;
@@ -1716,7 +2381,9 @@ class TypingReflexApp {
     }
     if (this.elCodeConsoleOutput) {
       this.elCodeConsoleOutput.className = 'console-output';
-      this.elCodeConsoleOutput.innerHTML = '<span class="console-placeholder">> 코드를 타이핑 완료하거나 [코드 실행]을 누르면 결과가 출력됩니다.</span>';
+      this.elCodeConsoleOutput.innerHTML = isSandbox
+        ? '<span class="console-placeholder">> 코드를 자유롭게 수정한 뒤 [▶ 코드 실행] 또는 Ctrl+Enter로 검증하세요.</span>'
+        : '<span class="console-placeholder">> 코드를 타이핑 완료하거나 [코드 실행]을 누르면 결과가 출력됩니다.</span>';
     }
     if (this.elCodeExecTime) this.elCodeExecTime.textContent = '실행 시간: -- ms';
 
@@ -1729,7 +2396,9 @@ class TypingReflexApp {
     this.updateCodeLabMetricsUI();
     this.updateCodeLabLineHint();
 
-    if (this.elCodeHiddenInput) {
+    if (isSandbox && this.elCodeSandboxTextarea) {
+      this.elCodeSandboxTextarea.focus();
+    } else if (this.elCodeHiddenInput) {
       this.elCodeHiddenInput.value = '';
       this.elCodeHiddenInput.focus();
     }
@@ -1742,13 +2411,14 @@ class TypingReflexApp {
       const item = document.createElement('div');
       item.className = 'test-case-item';
       item.id = `codelab-test-item-${i}`;
-      
-      const inStr = JSON.stringify(t.input);
-      const expStr = JSON.stringify(t.expected);
+
+      const inStr = this.escapeHtml(JSON.stringify(t.input));
+      const expStr = this.escapeHtml(JSON.stringify(t.expected));
+      const testName = this.escapeHtml(t.name || `테스트 ${i + 1}`);
 
       item.innerHTML = `
         <div class="test-row-header">
-          <span class="test-case-name">${t.name || `테스트 ${i + 1}`}</span>
+          <span class="test-case-name">${testName}</span>
           <span class="test-case-badge" style="color:#94a3b8">대기 중</span>
         </div>
         <div class="test-case-details">
@@ -1762,48 +2432,46 @@ class TypingReflexApp {
 
   renderCodeLabEditor() {
     if (!this.elCodeContent || !this.elCodeLineNumbers) return;
+    if (this.codeLab.typeMode === 'sandbox') {
+      this.syncSandboxGutter();
+      return;
+    }
+    if (this.codeLab.typeMode === 'skeleton' && this.codeLab.skeletonModel) {
+      this.renderSkeletonEditor();
+      return;
+    }
+
     this.elCodeContent.innerHTML = '';
     this.elCodeLineNumbers.innerHTML = '';
 
+    const tokenClasses = this.tokenizeCodeForDisplay(this.codeLab.fullText, this.codeLab.lang);
     const lines = this.codeLab.fullText.split('\n');
     let globalCharIdx = 0;
 
     lines.forEach((line, lineIdx) => {
-      // 줄 번호
       const numSpan = document.createElement('span');
       numSpan.textContent = String(lineIdx + 1);
       this.elCodeLineNumbers.appendChild(numSpan);
 
-      // 코드 줄
       const lineDiv = document.createElement('div');
       lineDiv.className = 'code-line';
 
       for (let c = 0; c < line.length; c++) {
         const charSpan = document.createElement('span');
         const ch = line[c];
-        charSpan.className = 'code-char char-pending';
+        const tokCls = tokenClasses[globalCharIdx] || '';
+        charSpan.className = 'code-char char-pending' + (tokCls ? ` ${tokCls}` : '');
         charSpan.setAttribute('data-idx', String(globalCharIdx));
-        
-        // 스켈레톤 블랭크 자리 식별
-        const isBlank = line.substring(c, c + 4) === '____' || 
-                        (c >= 1 && line.substring(c-1, c+3) === '____') ||
-                        (c >= 2 && line.substring(c-2, c+2) === '____') ||
-                        (c >= 3 && line.substring(c-3, c+1) === '____');
-        if (isBlank) {
-          charSpan.classList.add('blank-slot');
-        }
-
         charSpan.textContent = ch === ' ' ? ' ' : ch;
         lineDiv.appendChild(charSpan);
         globalCharIdx++;
       }
 
-      // 개행 문자 EOL 표현용 더미
       if (lineIdx < lines.length - 1) {
         const eolSpan = document.createElement('span');
         eolSpan.className = 'code-char char-pending char-eol';
         eolSpan.setAttribute('data-idx', String(globalCharIdx));
-        eolSpan.textContent = ' ';
+        eolSpan.textContent = '↵';
         lineDiv.appendChild(eolSpan);
         globalCharIdx++;
       }
@@ -1814,14 +2482,122 @@ class TypingReflexApp {
     this.updateCodeCharClasses();
   }
 
+  renderSkeletonEditor() {
+    const model = this.codeLab.skeletonModel;
+    if (!model || !this.elCodeContent || !this.elCodeLineNumbers) return;
+
+    this.elCodeContent.innerHTML = '';
+    this.elCodeLineNumbers.innerHTML = '';
+
+    const lineCount = this.codeLab.fullText.split('\n').length;
+    for (let i = 1; i <= lineCount; i++) {
+      const numSpan = document.createElement('span');
+      numSpan.textContent = String(i);
+      this.elCodeLineNumbers.appendChild(numSpan);
+    }
+
+    // 스켈레톤 정적 코드 시맨틱 토크나이징
+    let synthStr = '';
+    const segOffsets = [];
+    model.segments.forEach((seg, sIdx) => {
+      if (seg.type === 'static') {
+        segOffsets[sIdx] = synthStr.length;
+        synthStr += seg.text;
+      } else {
+        synthStr += ' __SKEL__ ';
+      }
+    });
+    const skelTokens = this.tokenizeCodeForDisplay(synthStr, this.codeLab.lang);
+
+    let curLineDiv = document.createElement('div');
+    curLineDiv.className = 'code-line';
+    this.elCodeContent.appendChild(curLineDiv);
+
+    model.segments.forEach((seg, sIdx) => {
+      if (seg.type === 'static') {
+        const basePos = segOffsets[sIdx] || 0;
+        for (let i = 0; i < seg.text.length; i++) {
+          const ch = seg.text[i];
+          if (ch === '\n') {
+            curLineDiv = document.createElement('div');
+            curLineDiv.className = 'code-line';
+            this.elCodeContent.appendChild(curLineDiv);
+          } else {
+            const span = document.createElement('span');
+            const tokCls = skelTokens[basePos + i] || '';
+            span.className = 'code-char char-scaffold' + (tokCls ? ` ${tokCls}` : '');
+            span.textContent = ch;
+            curLineDiv.appendChild(span);
+          }
+        }
+      } else {
+        const b = seg.blank;
+        const isActive = b.id === this.codeLab.activeBlankIdx;
+        const isFilled = b.userText.length > 0;
+
+        const blankEl = document.createElement('span');
+        blankEl.className = 'blank-slot-pill'
+          + (isActive ? ' active-blank' : '')
+          + (isFilled ? ' filled-blank' : '');
+        blankEl.setAttribute('data-blank-idx', String(b.id));
+        blankEl.title = `빈칸 #${b.id + 1}: 클릭하여 입력`;
+
+        if (isFilled) {
+          const typedSpan = document.createElement('span');
+          typedSpan.textContent = b.userText;
+          blankEl.appendChild(typedSpan);
+        } else {
+          const dots = document.createElement('span');
+          dots.className = 'blank-placeholder-dots';
+          dots.textContent = isActive ? '' : '____';
+          blankEl.appendChild(dots);
+        }
+
+        if (isActive) {
+          const caret = document.createElement('span');
+          caret.className = 'blank-cursor-caret';
+          blankEl.appendChild(caret);
+
+          if (this.codeLab.showSkeletonHint) {
+            const ghost = document.createElement('span');
+            ghost.className = 'blank-hint-ghost';
+            if (b.expected.startsWith(b.userText)) {
+              ghost.textContent = b.expected.slice(b.userText.length);
+            } else {
+              ghost.textContent = ` (정답: ${b.expected})`;
+            }
+            blankEl.appendChild(ghost);
+          } else if (!isFilled) {
+            const hintDots = document.createElement('span');
+            hintDots.className = 'blank-placeholder-dots';
+            hintDots.textContent = '____';
+            blankEl.appendChild(hintDots);
+          }
+        }
+
+        curLineDiv.appendChild(blankEl);
+      }
+    });
+
+    const activePill = this.elCodeContent.querySelector('.blank-slot-pill.active-blank');
+    if (activePill) {
+      activePill.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  }
+
   updateCodeCharClasses() {
-    if (!this.elCodeContent) return;
+    if (!this.elCodeContent || this.codeLab.typeMode !== 'flow') return;
     const cur = this.codeLab.cursorIdx;
+    const wrongIdx = this.codeLab.lastWrongIdx;
     const allChars = this.elCodeContent.querySelectorAll('.code-char');
 
     allChars.forEach(el => {
       const idx = parseInt(el.getAttribute('data-idx'), 10);
-      el.classList.remove('char-current', 'char-correct', 'char-incorrect');
+      el.classList.remove('char-current', 'char-correct', 'char-pending', 'char-incorrect');
+      if (idx === wrongIdx) {
+        el.classList.add('char-incorrect');
+        return;
+      }
       if (idx < cur) {
         el.classList.add('char-correct');
       } else if (idx === cur) {
@@ -1831,59 +2607,150 @@ class TypingReflexApp {
       }
     });
 
-    // 활성 커서 위치로 에디터 자동 스크롤
     const activeEl = this.elCodeContent.querySelector(`[data-idx="${cur}"]`);
     if (activeEl && this.elCodeEditorPanel) {
       activeEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     }
   }
 
-  updateCodeLabTargetGuidance() {
+  syncSandboxGutter() {
+    if (!this.elCodeLineNumbers || !this.elCodeSandboxTextarea) return;
+    const text = this.elCodeSandboxTextarea.value || '';
+    const lineCount = Math.max(1, text.split('\n').length);
+    this.elCodeLineNumbers.innerHTML = '';
+    for (let i = 1; i <= lineCount; i++) {
+      const numSpan = document.createElement('span');
+      numSpan.textContent = String(i);
+      this.elCodeLineNumbers.appendChild(numSpan);
+    }
+    if (this.elCodeSandboxHighlight) {
+      this.elCodeSandboxHighlight.innerHTML = this.buildHighlightedCodeHTML(text, this.codeLab.lang) + '\n';
+      this.elCodeSandboxHighlight.scrollTop = this.elCodeSandboxTextarea.scrollTop;
+      this.elCodeSandboxHighlight.scrollLeft = this.elCodeSandboxTextarea.scrollLeft;
+    }
+    this.elCodeLineNumbers.scrollTop = this.elCodeSandboxTextarea.scrollTop;
+  }
+
+  getExpectedCodeLabChar() {
+    if (this.codeLab.typeMode === 'sandbox') return null;
+    if (this.codeLab.typeMode === 'skeleton' && this.codeLab.skeletonModel) {
+      const b = this.codeLab.skeletonModel.blanks[this.codeLab.activeBlankIdx];
+      if (!b) return null;
+      if (b.userText.length < b.expected.length && b.expected.startsWith(b.userText)) {
+        return b.expected[b.userText.length];
+      }
+      if (b.userText.length >= b.expected.length && b.userText === b.expected) {
+        return '\n'; // 다음 빈칸 또는 실행 유도
+      }
+      return null;
+    }
+
     const text = this.codeLab.fullText;
     const cur = this.codeLab.cursorIdx;
-    if (cur >= text.length) {
+    return cur < text.length ? text[cur] : null;
+  }
+
+  resolveStrokeForChar(ch) {
+    if (!ch) return null;
+    if (ch === '\n') return { code: 'Enter', shift: false, label: 'Enter ↵' };
+    if (ch === ' ') return { code: 'Space', shift: false, label: '스페이스바' };
+    if (ch === '\t' || ch === 'Tab') return { code: 'Tab', shift: false, label: 'Tab' };
+    if (window.CHAR_TO_KEY && window.CHAR_TO_KEY[ch]) {
+      return { ...window.CHAR_TO_KEY[ch], label: ch };
+    }
+    return null;
+  }
+
+  updateCodeLabTargetGuidance() {
+    const expectedChar = this.getExpectedCodeLabChar();
+    const stroke = this.resolveStrokeForChar(expectedChar);
+
+    if (stroke && window.KEY_MAP[stroke.code]) {
+      const kData = window.KEY_MAP[stroke.code];
+      this.targetKeyCode = stroke.code;
+      this.targetShift = Boolean(stroke.shift);
+      this.renderer.setTargetKey(stroke.code, this.targetShift);
+      this.updateFingerBadge(kData.finger, stroke.label, this.targetShift);
+    } else if (this.codeLab.typeMode === 'skeleton') {
+      const model = this.codeLab.skeletonModel;
+      const bIdx = this.codeLab.activeBlankIdx;
+      const totalBlanks = model ? model.blanks.length : 0;
+      const isLast = bIdx >= totalBlanks - 1;
+      this.targetKeyCode = 'Enter';
+      this.targetShift = false;
+      this.renderer.setTargetKey('Enter', false);
+      this.updateFingerBadge('R_PINKY', isLast ? 'Ctrl+Enter ▶ 실행' : `Enter (빈칸 #${bIdx + 1}/${totalBlanks})`, false);
+    } else if (this.codeLab.typeMode === 'sandbox') {
+      this.targetKeyCode = null;
+      this.targetShift = false;
+      this.renderer.clearTargets();
+      if (this.elFingerGuideBadge) {
+        this.elFingerGuideBadge.innerHTML = `<span class="badge-dot" style="background:#f97316"></span>🛠️ 자유 수정(Sandbox) — 코드를 자유롭게 변형·리팩터링하고 <strong>Ctrl+Enter</strong>로 테스트하세요`;
+      }
+    } else {
+      this.targetKeyCode = null;
+      this.targetShift = false;
       this.renderer.clearTargets();
       this.updateFingerBadge(null);
+    }
+  }
+
+  recordCodeLabStroke(keyCode, isCorrect, symbolChar = null) {
+    const now = performance.now();
+    const deltaMs = this.lastStrokeTime > 0 ? Math.round(now - this.lastStrokeTime) : null;
+    this.lastStrokeTime = now;
+
+    if (window.soundEngine) window.soundEngine.playKey(isCorrect);
+    if (keyCode) {
+      this.renderer.triggerKeyPress(keyCode, isCorrect);
+    }
+
+    if (isCorrect) {
+      this.combo++;
+      if (this.combo > this.maxCombo) this.maxCombo = this.combo;
+      if (this.elMetricCombo) this.elMetricCombo.textContent = String(this.combo);
+
+      const validReactionMs = (deltaMs !== null && deltaMs >= 15 && deltaMs < 5000) ? deltaMs : null;
+      if (validReactionMs !== null && this.elMetricReaction) {
+        this.elMetricReaction.textContent = `${validReactionMs} ms`;
+      }
+      if (keyCode || symbolChar) {
+        this.recordKeyAndFingerStat(keyCode, validReactionMs, true, symbolChar);
+      }
+    } else {
+      this.combo = 0;
+      if (this.elMetricCombo) this.elMetricCombo.textContent = '0';
+      if (keyCode || symbolChar) {
+        this.recordKeyAndFingerStat(keyCode, null, false, symbolChar);
+      }
+    }
+  }
+
+  processCodeLabTextChunk(val) {
+    if (!val) return;
+    if (/[ㄱ-ㅎㅏ-ㅣ가-힣]/.test(val)) {
+      if (this.elCodeImeBanner) this.elCodeImeBanner.style.display = 'flex';
+      if (window.soundEngine) window.soundEngine.playKey(false);
       return;
     }
 
-    const ch = text[cur];
-    let keyStrokes = [];
-
-    if (ch === '\n') {
-      keyStrokes = [{ code: 'Enter', shift: false, char: '\n' }];
-    } else if (ch === ' ') {
-      keyStrokes = [{ code: 'Space', shift: false, char: ' ' }];
-    } else if (ch === '\t') {
-      keyStrokes = [{ code: 'Tab', shift: false, char: '\t' }];
-    } else if (window.CHAR_TO_KEY && window.CHAR_TO_KEY[ch]) {
-      keyStrokes = [{ ...window.CHAR_TO_KEY[ch], char: ch }];
-    }
-
-    if (keyStrokes.length > 0) {
-      const stroke = keyStrokes[0];
-      this.renderer.setTargetKey(stroke.code, stroke.shift);
-
-      // 상단 손가락 안내 뱃지 갱신
-      const kData = window.KEY_MAP[stroke.code];
-      if (kData && window.FINGER_INFO[kData.finger]) {
-        const fInfo = window.FINGER_INFO[kData.finger];
-        const shiftNote = stroke.shift ? ' (Shift 동시 입력)' : '';
-        this.updateFingerBadge(`담당 손가락: ${fInfo.name} → [ ${ch === ' ' ? 'Space' : ch} ]${shiftNote}`, fInfo.color);
-      }
-    } else {
-      this.renderer.clearTargets();
+    if (this.elCodeImeBanner) this.elCodeImeBanner.style.display = 'none';
+    for (let i = 0; i < val.length; i++) {
+      this.handleCodeLabInputKey(val[i]);
     }
   }
 
   handleCodeLabInputKey(ch) {
-    if (this.currentMode !== 'practice_code') return;
-    const text = this.codeLab.fullText;
-    const cur = this.codeLab.cursorIdx;
+    if (this.currentMode !== 'practice_code' || this.isCodeLabModalOpen()) return;
 
-    if (cur >= text.length) {
+    if (this.codeLab.typeMode === 'skeleton' && this.codeLab.skeletonModel) {
+      this.handleCodeLabSkeletonInputKey(ch);
       return;
     }
+
+    const text = this.codeLab.fullText;
+    const cur = this.codeLab.cursorIdx;
+    if (cur >= text.length) return;
 
     if (!this.codeLab.startTime) {
       this.codeLab.startTime = performance.now();
@@ -1892,11 +2759,12 @@ class TypingReflexApp {
     this.codeLab.totalStrokes++;
     const targetChar = text[cur];
 
-    // 공백 4개 자동 매칭 (들여쓰기 편의: Tab 입력 시 4칸 공백 스킵 처리)
+    // 공백 4칸 들여쓰기 Tab 스킵 처리
     if (ch === 'Tab' && text.substring(cur, cur + 4) === '    ') {
       this.codeLab.cursorIdx += 4;
       this.codeLab.correctStrokes += 4;
-      if (window.soundEngine) window.soundEngine.playKey(true);
+      this.codeLab.lastWrongIdx = null;
+      this.recordCodeLabStroke('Tab', true);
       this.updateCodeCharClasses();
       this.updateCodeLabTargetGuidance();
       this.updateCodeLabMetricsUI();
@@ -1904,25 +2772,24 @@ class TypingReflexApp {
       return;
     }
 
-    // 일반 문자 매칭 검사
-    const isCorrect = (ch === targetChar) || (ch === ' ' && targetChar === ' ');
+    const targetStroke = this.resolveStrokeForChar(targetChar);
+    const isCorrect = ch === targetChar;
+
     if (isCorrect) {
+      clearTimeout(this.codeLab._wrongTimer);
+      this.codeLab.lastWrongIdx = null;
       this.codeLab.cursorIdx++;
       this.codeLab.correctStrokes++;
-      if (window.soundEngine) window.soundEngine.playKey(true);
-
-      // 키보드 시각 피드백
-      const strokes = window.decomposeCharToKeyStrokes(targetChar);
-      if (strokes && strokes[0]) {
-        this.renderer.triggerKeyPress(strokes[0].code, true);
-      }
+      this.recordCodeLabStroke(targetStroke ? targetStroke.code : null, true, targetChar);
     } else {
-      if (window.soundEngine) window.soundEngine.playKey(false);
-      const targetSpan = this.elCodeContent.querySelector(`[data-idx="${cur}"]`);
-      if (targetSpan) {
-        targetSpan.classList.add('char-incorrect');
-        setTimeout(() => targetSpan.classList.remove('char-incorrect'), 300);
-      }
+      const pressedStroke = this.resolveStrokeForChar(ch);
+      this.recordCodeLabStroke(pressedStroke ? pressedStroke.code : (targetStroke ? targetStroke.code : null), false, targetChar);
+      clearTimeout(this.codeLab._wrongTimer);
+      this.codeLab.lastWrongIdx = cur;
+      this.codeLab._wrongTimer = setTimeout(() => {
+        this.codeLab.lastWrongIdx = null;
+        this.updateCodeCharClasses();
+      }, 340);
     }
 
     this.updateCodeCharClasses();
@@ -1930,15 +2797,87 @@ class TypingReflexApp {
     this.updateCodeLabMetricsUI();
     this.updateCodeLabLineHint();
 
-    // 마지막 문자까지 타이핑 완료 시 자동 실행
     if (this.codeLab.cursorIdx >= text.length) {
-      setTimeout(() => this.executeCodeLabTests(), 200);
+      setTimeout(() => this.executeCodeLabTests(), 180);
     }
   }
 
+  handleCodeLabSkeletonInputKey(ch) {
+    const model = this.codeLab.skeletonModel;
+    const blanks = model ? model.blanks : [];
+    const activeBlank = blanks[this.codeLab.activeBlankIdx];
+    if (!activeBlank) return;
+
+    if (!this.codeLab.startTime) {
+      this.codeLab.startTime = performance.now();
+    }
+
+    // Tab: 다음 빈칸으로 순환 이동
+    if (ch === 'Tab') {
+      if (blanks.length > 1) {
+        this.codeLab.activeBlankIdx = (this.codeLab.activeBlankIdx + 1) % blanks.length;
+      }
+      this.recordCodeLabStroke('Tab', true);
+      this.renderSkeletonEditor();
+      this.updateCodeLabTargetGuidance();
+      this.updateCodeLabLineHint();
+      return;
+    }
+
+    // Enter: 다음 미완성 빈칸으로 이동 또는 마지막 빈칸이면 즉시 채점 실행
+    if (ch === '\n') {
+      this.recordCodeLabStroke('Enter', true);
+      if (this.codeLab.activeBlankIdx < blanks.length - 1) {
+        this.codeLab.activeBlankIdx++;
+        this.renderSkeletonEditor();
+        this.updateCodeLabTargetGuidance();
+        this.updateCodeLabLineHint();
+      } else {
+        this.executeCodeLabTests();
+      }
+      return;
+    }
+
+    this.codeLab.totalStrokes++;
+    const nextIdx = activeBlank.userText.length;
+    const expectedSub = activeBlank.expected[nextIdx];
+    const matchesExpected = activeBlank.expected.startsWith(activeBlank.userText) && ch === expectedSub;
+
+    activeBlank.userText += ch;
+    this.codeLab.correctStrokes++;
+
+    const stroke = this.resolveStrokeForChar(ch);
+    this.recordCodeLabStroke(stroke ? stroke.code : null, matchesExpected || expectedSub === undefined, expectedSub || ch);
+
+    this.renderSkeletonEditor();
+    this.updateCodeLabTargetGuidance();
+    this.updateCodeLabMetricsUI();
+    this.updateCodeLabLineHint();
+  }
+
   handleCodeLabBackspace() {
+    if (this.codeLab.typeMode === 'skeleton' && this.codeLab.skeletonModel) {
+      const blanks = this.codeLab.skeletonModel.blanks;
+      const curBlank = blanks[this.codeLab.activeBlankIdx];
+      if (!curBlank) return;
+      if (curBlank.userText.length > 0) {
+        curBlank.userText = curBlank.userText.slice(0, -1);
+      } else if (this.codeLab.activeBlankIdx > 0) {
+        this.codeLab.activeBlankIdx--;
+      }
+      this.renderer.triggerKeyPress('Backspace', true);
+      this.renderSkeletonEditor();
+      this.updateCodeLabTargetGuidance();
+      this.updateCodeLabMetricsUI();
+      this.updateCodeLabLineHint();
+      return;
+    }
+
     if (this.codeLab.cursorIdx > 0) {
+      clearTimeout(this.codeLab._wrongTimer);
+      this.codeLab.lastWrongIdx = null;
       this.codeLab.cursorIdx--;
+      this.renderer.triggerKeyPress('Backspace', true);
       this.updateCodeCharClasses();
       this.updateCodeLabTargetGuidance();
       this.updateCodeLabMetricsUI();
@@ -1957,22 +2896,50 @@ class TypingReflexApp {
     if (!this.elCodeKpm || !this.elCodeAcc || !this.elCodeTime) return;
     const now = performance.now();
     const elapsedSec = this.codeLab.startTime ? Math.max(0.1, (now - this.codeLab.startTime) / 1000) : 0;
-    
+
     const kpm = elapsedSec > 0 ? Math.round((this.codeLab.correctStrokes / elapsedSec) * 60) : 0;
-    const acc = this.codeLab.totalStrokes > 0 ? Math.round((this.codeLab.correctStrokes / this.codeLab.totalStrokes) * 100) : 100;
+    const acc = this.codeLab.totalStrokes > 0
+      ? Math.round((this.codeLab.correctStrokes / this.codeLab.totalStrokes) * 100)
+      : 100;
 
     this.elCodeKpm.textContent = String(kpm);
     this.elCodeAcc.textContent = `${acc}%`;
     this.elCodeTime.textContent = `${elapsedSec.toFixed(1)}s`;
 
-    // 상단 공통 지표 갱신
-    if (this.elMetricSpeed) this.elMetricSpeed.textContent = (kpm / 60).toFixed(1);
+    // 상단 공통 지표 갱신 (WPM / KPM 단위 일관성 유지)
+    const wpm = Math.round(kpm / 5);
+    if (this.elMetricSpeed) this.elMetricSpeed.textContent = `${wpm} WPM`;
+    if (this.elMetricSpeedUnit) this.elMetricSpeedUnit.textContent = `속도 (${kpm} KPM)`;
     if (this.elMetricAccuracy) this.elMetricAccuracy.textContent = `${acc}%`;
   }
 
   async executeCodeLabTests() {
     const lesson = this.codeLab.currentLesson;
     if (!lesson) return;
+
+    let codeToRun = lesson.code;
+    if (this.codeLab.typeMode === 'sandbox') {
+      codeToRun = this.elCodeSandboxTextarea ? this.elCodeSandboxTextarea.value : (this.codeLab.sandboxText || lesson.code);
+    } else if (this.codeLab.typeMode === 'skeleton') {
+      const recon = this.reconstructSkeletonCode();
+      if (recon.missingBlankIdx !== -1) {
+        this.codeLab.activeBlankIdx = recon.missingBlankIdx;
+        this.renderSkeletonEditor();
+        this.updateCodeLabTargetGuidance();
+        this.updateCodeLabLineHint();
+        if (this.elCodeTestsSummary) {
+          this.elCodeTestsSummary.className = 'tests-summary-badge failed';
+          this.elCodeTestsSummary.textContent = '빈칸 미입력 ⚠️';
+        }
+        if (this.elCodeConsoleOutput) {
+          this.elCodeConsoleOutput.className = 'console-output has-error';
+          this.elCodeConsoleOutput.textContent = `⚠️ [빈칸 #${recon.missingBlankIdx + 1}] 비어 있는 빈칸에 로직을 입력한 뒤 실행하세요.`;
+        }
+        if (this.elCodeHiddenInput) this.elCodeHiddenInput.focus();
+        return;
+      }
+      codeToRun = recon.code;
+    }
 
     if (this.elCodeTestsSummary) {
       this.elCodeTestsSummary.className = 'tests-summary-badge';
@@ -1984,9 +2951,7 @@ class TypingReflexApp {
       this.elCodeRunBtn.textContent = '실행 중...';
     }
 
-    const codeToRun = this.codeLab.typeMode === 'flow' ? lesson.code : this.codeLab.fullText;
     let result = null;
-
     try {
       if (this.codeLab.lang === 'javascript') {
         result = await this.codeRunner.runJavaScript(codeToRun, lesson.entryPoint, lesson.tests);
@@ -2006,27 +2971,39 @@ class TypingReflexApp {
       }
     }
 
-    // 결과 렌더링
     if (this.elCodeExecTime) {
       this.elCodeExecTime.textContent = `실행 시간: ${result.elapsedMs || 0} ms`;
     }
 
-    // 콘솔 출력 렌더링
     if (this.elCodeConsoleOutput) {
       if (result.success) {
         this.elCodeConsoleOutput.className = 'console-output';
         const logText = (result.logs && result.logs.length > 0) ? result.logs.join('\n') : '';
-        const summaryText = result.allPassed 
-          ? `🎉 [SUCCESS] 모든 테스트 케이스를 성공적으로 통과했습니다! (All ${lesson.tests.length}/${lesson.tests.length} Passed)`
+        const summaryText = result.allPassed
+          ? `🎉 [SUCCESS] 모든 테스트 케이스를 성공적으로 통과했습니다! (${lesson.tests.length}/${lesson.tests.length} Passed)`
           : `⚠️ [FAILED] 일부 테스트 케이스에서 불일치가 발생했습니다.`;
         this.elCodeConsoleOutput.textContent = logText ? `${logText}\n\n${summaryText}` : summaryText;
+        if (result.allPassed && this.codeLab.typeMode !== 'sandbox') {
+          const wrap = document.createElement('div');
+          const ctaBtn = document.createElement('button');
+          ctaBtn.type = 'button';
+          ctaBtn.className = 'codelab-sandbox-cta';
+          ctaBtn.id = 'codelab-postpass-sandbox-btn';
+          ctaBtn.textContent = '🛠️ 자유 수정(Sandbox)으로 코드 변형·리팩터링하기';
+          ctaBtn.addEventListener('click', () => {
+            this.setCodeLabTypeMode('sandbox', codeToRun);
+          });
+          wrap.appendChild(ctaBtn);
+          this.elCodeConsoleOutput.appendChild(wrap);
+        }
       } else {
         this.elCodeConsoleOutput.className = 'console-output has-error';
         this.elCodeConsoleOutput.textContent = `[에러 발생]: ${result.error || '실행 오류'}`;
       }
     }
 
-    // 테스트 케이스 카드 갱신
+    // 이전 실행 결과 초기화 후 최신 결과 반영
+    this.renderCodeLabTestsList(lesson.tests);
     if (result.tests && result.tests.length > 0) {
       result.tests.forEach((tRes, idx) => {
         const item = document.getElementById(`codelab-test-item-${idx}`);
@@ -2037,27 +3014,26 @@ class TypingReflexApp {
             badge.style.color = tRes.passed ? '#34d399' : '#f87171';
             badge.textContent = tRes.passed ? '통과 ✅' : '실패 ❌';
           }
-          let actBox = item.querySelector('.test-actual-val');
-          if (!actBox) {
-            actBox = document.createElement('div');
-            actBox.className = 'test-actual-val';
-            actBox.style.fontSize = '11px';
-            actBox.style.fontFamily = 'monospace';
-            item.appendChild(actBox);
-          }
-          actBox.innerHTML = `실제 반환값: <code style="color:${tRes.passed ? '#34d399':'#f87171'}">${JSON.stringify(tRes.actual)}</code>`;
+          const actualStr = tRes.actual === undefined ? 'undefined' : JSON.stringify(tRes.actual);
+          const actBox = document.createElement('div');
+          actBox.className = 'test-actual-val';
+          actBox.style.fontSize = '11px';
+          actBox.style.fontFamily = 'monospace';
+          actBox.innerHTML = `실제 반환값: <code style="color:${tRes.passed ? '#34d399' : '#f87171'}">${this.escapeHtml(actualStr)}</code>`;
+          item.appendChild(actBox);
         }
       });
     }
 
-    // 요약 뱃지 갱신
     if (this.elCodeTestsSummary) {
       if (result.allPassed) {
         this.elCodeTestsSummary.className = 'tests-summary-badge passed';
         this.elCodeTestsSummary.textContent = `모두 통과 (${lesson.tests.length}/${lesson.tests.length}) ✅`;
+        this.markCodeLabLessonSolved(lesson.id);
+        if (window.soundEngine) window.soundEngine.playComplete();
       } else {
         this.elCodeTestsSummary.className = 'tests-summary-badge failed';
-        this.elCodeTestsSummary.textContent = `테스트 실패 ❌`;
+        this.elCodeTestsSummary.textContent = '테스트 실패 ❌';
       }
     }
   }
@@ -2079,7 +3055,19 @@ class TypingReflexApp {
     if (this.elCodeTabExplanation) {
       this.elCodeTabExplanation.classList.toggle('active', tabName === 'explanation');
     }
-    if (this.elCodeHiddenInput) {
+    if (this.elCodeSidePanel) {
+      this.elCodeSidePanel.classList.toggle('is-explanation-active', tabName === 'explanation');
+      if (tabName === 'explanation' && this.elCodeSidePanel.classList.contains('is-desc-collapsed')) {
+        this.elCodeSidePanel.classList.remove('is-desc-collapsed');
+        if (this.elCodeDescCollapseBtn) {
+          this.elCodeDescCollapseBtn.textContent = '▾';
+          this.elCodeDescCollapseBtn.setAttribute('aria-expanded', 'true');
+        }
+      }
+    }
+    if (this.codeLab.typeMode === 'sandbox' && this.elCodeSandboxTextarea) {
+      setTimeout(() => this.elCodeSandboxTextarea.focus(), 60);
+    } else if (this.elCodeHiddenInput) {
       setTimeout(() => this.elCodeHiddenInput.focus(), 60);
     }
   }
@@ -2090,10 +3078,15 @@ class TypingReflexApp {
 
     const langNames = { javascript: 'JavaScript (ES6+)', python: 'Python 3 (Pyodide)', c: 'C 언어 (C99)' };
     if (this.elModalProblemTitle) this.elModalProblemTitle.textContent = lesson.title;
-    if (this.elModalTierBadge) this.elModalTierBadge.textContent = `Tier ${lesson.tier}`;
+    if (this.elModalTierBadge) {
+      this.elModalTierBadge.textContent = `Tier ${lesson.tier}`;
+      this.applyTierBadgeClass(this.elModalTierBadge, 'modal-tier-pill', lesson.tier);
+    }
     if (this.elModalLangBadge) this.elModalLangBadge.textContent = langNames[this.codeLab.lang] || this.codeLab.lang;
     if (this.elModalCodeMeta) this.elModalCodeMeta.textContent = `${lesson.complexity.time} / ${lesson.complexity.space}`;
-    if (this.elModalCodeBlock) this.elModalCodeBlock.textContent = lesson.code;
+    if (this.elModalCodeBlock) {
+      this.elModalCodeBlock.innerHTML = this.buildHighlightedCodeHTML(lesson.code, this.codeLab.lang);
+    }
 
     if (this.elModalDetailsContainer) {
       this.elModalDetailsContainer.innerHTML = this.buildExplanationHTML(lesson);
@@ -2106,7 +3099,9 @@ class TypingReflexApp {
     if (this.elCodeModalOverlay) {
       this.elCodeModalOverlay.style.display = 'none';
     }
-    if (this.elCodeHiddenInput) {
+    if (this.codeLab.typeMode === 'sandbox' && this.elCodeSandboxTextarea) {
+      setTimeout(() => this.elCodeSandboxTextarea.focus(), 80);
+    } else if (this.elCodeHiddenInput) {
       setTimeout(() => this.elCodeHiddenInput.focus(), 80);
     }
   }
@@ -2123,7 +3118,7 @@ class TypingReflexApp {
       <div class="line-explain-item" data-line="${item.line}">
         <div class="line-explain-header">
           <span class="line-num-badge">L${item.line}</span>
-          <code class="line-code-snippet">${this.escapeHtml(item.code)}</code>
+          <code class="line-code-snippet">${this.buildHighlightedCodeHTML(item.code, this.codeLab.lang)}</code>
         </div>
         <p class="line-explain-text">${item.explain}</p>
       </div>
@@ -2135,8 +3130,8 @@ class TypingReflexApp {
 
     return `
       <!-- 요약 & 핵심 개념 -->
-      <div class="explain-summary-card" style="background:rgba(30,41,59,0.5); padding:12px; border-radius:10px; border:1px solid rgba(71,85,105,0.4);">
-        <p style="margin:0 0 8px 0; font-size:13px; line-height:1.6; color:#e2e8f0;">${exp.summary || lesson.description}</p>
+      <div class="explain-summary-card">
+        <p class="explain-summary-text">${exp.summary || lesson.description}</p>
         <div class="concept-chips-container" style="margin:0;">${conceptsHtml}</div>
       </div>
 
@@ -2209,15 +3204,25 @@ class TypingReflexApp {
     const lesson = this.codeLab.currentLesson;
     if (!lesson) return;
 
-    // 현재 cursorIdx 위치의 라인 번호 계산 (1-based)
-    const textBefore = this.codeLab.fullText.substring(0, this.codeLab.cursorIdx);
-    const lineNum = (textBefore.match(/\n/g) || []).length + 1;
+    let lineNum = 1;
+    let lines = this.codeLab.fullText.split('\n');
+    if (this.codeLab.typeMode === 'sandbox' && this.elCodeSandboxTextarea) {
+      const sbText = this.elCodeSandboxTextarea.value || '';
+      const selStart = typeof this.elCodeSandboxTextarea.selectionStart === 'number'
+        ? this.elCodeSandboxTextarea.selectionStart
+        : 0;
+      lineNum = (sbText.slice(0, selStart).match(/\n/g) || []).length + 1;
+      lines = sbText.split('\n');
+    } else if (this.codeLab.typeMode === 'skeleton' && this.codeLab.skeletonModel) {
+      const b = this.codeLab.skeletonModel.blanks[this.codeLab.activeBlankIdx];
+      lineNum = b ? b.lineNum : 1;
+    } else {
+      const textBefore = this.codeLab.fullText.substring(0, this.codeLab.cursorIdx);
+      lineNum = (textBefore.match(/\n/g) || []).length + 1;
+    }
 
-    // 해당 라인의 코드 추출
-    const lines = this.codeLab.fullText.split('\n');
     const curLineCode = lines[lineNum - 1] !== undefined ? lines[lineNum - 1].trim() : '';
 
-    // 라인별 해설 매칭
     let explainText = '';
     if (lesson.explanation && lesson.explanation.lineByLine) {
       const match = lesson.explanation.lineByLine.find(item => item.line === lineNum);
@@ -2227,12 +3232,12 @@ class TypingReflexApp {
     }
 
     if (!explainText) {
-      explainText = lesson.description || '코드를 정밀하게 입력하세요.';
+      explainText = curLineCode === '' ? '함수 구분을 위한 빈 줄입니다 (Enter로 통과).' : (lesson.description || '코드를 정밀하게 입력하세요.');
     }
 
-    this.elCodeLineHint.innerHTML = `<b>[Line ${lineNum}]</b> <span style="color:#e2e8f0; font-family:monospace; margin-right:6px;">${this.escapeHtml(curLineCode)}</span> <span style="color:#94a3b8;">→ ${this.escapeHtml(explainText)}</span>`;
+    const codeLabel = curLineCode || '(빈 줄)';
+    this.elCodeLineHint.innerHTML = `<b>[Line ${lineNum}]</b> <span style="color:#e2e8f0; font-family:monospace; margin-right:6px;">${this.escapeHtml(codeLabel)}</span> <span style="color:#94a3b8;">→ ${this.escapeHtml(explainText)}</span>`;
 
-    // 사이드 패널 라인별 리스트의 활성 라인 하이라이트
     if (this.elCodeExplanationContainer) {
       this.elCodeExplanationContainer.querySelectorAll('.line-explain-item').forEach(item => {
         const itemLine = parseInt(item.getAttribute('data-line'), 10);
