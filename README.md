@@ -74,19 +74,40 @@
 
 <div align="center">
 
-| 🐍 Python (Pyodide WASM) & C99 포인터 VM | 🧩 빈칸 인출 모드 (Skeleton + F2 힌트) |
+| 🖥️ 메인 스튜디오 (Tactile Mech Studio · `v1.4.0`) | 🌊 JS CodeLab Flow (미타건 반투명 · 완료 고대비 구문 강조) |
+| :---: | :---: |
+| <img src="docs/images/keyreflex_main.png" alt="KeyReflex Studio 메인 화면" width="460" /> | <img src="docs/images/codelab_main.png" alt="CodeLab Flow 구문 강조 화면" width="460" /> |
+| **3D 이중사출 PBT 키캡 & 캐노니컬 2D 손 가이드** · 리세스 OLED 계기판과 4-Tier 컬러 위계가 한 화면에 배치됩니다. | 1-Line 슬림 OLED 바 · **오프라인 시맨틱 구문 강조**(미타건 `0.50` vs 완료 `1.0`) · 드래그 스플릿 리사이저를 제공합니다. |
+
+| 🐍 Python Pyodide WASM & 실시간 채점 | 🧩 빈칸 인출 모드 (`Skeleton` + `F2` 힌트) |
 | :---: | :---: |
 | <img src="docs/images/codelab_python.png" alt="Python Pyodide 실행 화면" width="460" /> | <img src="docs/images/codelab_skeleton.png" alt="빈칸 인출 Skeleton 모드" width="460" /> |
-| **🔷 C99 포인터 실행 & 테스트 검증** | **💡 라인별 상세 해설 탭 (`& F1 전체 모달`)** |
+| 우측 **Pyodide 상태 배지(`준비됨`)**, `collections.deque` 슬라이딩/회전 테스트 통과, 확장된 스플릿 뷰에서도 하단 키보드가 뷰포트 내에 온전히 유지됩니다. | 알고리즘 핵심 조건문을 `____` 빈칸 슬롯으로 인출 연습하며 **`F2` 고스트 힌트 토글**, `Tab`/`Enter` 빈칸 점프, 4-Tier(Tier 3 Purple) 배지를 지원합니다. |
+
+| 🔷 C99 포인터·비트마스크 가상머신 | 💡 라인별 상세 해설 탭 & 우측 패널 구성 |
+| :---: | :---: |
 | <img src="docs/images/codelab_c.png" alt="C99 포인터 VM 실행 화면" width="460" /> | <img src="docs/images/codelab_explanation_tab.png" alt="상세 해설 탭" width="460" /> |
-| **🛠️ 자유 수정 Sandbox (`Tab` 4칸 & C99 비트마스크)** | **📖 전체 해설 & 알고리즘 원리 모달 (`F1`)** |
+| 컴파일러 설치 없이 브라우저 내 C99 VM이 포인터 스왑(`*a = *b`), 배열 순회, 문자열 길이를 직접 실행하고 결과를 자동 채점합니다. | 우측 패널을 **개요/해설 + 테스트 케이스 + 실행 콘솔 + 취약 기호**로 계층화해 스크롤 없이 동시 확인하며, `▾` 버튼으로 해설 영역을 접고 펼 수 있습니다. |
+
+| 🛠️ 자유 수정 `Sandbox` (실시간 하이라이팅 & C 비트마스크) | 📖 전체 화면 코드·알고리즘 해설 모달 (`F1`) |
+| :---: | :---: |
 | <img src="docs/images/codelab_sandbox.png" alt="자유 수정 Sandbox 모드" width="460" /> | <img src="docs/images/codelab_modal_view.png" alt="전체 해설 모달" width="460" /> |
+| 백드롭 `<pre>` 동기화로 **`<textarea>` 실시간 구문 강조**, `Tab`/`Shift+Tab` 4칸 들여쓰기, `원본 복원`, C99 비트 연산(`|=`, `&= ~`, `^=`) 채점을 제공합니다. | **`F1` 키**로 소스 코드 전문(시맨틱 컬러 적용), 줄별 정밀 해설(`L1`..`Ln`), 시간/공간 복잡도 근거, 실무 주의점을 한눈에 정독할 수 있습니다. |
 
 </div>
 
-<div align="center">
-<img src="docs/images/codelab_modal_view.png" alt="전체 해설 모달" width="760" />
-</div>
+---
+
+### ⌨️ 단축키 & 인터페이스 컨트롤 가이드 (Shortcuts & Controls)
+
+| 단축키 / 컨트롤 | 적용 영역 | 동작 설명 |
+| :---: | :---: | :--- |
+| **`Ctrl + Enter`** | CodeLab 전체 | 현재 코드 실행 및 테스트 케이스 전체 채점 |
+| **`F1`** | CodeLab 전체 | 소스 코드 + 라인별 해설 + 복잡도 전체 모달 열기/닫기(`ESC`) |
+| **`F2`** | Skeleton 모드 | 빈칸 정답 고스트 힌트 표시/숨김 토글 |
+| **`Tab` / `Shift + Tab`** | Flow · Skeleton · Sandbox | 4칸 들여쓰기 자동 스킵 / 다음 빈칸 이동 / Sandbox 4칸 들여쓰기·내어쓰기 |
+| **스플릿 리사이저 드래그 / 더블클릭** | CodeLab 스플릿 바 (`⋮`) | 좌측 에디터·우측 패널 비율(`42%`~`74%`) 조절 및 `localStorage` 저장 / **더블클릭 시 58% 초기화** |
+| **우측 상단 `▾` 접기 / `키보드 접기`** | CodeLab 패널 & 하단 키보드 | 설명 영역 접기 또는 하단 가상 키보드 패널 표시/숨김 토글 |
 
 ---
 
@@ -139,7 +160,8 @@
 ```text
 keyreflex-studio/
 ├── docs/
-│   └── images/              # README 및 문서용 고해상도 스크린샷
+│   ├── RELEASE_v1.4.0.md    # v1.4.0 GitHub 릴리즈 노트 & 스크린샷 문서
+│   └── images/              # README 및 릴리즈 문서용 고해상도 스크린샷
 │       ├── keyreflex_main.png
 │       ├── hand_guide_comparison.png
 │       ├── codelab_main.png
@@ -171,6 +193,30 @@ keyreflex-studio/
 - **Interaction & Physics**: Vanilla JavaScript (ES6+), Eased Inverse Kinematics (IK), RequestAnimationFrame (60fps)
 - **Audio Engine**: HTML5 Web Audio API (Synthesized Key Sound Engine)
 - **Desktop Wrapper**: C# (.NET Framework 4.5+), Native WebView2 / App-Mode Sandbox
+
+---
+
+## 📋 업데이트 히스토리 (Changelog)
+
+### `v1.4.0` — Tactile Mech Studio (Option B) UI/UX 전면 개편 & CodeLab Tri-Engine 통합 업그레이드
+- **🎨 Tactile Mech Studio 테마**: 웜 매트 차콜(`#151419`) 스튜디오 섀시, 리세스드 OLED 메트릭 카드(`#100F14`), 엠버 오렌지(`#F97316`) · 스튜디오 틸(`#14B8A6`) 포인트 컬러 적용
+- **⌨️ 3D 이중사출 PBT 키캡 & 아노다이징 섀시**: 오프화이트 알파열, 차콜 모디파이어, 엠버 오렌지 Enter 액센트, 리세스 스위치 플레이트 & 4코너 육각 나사 렌더링(캐노니컬 2D 벡터 손 기하 구조 100% 보존)
+- **🌈 전 모드 오프라인 시맨틱 구문 강조**: Flow(`0.50` 미타건 vs `1.0` 완료 대비), Skeleton, Sandbox 실시간 백드롭(`<pre>`), 라인 해설 및 F1 모달 전역 컬러링
+- **📐 CodeLab 슬림 바 & 드래그 스플릿 리사이저**: 1-Line 슬림 OLED 계기판으로 에디터 뷰포트 높이 확장(하단 키보드 동시 표시 유지), 좌우 스플릿 드래그 리사이저(`42%~74%` 저장 · 더블클릭 `58%`), 우측 패널 동시 가시성 + 접기(`▾`) 지원, 4-Tier 컬러 위계(`Teal/Blue/Purple/Amber`)
+- **⚡ Tri-Engine & 커리큘럼 대규모 확장(25문제)**:
+  - JavaScript 8문제 · Python 9문제 · C 8문제(Tier 1~4 각 최소 2문제 균형 배치)
+  - C99 가상머신 비트마스크/시프트(`<<`, `>>`, `&`, `|`, `^`, `~`, 복합 대입), 쉼표 연산자, 역순·링버퍼 실행 지원
+  - **자유 수정(Sandbox)** 모드 (`Tab`/`Shift+Tab` 4칸, `원본 복원`), **취약 코딩 기호 TOP 5** 통계 배지, **Pyodide WASM 상태 배지**, **갈축(Tactile)/적축(Linear)** 타건음 추가
+  - 독립 실행형 [`KeyReflex-Studio.exe`](KeyReflex-Studio.exe) `v1.4.0` 재빌드 (`188개 CDP 자동 검증 통과`)
+
+### `v1.1.1` — CodeLab 라인별 상세 해설 & 실시간 라인 힌트 바
+- 전 과정 라인별 코드 정밀 분석(`L1..Ln`), 에디터 하단 실시간 라인 힌트 바, 복잡도 도출 근거, 실무 주의사항, `F1` 전체 해설 모달 탑재
+
+### `v1.1.0` — KeyReflex CodeLab 3대 언어(JS, Python, C) 실시간 실행 환경
+- JS 클로저, Pyodide WASM, 경량 C99 가상머신 탑재 및 Flow / Skeleton 듀얼 타이핑 + 실시간 테스트 자동 채점 구현
+
+### `v1.0.0` — 최초 정식 릴리즈
+- 2D 캐노니컬 벡터 손 가이드, 반응속도 & HW 입력 지연 측정, 10손가락 분석/히트맵, Web Audio 타건음, 단일 EXE 출시
 
 ---
 
