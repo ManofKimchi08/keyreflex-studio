@@ -1467,6 +1467,23 @@ json.dumps(__kr_payload)
     }
   }
 
+  /**
+   * 5. 스펙(JSON Schema) 및 아키텍처 다이어그램(Mermaid Subset) 검증기
+   */
+  runSpec(code, lesson) {
+    if (!window.SpecEngine) {
+      return {
+        success: false,
+        error: 'SpecEngine 모듈이 로드되지 않았습니다.',
+        tests: [],
+        logs: [],
+        elapsedMs: 0,
+        allPassed: false
+      };
+    }
+    return window.SpecEngine.run(code, lesson);
+  }
+
   extractDeclaredFnNames(jsCode) {
     const names = new Set();
     const re = /^function\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(/gm;

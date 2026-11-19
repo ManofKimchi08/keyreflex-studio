@@ -968,18 +968,41 @@ body {
 
 .codelab-header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  flex-wrap: wrap;
-  padding: 7px 12px;
+  flex-direction: column;
+  gap: 5px;
+  padding: 6px 10px;
   background: var(--bg-oled);
   border: 1px solid var(--border-subtle);
   border-radius: 11px;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
+.codelab-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 7px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.codelab-track-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.codelab-track-select {
+  max-width: 152px !important;
+  padding: 4px 8px !important;
+  font-size: 11.5px !important;
+}
+
 .codelab-lang-selector,
+.codelab-difficulty-selector,
 .codelab-mode-toggle {
   display: inline-flex;
   gap: 4px;
@@ -987,6 +1010,51 @@ body {
   padding: 3px;
   border-radius: 8px;
   border: 1px solid var(--border-subtle);
+}
+
+.codelab-diff-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-muted);
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.16s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+}
+
+.codelab-diff-btn:hover {
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.codelab-diff-btn.active[data-diff="all"] {
+  background: var(--keycap-cream);
+  color: #191820;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+.codelab-diff-btn.active[data-diff="beginner"] {
+  background: rgba(16, 185, 129, 0.22);
+  border-color: rgba(52, 211, 153, 0.6);
+  color: #6ee7b7;
+}
+
+.codelab-diff-btn.active[data-diff="intermediate"] {
+  background: rgba(99, 102, 241, 0.24);
+  border-color: rgba(129, 140, 248, 0.6);
+  color: #c7d2fe;
+}
+
+.codelab-diff-btn.active[data-diff="advanced"] {
+  background: rgba(249, 115, 22, 0.24);
+  border-color: rgba(251, 146, 60, 0.65);
+  color: #fed7aa;
 }
 
 .codelab-lang-btn {
@@ -1270,6 +1338,8 @@ body {
   overflow-y: auto;
   position: relative;
   font-family: "JetBrains Mono", Consolas, "Fira Code", monospace;
+  font-variant-ligatures: none;
+  font-feature-settings: "liga" 0, "calt" 0;
   font-size: 13.5px;
   line-height: 20px;
 }
@@ -1285,18 +1355,45 @@ body {
   flex-shrink: 0;
 }
 
+.line-numbers span.is-active-line {
+  color: var(--accent-orange-bright);
+  font-weight: 800;
+}
+
+.line-numbers span.is-peek-line {
+  color: var(--accent-teal-bright);
+  font-weight: 800;
+}
+
 .code-content {
   flex: 1;
   min-width: 0;
   padding: 0 14px;
   white-space: pre;
   tab-size: 4;
+  font-variant-ligatures: none;
+  font-feature-settings: "liga" 0, "calt" 0;
 }
 
 .line-numbers span,
 .code-line {
   height: 20px;
   line-height: 20px;
+}
+
+.code-line {
+  border-radius: 3px;
+  transition: background-color 0.12s ease;
+}
+
+.code-line.is-active-line {
+  background: rgba(249, 115, 22, 0.11);
+  box-shadow: inset 3px 0 0 rgba(249, 115, 22, 0.9);
+}
+
+.code-line.is-peek-line {
+  background: rgba(20, 184, 166, 0.15);
+  box-shadow: inset 3px 0 0 #2dd4bf;
 }
 
 /* ==========================================================================
@@ -1459,6 +1556,8 @@ body {
   border: none;
   outline: none;
   font-family: "JetBrains Mono", "Fira Code", Consolas, monospace;
+  font-variant-ligatures: none;
+  font-feature-settings: "liga" 0, "calt" 0;
   font-size: 13px;
   line-height: 20px;
   padding: 10px 14px;
@@ -1525,36 +1624,171 @@ body {
   color: #ffffff;
 }
 
-/* 우측 사이드 패널 (UX ②: 전체 가시성 & 접기/해설 비율 동적 조절) */
+/* 우측 사이드 패널 (안 D 하이브리드: 단일 풀높이 통합 워크스페이스 + 3중 스크롤 제거) */
 .codelab-side-panel {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0;
   min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
 }
 
 .codelab-card {
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
   box-shadow: var(--bevel-highlight);
-  border-radius: 11px;
+  border-radius: 12px;
   padding: 9px 12px;
 }
 
-.desc-card-header {
+.codelab-unified-panel {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+
+.unified-panel-header {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 9px 13px 8px;
+  background: #191821;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+
+.desc-meta-row {
   display: flex;
   align-items: center;
-  gap: 7px;
-  margin-bottom: 6px;
-  flex-wrap: nowrap;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
-.codelab-side-panel.is-desc-collapsed .desc-card-header {
-  margin-bottom: 0;
+.wide-toggle-pill {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(249, 115, 22, 0.16);
+  border: 1px solid rgba(251, 146, 60, 0.58);
+  color: #fed7aa;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.16s ease;
+  white-space: nowrap;
 }
 
-.codelab-side-panel.is-desc-collapsed .desc-card-collapsible {
+.wide-toggle-pill:hover,
+.wide-toggle-pill.active {
+  background: rgba(20, 184, 166, 0.22);
+  border-color: rgba(45, 212, 191, 0.65);
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(20, 184, 166, 0.28);
+}
+
+.codelab-unified-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 11px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.codelab-panel-statusbar {
+  height: 33px;
+  flex-shrink: 0;
+  padding: 0 12px;
+  background: #14131b;
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11.5px;
+}
+
+.panel-status-test-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-muted);
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+
+.panel-status-test-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #ffffff;
+}
+
+.panel-status-test-btn.passed {
+  color: #34d399;
+}
+
+.panel-status-test-btn.failed {
+  color: #fda4af;
+}
+
+.tab-count-pill,
+.tab-status-pill {
+  font-family: 'JetBrains Mono', Consolas, monospace;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+}
+
+.tab-status-pill.passed {
+  background: rgba(16, 185, 129, 0.2);
+  color: #6ee7b7;
+  border: 1px solid rgba(52, 211, 153, 0.45);
+}
+
+.tab-status-pill.failed {
+  background: rgba(244, 63, 94, 0.2);
+  color: #fda4af;
+  border: 1px solid rgba(251, 113, 133, 0.5);
+}
+
+.wide-section-divider {
   display: none;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--accent-teal-bright);
+  padding: 4px 0 6px;
+  margin-top: 2px;
+  border-top: 1px dashed rgba(45, 212, 191, 0.35);
+}
+
+.tests-section-block,
+.console-section-block {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.console-section-block {
+  padding-top: 10px;
+  border-top: 1px dashed var(--border-subtle);
 }
 
 /* UX ⑤-B: 4-Tier 난이도 색상 위계 */
@@ -1595,21 +1829,21 @@ body {
 
 .problem-title {
   margin: 0;
-  font-size: 13.5px;
-  font-weight: 700;
-  color: var(--text-main);
-  flex: 1;
-  min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.35;
+  color: #ffffff;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  word-break: keep-all;
 }
 
 .complexity-badge {
   font-family: 'JetBrains Mono', Consolas, monospace;
   font-size: 10.5px;
   font-weight: 700;
-  padding: 2px 6px;
+  padding: 2px 7px;
   border-radius: 5px;
   background: rgba(20, 184, 166, 0.14);
   border: 1px solid rgba(45, 212, 191, 0.35);
@@ -1619,9 +1853,9 @@ body {
 
 .problem-desc-text {
   margin: 0;
-  font-size: 12px;
-  line-height: 1.45;
-  color: var(--text-muted);
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: #dfd9e8;
 }
 
 /* 테스트 케이스 채점 카드 */
@@ -1665,20 +1899,18 @@ body {
 .test-cases-list {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  max-height: 130px;
-  overflow-y: auto;
+  gap: 6px;
 }
 
 .test-case-item {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 5px 8px;
+  gap: 3px;
+  padding: 7px 10px;
   background: var(--bg-oled);
   border: 1px solid var(--border-subtle);
-  border-radius: 7px;
-  font-size: 11.5px;
+  border-radius: 8px;
+  font-size: 12px;
 }
 
 .test-case-item.test-passed {
@@ -1730,18 +1962,21 @@ body {
 }
 
 .console-output {
-  min-height: 40px;
-  max-height: 80px;
+  min-height: 48px;
+  max-height: 145px;
   background: var(--bg-oled);
   border: 1px solid var(--border-subtle);
-  border-radius: 7px;
-  padding: 6px 9px;
+  border-radius: 8px;
+  padding: 8px 10px;
   font-family: 'JetBrains Mono', Consolas, monospace;
-  font-size: 11px;
+  font-variant-ligatures: none;
+  font-feature-settings: "liga" 0, "calt" 0;
+  font-size: 11.5px;
+  line-height: 1.5;
   color: #5eead4;
   overflow-y: auto;
   white-space: pre-wrap;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .console-output.has-error {
@@ -1753,12 +1988,12 @@ body {
 }
 
 .codelab-typing-metrics {
-  display: flex;
-  justify-content: space-between;
-  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 11.5px;
   color: var(--text-muted);
-  padding-top: 5px;
-  border-top: 1px solid var(--border-subtle);
+  white-space: nowrap;
 }
 
 .codelab-typing-metrics b {
@@ -1771,10 +2006,10 @@ body {
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
-  margin-top: 5px;
-  padding-top: 5px;
+  margin-top: 2px;
+  padding-top: 6px;
   border-top: 1px dashed var(--border-subtle);
-  font-size: 10.5px;
+  font-size: 11.5px;
   color: var(--text-muted);
 }
 
@@ -1828,8 +2063,46 @@ body {
 }
 
 /* ==========================================================================
-   CodeLab Active Viewport Balance — UX ① (+88px 에디터 높이 & 100% 무스크롤 시야)
+   CodeLab Active Viewport Balance — 안 D 하이브리드 (상단 슬림화 + 2.1× 풀높이 전환)
    ========================================================================== */
+.codelab-stage-quick-tools {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.stage-quick-btn {
+  background: var(--bg-card);
+  border: 1px solid var(--border-strong);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.stage-quick-btn:hover,
+.stage-quick-btn.active {
+  color: #ffffff;
+  border-color: var(--accent-orange);
+  background: rgba(249, 115, 22, 0.16);
+}
+
+.stage-wide-btn {
+  border-color: rgba(45, 212, 191, 0.45);
+  color: var(--accent-teal-bright);
+}
+
+.stage-wide-btn.active {
+  background: rgba(20, 184, 166, 0.22);
+  border-color: rgba(45, 212, 191, 0.7);
+  color: #ffffff;
+}
+
 body.is-codelab-active {
   padding: 5px 14px 8px;
 }
@@ -1858,6 +2131,10 @@ body.is-codelab-active .brand-title p {
   display: none;
 }
 
+body.is-codelab-active .header-controls {
+  display: none;
+}
+
 body.is-codelab-active .mode-tabs {
   gap: 3px;
   padding: 3px;
@@ -1869,39 +2146,20 @@ body.is-codelab-active .lang-switch-btn {
   font-size: 11px;
 }
 
+/* CodeLab에서는 비관련 5칸 HUD·설정 바를 접고, 우측 ⚙️ 버튼으로 필요 시 열기 */
 body.is-codelab-active .metrics-bar {
-  gap: 6px;
-}
-
-body.is-codelab-active .metric-card {
-  padding: 4px 10px;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-  white-space: nowrap;
-  overflow: hidden;
-  border-radius: 8px;
-}
-
-body.is-codelab-active .metric-label {
-  font-size: 10px;
-  margin-bottom: 0;
-  white-space: nowrap;
-}
-
-body.is-codelab-active .metric-value {
-  font-size: 13.5px;
-  white-space: nowrap;
-}
-
-body.is-codelab-active .metric-sub {
   display: none;
 }
 
 body.is-codelab-active .sub-toolbar {
-  padding: 3px 12px;
+  display: none;
+  padding: 4px 12px;
   border-radius: 9px;
+}
+
+body.is-codelab-active.codelab-settings-open .sub-toolbar {
+  display: flex;
+  justify-content: flex-end;
 }
 
 body.is-codelab-active .stage-wrapper {
@@ -1910,7 +2168,15 @@ body.is-codelab-active .stage-wrapper {
 }
 
 body.is-codelab-active .stage-top-bar {
-  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 5px;
+}
+
+body.is-codelab-active .codelab-stage-quick-tools {
+  display: flex;
 }
 
 body.is-codelab-active .finger-guide-pill {
@@ -1927,10 +2193,11 @@ body.is-codelab-active .codelab-header {
   gap: 6px;
 }
 
+/* 상태 1 (기본 타건 뷰 · 키보드 ON): 기존 336px -> 400~480px (+40%+ 확장) */
 body.is-codelab-active .codelab-split-view {
-  height: clamp(296px, 34.5vh, 336px);
-  min-height: 296px;
-  max-height: 336px;
+  height: clamp(395px, calc(100vh - 455px), 475px);
+  min-height: 395px;
+  max-height: 475px;
 }
 
 body.is-codelab-active .codelab-editor-panel {
@@ -1945,19 +2212,19 @@ body.is-codelab-active .editor-header {
 body.is-codelab-active .editor-body {
   padding: 8px 0;
   font-size: 13px;
-  line-height: 19px;
+  line-height: 20px;
 }
 
 body.is-codelab-active .line-numbers span,
 body.is-codelab-active .code-line {
-  height: 19px;
-  line-height: 19px;
+  height: 20px;
+  line-height: 20px;
 }
 
 body.is-codelab-active .sandbox-highlight-pre,
 body.is-codelab-active .sandbox-code-textarea {
   font-size: 13px;
-  line-height: 19px;
+  line-height: 20px;
   padding: 8px 14px;
 }
 
@@ -1967,87 +2234,20 @@ body.is-codelab-active .codelab-editor-panel.is-sandbox-mode .line-numbers {
 }
 
 body.is-codelab-active .codelab-editor-panel.is-sandbox-mode .line-numbers span {
-  height: 19px !important;
-  line-height: 19px !important;
+  height: 20px !important;
+  line-height: 20px !important;
 }
 
 body.is-codelab-active .blank-slot-pill {
-  height: 17px;
+  height: 18px;
 }
 
-/* UX ②: 우측 사이드 패널 - 개요+테스트+콘솔 동시 표시 */
 body.is-codelab-active .codelab-side-panel {
-  gap: 6px;
+  gap: 0;
   height: 100%;
   max-height: 100%;
-  overflow-y: auto;
-  padding-right: 2px;
-}
-
-body.is-codelab-active .codelab-card {
-  padding: 6px 10px;
-  border-radius: 9px;
-}
-
-body.is-codelab-active .desc-card-header {
-  margin-bottom: 4px;
-}
-
-body.is-codelab-active .desc-tabs-bar {
-  margin-bottom: 5px;
-  padding: 2px;
-}
-
-body.is-codelab-active .desc-tab-btn {
-  padding: 3px 6px;
-  font-size: 11px;
-}
-
-body.is-codelab-active .quick-concept-tags {
-  margin-top: 4px;
-  gap: 4px;
-}
-
-body.is-codelab-active .concept-chip {
-  font-size: 10px;
-  padding: 1px 6px;
-}
-
-body.is-codelab-active .codelab-desc-card {
-  flex-shrink: 0;
-}
-
-body.is-codelab-active .codelab-side-panel.is-explanation-active .explanation-scroll-box {
-  max-height: 175px;
-}
-
-body.is-codelab-active .codelab-tests-card {
-  flex: 1 1 auto;
-  min-height: 82px;
-  display: flex;
-  flex-direction: column;
-}
-
-body.is-codelab-active .test-cases-list {
-  flex: 1;
-  min-height: 0;
-  max-height: 112px;
-  gap: 4px;
-}
-
-body.is-codelab-active .codelab-side-panel.is-desc-collapsed .test-cases-list {
-  max-height: 185px;
-}
-
-body.is-codelab-active .codelab-console-card {
-  flex-shrink: 0;
-}
-
-body.is-codelab-active .console-output {
-  min-height: 28px;
-  max-height: 46px;
-  margin-bottom: 4px;
-  padding: 4px 8px;
+  overflow: hidden;
+  padding-right: 0;
 }
 
 body.is-codelab-active .keyboard-canvas-panel {
@@ -2056,7 +2256,7 @@ body.is-codelab-active .keyboard-canvas-panel {
 }
 
 body.is-codelab-active #keyboard-hand-svg {
-  max-width: 470px;
+  max-width: 455px;
 }
 
 body.is-codelab-active .keyboard-legend-row {
@@ -2069,12 +2269,91 @@ body.is-codelab-active .keyboard-hint-text {
   display: none;
 }
 
+/* 상태 2 (넓게 보기 ON / 키보드 도킹): 스플릿 뷰 2.1× 풀높이 확장 + 개요·해설 동시 표시 */
 body.is-codelab-active.codelab-kbd-hidden .keyboard-canvas-panel {
   display: none;
 }
 
+body.is-codelab-active.codelab-kbd-hidden .codelab-split-view {
+  height: clamp(560px, calc(100vh - 235px), 780px);
+  min-height: 560px;
+  max-height: none;
+}
+
+body.is-codelab-active.codelab-kbd-hidden .editor-body {
+  font-size: 14px;
+  line-height: 22px;
+}
+
+body.is-codelab-active.codelab-kbd-hidden .line-numbers span,
+body.is-codelab-active.codelab-kbd-hidden .code-line {
+  height: 22px;
+  line-height: 22px;
+}
+
+body.is-codelab-active.codelab-kbd-hidden .sandbox-highlight-pre,
+body.is-codelab-active.codelab-kbd-hidden .sandbox-code-textarea {
+  font-size: 14px;
+  line-height: 22px;
+  padding: 8px 14px;
+}
+
+body.is-codelab-active.codelab-kbd-hidden .codelab-editor-panel.is-sandbox-mode .line-numbers span {
+  font-size: 14px !important;
+  height: 22px !important;
+  line-height: 22px !important;
+}
+
+body.is-codelab-active.codelab-kbd-hidden .codelab-side-panel:not(.is-tests-active) #codelab-tab-overview,
+body.is-codelab-active.codelab-kbd-hidden .codelab-side-panel:not(.is-tests-active) #codelab-tab-explanation {
+  display: block;
+}
+
+body.is-codelab-active.codelab-kbd-hidden .codelab-side-panel:not(.is-tests-active) .wide-section-divider {
+  display: flex;
+}
+
+body.is-codelab-active.codelab-kbd-hidden .codelab-kbd-dock-bar {
+  display: flex !important;
+}
+
+.codelab-kbd-dock-bar {
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 14px;
+  background: #181721;
+  border: 1px dashed rgba(45, 212, 191, 0.45);
+  border-radius: 10px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.kbd-dock-text strong {
+  color: var(--accent-teal-bright);
+}
+
+.kbd-dock-resume-btn {
+  background: rgba(249, 115, 22, 0.18);
+  border: 1px solid rgba(251, 146, 60, 0.6);
+  color: #fed7aa;
+  font-size: 11.5px;
+  font-weight: 800;
+  padding: 4px 12px;
+  border-radius: 7px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.kbd-dock-resume-btn:hover {
+  background: rgba(249, 115, 22, 0.32);
+  color: #ffffff;
+}
+
 @media (max-width: 1050px) {
   body.is-codelab-active .codelab-split-view,
+  body.is-codelab-active.codelab-kbd-hidden .codelab-split-view,
   body.is-codelab-active .codelab-editor-panel,
   body.is-codelab-active .codelab-side-panel {
     max-height: none;
@@ -2116,6 +2395,8 @@ body.is-codelab-active.codelab-kbd-hidden .keyboard-canvas-panel {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-variant-ligatures: none;
+  font-feature-settings: "liga" 0, "calt" 0;
 }
 
 .editor-footer-hint b {
@@ -2145,11 +2426,11 @@ body.is-codelab-active.codelab-kbd-hidden .keyboard-canvas-panel {
   display: flex;
   align-items: center;
   gap: 4px;
-  background: var(--bg-oled);
-  padding: 3px;
-  border-radius: 8px;
-  margin-bottom: 8px;
-  border: 1px solid var(--border-subtle);
+  background: #14131a;
+  padding: 6px 12px;
+  margin: 0;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
 }
 
 .desc-tab-btn {
@@ -2157,33 +2438,44 @@ body.is-codelab-active.codelab-kbd-hidden .keyboard-canvas-panel {
   background: transparent;
   border: 1px solid transparent;
   color: var(--text-muted);
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 700;
-  padding: 4px 8px;
-  border-radius: 6px;
+  padding: 5px 8px;
+  border-radius: 7px;
   cursor: pointer;
   transition: all 0.15s;
   text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  white-space: nowrap;
 }
 
 .desc-tab-btn:hover {
   color: var(--text-main);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .desc-tab-btn.active {
   background: rgba(249, 115, 22, 0.18);
-  color: var(--accent-orange-bright);
-  border-color: rgba(249, 115, 22, 0.45);
+  color: #ffffff;
+  border-color: rgba(249, 115, 22, 0.52);
+}
+
+.desc-tab-btn.active .tab-count-pill {
+  background: rgba(249, 115, 22, 0.25);
+  color: #fed7aa;
 }
 
 .desc-tab-btn-icon {
   background: transparent;
   border: none;
   color: var(--text-muted);
-  padding: 3px 6px;
-  border-radius: 5px;
+  padding: 4px 7px;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 13px;
   transition: all 0.15s;
 }
 
@@ -2204,45 +2496,42 @@ body.is-codelab-active.codelab-kbd-hidden .keyboard-canvas-panel {
 .concept-chips-container {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
-  margin-top: 6px;
+  gap: 6px;
+  margin-top: 8px;
 }
 
 .concept-chip {
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 700;
-  padding: 2px 7px;
-  border-radius: 5px;
+  padding: 2px 8px;
+  border-radius: 6px;
   background: rgba(249, 115, 22, 0.12);
   border: 1px solid rgba(249, 115, 22, 0.35);
   color: #fdba74;
 }
 
 .explanation-scroll-box {
-  max-height: 260px;
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding-right: 4px;
+  gap: 12px;
 }
 
 .explain-summary-card {
   background: var(--bg-oled);
-  padding: 10px 12px;
+  padding: 11px 13px;
   border-radius: 9px;
   border: 1px solid var(--border-subtle);
 }
 
 .explain-summary-text {
   margin: 0 0 8px 0;
-  font-size: 12.5px;
-  line-height: 1.55;
+  font-size: 13.5px;
+  line-height: 1.58;
   color: var(--text-main);
 }
 
 .explain-section-title {
-  font-size: 11.5px;
+  font-size: 12.5px;
   font-weight: 800;
   color: var(--text-main);
   margin-top: 2px;
@@ -2254,59 +2543,88 @@ body.is-codelab-active.codelab-kbd-hidden .keyboard-canvas-panel {
 .line-by-line-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 7px;
 }
 
 .line-explain-item {
-  background: var(--bg-oled);
+  background: #121118;
   border: 1px solid var(--border-subtle);
   border-radius: 8px;
-  padding: 7px 9px;
+  padding: 9px 11px;
+  cursor: pointer;
   transition: all 0.15s;
 }
 
-.line-explain-item:hover,
+.line-explain-item:hover {
+  border-color: rgba(45, 212, 191, 0.55);
+  background: #171822;
+}
+
 .line-explain-item.active-line {
-  border-color: rgba(249, 115, 22, 0.55);
-  background: #1a1821;
+  border-color: rgba(249, 115, 22, 0.78);
+  background: #1d1822;
+  box-shadow: 0 0 0 1px rgba(249, 115, 22, 0.25);
 }
 
 .line-explain-header {
   display: flex;
-  align-items: center;
-  gap: 7px;
-  margin-bottom: 3px;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 5px;
 }
 
 .line-num-badge {
-  font-size: 10px;
+  font-size: 10.5px;
   font-weight: 800;
   font-family: 'JetBrains Mono', Consolas, monospace;
-  padding: 1px 5px;
+  padding: 2px 6px;
   border-radius: 4px;
   background: var(--bg-card);
   color: var(--accent-orange-bright);
-  border: 1px solid rgba(249, 115, 22, 0.4);
+  border: 1px solid rgba(249, 115, 22, 0.45);
+  flex-shrink: 0;
+}
+
+.line-explain-item.active-line .line-num-badge {
+  background: var(--accent-orange);
+  color: #100f14;
+  border-color: var(--accent-orange-bright);
+}
+
+.line-active-pill {
+  display: none;
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 800;
+  color: #fdba74;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.line-explain-item.active-line .line-active-pill {
+  display: inline-block;
 }
 
 .line-code-snippet {
-  font-size: 11px;
+  font-size: 12px;
   font-family: "JetBrains Mono", Consolas, monospace;
+  font-variant-ligatures: none;
+  font-feature-settings: "liga" 0, "calt" 0;
   color: var(--text-main);
-  background: rgba(255, 255, 255, 0.04);
-  padding: 2px 6px;
-  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 2px 7px;
+  border-radius: 5px;
   flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  min-width: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .line-explain-text {
   margin: 0;
-  font-size: 11.5px;
-  color: var(--text-muted);
-  line-height: 1.45;
+  font-size: 13px;
+  color: #d6d0e0;
+  line-height: 1.54;
   padding-left: 2px;
 }
 
@@ -2314,17 +2632,17 @@ body.is-codelab-active.codelab-kbd-hidden .keyboard-canvas-panel {
   background: var(--bg-oled);
   border: 1px solid var(--border-subtle);
   border-radius: 8px;
-  padding: 9px;
+  padding: 10px 12px;
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  font-size: 11.5px;
+  gap: 6px;
+  font-size: 12.5px;
 }
 
 .complexity-row {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
 }
 
 .complexity-header-line {
@@ -2334,9 +2652,9 @@ body.is-codelab-active.codelab-kbd-hidden .keyboard-canvas-panel {
 }
 
 .complexity-tag {
-  font-size: 10px;
+  font-size: 10.5px;
   font-weight: 800;
-  padding: 1px 5px;
+  padding: 2px 6px;
   border-radius: 4px;
   background: rgba(20, 184, 166, 0.16);
   color: var(--accent-teal-bright);
@@ -2350,27 +2668,87 @@ body.is-codelab-active.codelab-kbd-hidden .keyboard-canvas-panel {
 
 .complexity-why {
   color: var(--text-muted);
-  font-size: 11px;
-  line-height: 1.45;
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .pitfalls-box {
   background: rgba(249, 115, 22, 0.08);
   border: 1px solid rgba(249, 115, 22, 0.35);
   border-radius: 8px;
-  padding: 8px 10px;
+  padding: 9px 12px;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 6px;
 }
 
 .pitfall-item {
-  font-size: 11.5px;
+  font-size: 12.5px;
   color: #fed7aa;
-  line-height: 1.45;
+  line-height: 1.52;
   display: flex;
   align-items: flex-start;
   gap: 6px;
+}
+
+/* 다크 커스텀 슬림 스크롤바 (CodeLab & 모달 전체) */
+.codelab-unified-body,
+.editor-body,
+.sandbox-code-textarea,
+.refactor-before-pre,
+.console-output,
+.modal-col-details,
+.modal-code-pre {
+  scrollbar-width: thin;
+  scrollbar-color: #3a374b #121118;
+}
+
+.codelab-unified-body::-webkit-scrollbar,
+.editor-body::-webkit-scrollbar,
+.sandbox-code-textarea::-webkit-scrollbar,
+.refactor-before-pre::-webkit-scrollbar,
+.console-output::-webkit-scrollbar,
+.modal-col-details::-webkit-scrollbar,
+.modal-code-pre::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.codelab-unified-body::-webkit-scrollbar-track,
+.editor-body::-webkit-scrollbar-track,
+.sandbox-code-textarea::-webkit-scrollbar-track,
+.refactor-before-pre::-webkit-scrollbar-track,
+.console-output::-webkit-scrollbar-track,
+.modal-col-details::-webkit-scrollbar-track,
+.modal-code-pre::-webkit-scrollbar-track {
+  background: #121118;
+  border-radius: 4px;
+}
+
+.codelab-unified-body::-webkit-scrollbar-thumb,
+.editor-body::-webkit-scrollbar-thumb,
+.sandbox-code-textarea::-webkit-scrollbar-thumb,
+.refactor-before-pre::-webkit-scrollbar-thumb,
+.console-output::-webkit-scrollbar-thumb,
+.modal-col-details::-webkit-scrollbar-thumb,
+.modal-code-pre::-webkit-scrollbar-thumb {
+  background: #3a374b;
+  border-radius: 4px;
+}
+
+.codelab-unified-body::-webkit-scrollbar-thumb:hover,
+.editor-body::-webkit-scrollbar-thumb:hover,
+.sandbox-code-textarea::-webkit-scrollbar-thumb:hover,
+.refactor-before-pre::-webkit-scrollbar-thumb:hover,
+.console-output::-webkit-scrollbar-thumb:hover,
+.modal-col-details::-webkit-scrollbar-thumb:hover,
+.modal-code-pre::-webkit-scrollbar-thumb:hover {
+  background: #524d69;
+}
+
+.modal-code-pre {
+  font-variant-ligatures: none;
+  font-feature-settings: "liga" 0, "calt" 0;
 }
 
 .pitfall-item::before {
@@ -2543,4 +2921,273 @@ body.is-codelab-active.codelab-kbd-hidden .keyboard-canvas-panel {
     border-bottom: 1px solid var(--border-subtle);
     max-height: 240px;
   }
+}
+
+/* ============================================================================
+   AI-Era Engineering Extension Styles (Audit Mode, ADR, Refactoring, Diagrams)
+   ============================================================================ */
+
+.codelab-lang-btn {
+  padding: 4px 8px;
+  font-size: 11.5px;
+}
+
+.codelab-problem-picker {
+  flex: 1;
+  min-width: 220px;
+  justify-content: flex-end;
+}
+
+.codelab-problem-picker .codelab-select {
+  flex: 1;
+  min-width: 145px;
+  max-width: 240px;
+}
+
+.codelab-type-mode-btn[data-typemode="audit"].active {
+  background: rgba(244, 63, 94, 0.22);
+  border-color: rgba(251, 113, 133, 0.6);
+  color: #fecdd3;
+}
+
+.editor-audit-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 6px 12px;
+  background: rgba(244, 63, 94, 0.11);
+  border-bottom: 1px solid rgba(251, 113, 133, 0.35);
+}
+
+.audit-banner-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.audit-pill {
+  font-size: 10.5px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 5px;
+  background: rgba(244, 63, 94, 0.22);
+  border: 1px solid rgba(251, 113, 133, 0.55);
+  color: #fda4af;
+  white-space: nowrap;
+}
+
+.audit-summary-text {
+  flex: 1;
+  min-width: 180px;
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: #ffe4e6;
+}
+
+.audit-checklist-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding-top: 2px;
+}
+
+.audit-check-chip {
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(249, 115, 22, 0.14);
+  border: 1px solid rgba(251, 146, 60, 0.4);
+  color: #fed7aa;
+}
+
+/* ADR (Architecture Decision Record) Interactive Card */
+.codelab-adr-card {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(129, 140, 248, 0.35);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.adr-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 800;
+  color: #c7d2fe;
+}
+
+.adr-scenario {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-main);
+}
+
+.adr-options {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.adr-option-btn {
+  text-align: left;
+  padding: 6px 9px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--bg-oled);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  transition: all 0.15s ease;
+}
+
+.adr-option-btn:hover {
+  color: var(--text-main);
+  border-color: rgba(129, 140, 248, 0.5);
+}
+
+.adr-option-btn.is-recommended {
+  background: rgba(16, 185, 129, 0.16);
+  border-color: rgba(52, 211, 153, 0.65);
+  color: #a7f3d0;
+}
+
+.adr-option-btn.is-suboptimal {
+  background: rgba(244, 63, 94, 0.15);
+  border-color: rgba(251, 113, 133, 0.55);
+  color: #fecdd3;
+}
+
+.adr-critique {
+  font-size: 12px;
+  line-height: 1.48;
+  padding: 6px 9px;
+  border-radius: 6px;
+  background: rgba(16, 15, 20, 0.72);
+  color: var(--text-main);
+  border-left: 3px solid #818cf8;
+}
+
+/* Before -> After Refactoring Comparison Card */
+.codelab-refactor-card {
+  margin-top: 8px;
+  padding: 9px 11px;
+  border-radius: 8px;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(251, 191, 36, 0.32);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.refactor-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 800;
+  color: #fcd34d;
+}
+
+.special-card-fold-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.special-card-fold-btn:hover {
+  color: #ffffff;
+  border-color: var(--border-strong);
+}
+
+.special-card-body.is-collapsed {
+  display: none !important;
+}
+
+.refactor-goal-text {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.refactor-before-pre {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--bg-oled);
+  border: 1px solid var(--border-subtle);
+  font-family: "JetBrains Mono", Consolas, monospace;
+  font-variant-ligatures: none;
+  font-feature-settings: "liga" 0, "calt" 0;
+  font-size: 11.5px;
+  line-height: 1.48;
+  color: #d6d3cb;
+  overflow-x: auto;
+  max-height: 210px;
+}
+
+/* Live Mermaid / Architecture SVG Diagram Preview */
+.codelab-diagram-preview {
+  margin-top: 8px;
+  border-radius: 8px;
+  background: var(--bg-oled);
+  border: 1px solid rgba(20, 184, 166, 0.38);
+  overflow: hidden;
+}
+
+.diagram-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 9px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent-teal-bright);
+  background: rgba(20, 184, 166, 0.09);
+  border-bottom: 1px solid rgba(20, 184, 166, 0.22);
+}
+
+.diagram-live-tag {
+  font-family: "JetBrains Mono", Consolas, monospace;
+  font-size: 9.5px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.22);
+  color: #6ee7b7;
+}
+
+.diagram-svg-canvas {
+  padding: 6px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 92px;
+  overflow-x: auto;
+}
+
+.spec-diagram-svg {
+  width: 100%;
+  max-height: 175px;
+  height: auto;
+}
+
+.diagram-error-msg {
+  font-size: 11px;
+  color: #fda4af;
+  padding: 8px;
+  text-align: center;
 }

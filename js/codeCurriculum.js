@@ -12,9 +12,94 @@ window.CODE_CURRICULUM = {
   javascript: [
     // --- Tier 1: Syntax & Operators ---
     {
+      id: 'js_find_max',
+      title: '반복문 & 조건문으로 최댓값 찾기',
+      tier: 1,
+      level: 'beginner',
+      category: 'Syntax',
+      complexity: { time: 'O(N)', space: 'O(1)' },
+      description: 'for 반복문과 if 조건문을 사용하여 숫자 배열에서 가장 큰 값을 찾아 반환합니다.',
+      explanation: {
+      "summary": "배열의 첫 번째 원소를 기준 최댓값(max)으로 잡은 뒤, 나머지 원소들을 순회하며 더 큰 값이 나올 때마다 갱신하는 가장 기본적인 탐색 패턴입니다.",
+      "keyConcepts": [
+            "for 반복문",
+            "if 조건 비교 (>)",
+            "초기 기준값 (numbers[0])",
+            "시간 복잡도 O(N)"
+      ],
+      "lineByLine": [
+            {
+                  "line": 1,
+                  "code": "function findMax(numbers) {",
+                  "explain": "정수 배열 numbers를 입력받는 함수 findMax를 정의합니다."
+            },
+            {
+                  "line": 2,
+                  "code": "    let max = numbers[0];",
+                  "explain": "배열의 첫 번째 요소를 초기 최댓값으로 설정하여 음수 배열도 안전하게 비교합니다."
+            },
+            {
+                  "line": 3,
+                  "code": "    for (let i = 1; i < numbers.length; i++) {",
+                  "explain": "두 번째 원소(인덱스 1)부터 배열 끝까지 순서대로 순회합니다."
+            },
+            {
+                  "line": 4,
+                  "code": "        if (numbers[i] > max) max = numbers[i];",
+                  "explain": "현재 원소가 기존 max보다 크면 max 값을 현재 원소로 교체합니다."
+            },
+            {
+                  "line": 5,
+                  "code": "    }",
+                  "explain": "for 반복문 블록을 닫습니다."
+            },
+            {
+                  "line": 6,
+                  "code": "    return max;",
+                  "explain": "전체 순회 후 확정된 최댓값을 반환합니다."
+            },
+            {
+                  "line": 7,
+                  "code": "}",
+                  "explain": "함수를 종료합니다."
+            }
+      ],
+      "complexity": {
+            "time": "O(N)",
+            "timeWhy": "배열 원소 N개를 한 번씩 순서대로 비교하므로 선형 시간이 걸립니다.",
+            "space": "O(1)",
+            "spaceWhy": "변수 max와 루프 인덱스 i 외에 추가 배열이나 객체를 할당하지 않습니다."
+      },
+      "pitfalls": [
+            "초기값을 0으로 두면 [-10, -3, -7] 같은 음수 배열에서 0을 반환하는 버그가 생기므로 반드시 numbers[0]으로 초기화해야 합니다."
+      ]
+},
+      entryPoint: 'findMax',
+      code: `function findMax(numbers) {
+    let max = numbers[0];
+    for (let i = 1; i < numbers.length; i++) {
+        if (numbers[i] > max) max = numbers[i];
+    }
+    return max;
+}`,
+      skeleton: `function findMax(numbers) {
+    let max = numbers[0];
+    for (let i = 1; i < numbers.length; i++) {
+        if (____) max = numbers[i];
+    }
+    return max;
+}`,
+      tests: [
+        { input: [[3, 11, 7, 2, 9]], expected: 11, name: '기본 양수 배열' },
+        { input: [[-10, -3, -7]], expected: -3, name: '음수 배열 최댓값' },
+        { input: [[42]], expected: 42, name: '단일 원소 배열' }
+      ]
+    },
+    {
       id: 'js_arrow_filter',
       title: '화살표 함수 & 짝수 필터링',
       tier: 1,
+      level: 'beginner',
       category: 'Syntax',
       complexity: { time: 'O(N)', space: 'O(N)' },
       description: '배열에서 짝수만을 필터링하는 ES6 화살표 함수와 나머지 연산자(%)를 작성합니다.',
@@ -71,6 +156,7 @@ window.CODE_CURRICULUM = {
       id: 'js_destructuring_defaults',
       title: '객체 구조분해할당 & 기본값',
       tier: 1,
+      level: 'beginner',
       category: 'Syntax',
       complexity: { time: 'O(1)', space: 'O(1)' },
       description: '객체에서 name과 age(기본값 20)를 구조분해할당하여 인사말 문자열을 반환합니다.',
@@ -134,6 +220,7 @@ window.CODE_CURRICULUM = {
       id: 'js_array_reduce_sum',
       title: 'Array.prototype.reduce 누적 합',
       tier: 2,
+      level: 'intermediate',
       category: 'Data Structure',
       complexity: { time: 'O(N)', space: 'O(1)' },
       description: 'reduce 고차 함수를 사용하여 배열의 모든 숫자의 총합을 계산합니다.',
@@ -189,6 +276,7 @@ window.CODE_CURRICULUM = {
       id: 'js_map_frequency',
       title: 'Map을 이용한 요소 빈도수 카운터',
       tier: 2,
+      level: 'intermediate',
       category: 'Data Structure',
       complexity: { time: 'O(N)', space: 'O(K)' },
       description: '배열의 요소 빈도수를 ES6 Map 객체로 집계하여 객체로 반환합니다.',
@@ -271,6 +359,7 @@ window.CODE_CURRICULUM = {
       id: 'js_binary_search',
       title: '이진 탐색 (Binary Search)',
       tier: 3,
+      level: 'intermediate',
       category: 'Algorithm',
       complexity: { time: 'O(log N)', space: 'O(1)' },
       description: '오름차순 정렬된 배열에서 target 값의 인덱스를 O(log N) 시간에 탐색합니다.',
@@ -411,6 +500,7 @@ window.CODE_CURRICULUM = {
       id: 'js_two_pointers_palindrome',
       title: '투 포인터 회문(Palindrome) 검증',
       tier: 3,
+      level: 'intermediate',
       category: 'Algorithm',
       complexity: { time: 'O(N)', space: 'O(1)' },
       description: '양 끝에서 좁혀오는 투 포인터(Two Pointers) 방식으로 문자열의 회문 여부를 판별합니다.',
@@ -529,6 +619,7 @@ window.CODE_CURRICULUM = {
       id: 'js_debounce_pattern',
       title: '실무 디바운스 (Debounce Pattern)',
       tier: 4,
+      level: 'advanced',
       category: 'Pattern',
       complexity: { time: 'O(1)', space: 'O(1)' },
       description: '연속된 호출을 지연시켜 마지막 호출만 실행하는 고차 함수 디바운스를 구현합니다.',
@@ -631,6 +722,7 @@ window.CODE_CURRICULUM = {
       id: 'js_lru_cache_map',
       title: 'Map 순서 보장을 이용한 O(1) LRU 캐시',
       tier: 4,
+      level: 'advanced',
       category: 'Design Pattern',
       complexity: { time: 'O(1)', space: 'O(K)' },
       description: 'ES6 Map의 삽입 순서 유지 특성을 이용해 최근 사용 순서(LRU) 기반 캐시 시뮬레이터를 구현합니다.',
@@ -794,9 +886,87 @@ window.CODE_CURRICULUM = {
   python: [
     // --- Tier 1: Syntax & Operators ---
     {
+      id: 'py_count_vowels',
+      title: '반복문 & 문자열 모음(Vowel) 개수 세기',
+      tier: 1,
+      level: 'beginner',
+      category: 'Syntax',
+      complexity: { time: 'O(N)', space: 'O(1)' },
+      description: '문자열을 순회하며 대소문자 구분 없이 영어 모음(a, e, i, o, u)의 개수를 카운트합니다.',
+      explanation: {
+      "summary": "소문자 변환(lower)과 in 멤버십 연산자를 결합해 문자열 내 모음 문자의 총 개수를 깔끔하게 계산하는 파이썬 기초 루프 패턴입니다.",
+      "keyConcepts": [
+            "for ch in str",
+            "str.lower()",
+            "in 멤버십 연산자",
+            "카운터 누적 (+= 1)"
+      ],
+      "lineByLine": [
+            {
+                  "line": 1,
+                  "code": "def count_vowels(text: str) -> int:",
+                  "explain": "문자열 text를 입력받아 정수 개수를 반환하는 함수를 정의합니다."
+            },
+            {
+                  "line": 2,
+                  "code": "    total = 0",
+                  "explain": "모음 개수를 누적할 카운터 변수를 0으로 초기화합니다."
+            },
+            {
+                  "line": 3,
+                  "code": "    for ch in text.lower():",
+                  "explain": "문자열을 모두 소문자로 변환한 뒤 한 글자(ch)씩 순회합니다."
+            },
+            {
+                  "line": 4,
+                  "code": "        if ch in 'aeiou':",
+                  "explain": "현재 문자가 모음 문자열 'aeiou' 안에 포함되는지 검사합니다."
+            },
+            {
+                  "line": 5,
+                  "code": "            total += 1",
+                  "explain": "모음이 맞다면 카운터 total을 1 증가시킵니다."
+            },
+            {
+                  "line": 6,
+                  "code": "    return total",
+                  "explain": "집계된 총 모음 개수를 반환합니다."
+            }
+      ],
+      "complexity": {
+            "time": "O(N)",
+            "timeWhy": "문자열 길이 N만큼 한 글자씩 순회하며 상수 크기(5글자) 집합을 확인합니다.",
+            "space": "O(1)",
+            "spaceWhy": "누적 카운터 total만 사용하므로 입력 크기에 비례한 추가 리스트가 필요 없습니다."
+      },
+      "pitfalls": [
+            "대문자 'A', 'E' 등도 정확히 세기 위해 루프 진입 전 .lower()로 정규화하는 것이 핵심입니다."
+      ]
+},
+      entryPoint: 'count_vowels',
+      code: `def count_vowels(text: str) -> int:
+    total = 0
+    for ch in text.lower():
+        if ch in 'aeiou':
+            total += 1
+    return total`,
+      skeleton: `def count_vowels(text: str) -> int:
+    total = 0
+    for ch in text.lower():
+        if ____:
+            total += 1
+    return total`,
+      tests: [
+        { input: ['KeyReflex'], expected: 3, name: '대소문자 혼합 (KeyReflex)' },
+        { input: ['PYTHON'], expected: 1, name: '대문자 단어 (PYTHON)' },
+        { input: ['rhythm'], expected: 0, name: '모음 없는 단어 (rhythm)' }
+      ]
+    },
+    {
       id: 'py_list_comprehension',
       title: '리스트 컴프리헨션 & 짝수 제곱',
       tier: 1,
+      level: 'beginner',
       category: 'Syntax',
       complexity: { time: 'O(N)', space: 'O(N)' },
       description: '0부터 n-1까지의 숫자 중 짝수만을 골라 제곱한 리스트를 간결하게 생성합니다.',
@@ -845,6 +1015,7 @@ window.CODE_CURRICULUM = {
       id: 'py_dict_word_count',
       title: '딕셔너리 컴프리헨션 & 단어 길이 매핑',
       tier: 1,
+      level: 'beginner',
       category: 'Syntax',
       complexity: { time: 'O(N)', space: 'O(N)' },
       description: '단어 리스트를 받아 { 단어: 글자수 } 형태의 딕셔너리를 생성합니다.',
@@ -892,6 +1063,7 @@ window.CODE_CURRICULUM = {
       id: 'py_deque_sliding',
       title: 'collections.deque 큐 회전 & 추출',
       tier: 2,
+      level: 'intermediate',
       category: 'Data Structure',
       complexity: { time: 'O(K)', space: 'O(N)' },
       description: 'deque를 활용하여 큐의 첫 요소를 k번 꺼내 맨 뒤로 보내는 회전 연산을 수행합니다.',
@@ -976,6 +1148,7 @@ def rotate_queue(items: list, k: int) -> list:
       id: 'py_stack_brackets',
       title: '스택(Stack)을 이용한 올바른 괄호 검사',
       tier: 2,
+      level: 'intermediate',
       category: 'Data Structure',
       complexity: { time: 'O(N)', space: 'O(N)' },
       description: '파이썬 리스트를 스택(LIFO)으로 사용하고 딕셔너리로 괄호 짝을 매핑하여 문자열 s의 유효성을 판별합니다.',
@@ -1080,6 +1253,7 @@ def rotate_queue(items: list, k: int) -> list:
       id: 'py_binary_search',
       title: '이진 탐색 (Binary Search)',
       tier: 3,
+      level: 'intermediate',
       category: 'Algorithm',
       complexity: { time: 'O(log N)', space: 'O(1)' },
       description: '정렬된 리스트에서 target의 위치를 이진 탐색으로 찾아 인덱스를 반환합니다.',
@@ -1191,6 +1365,7 @@ def rotate_queue(items: list, k: int) -> list:
       id: 'py_two_sum_hash',
       title: 'Two Sum (해시 맵 단일 패스)',
       tier: 3,
+      level: 'intermediate',
       category: 'Algorithm',
       complexity: { time: 'O(N)', space: 'O(N)' },
       description: '합이 target이 되는 두 숫자의 인덱스를 O(N) 해시맵으로 한 번의 순회로 찾습니다.',
@@ -1281,6 +1456,7 @@ def rotate_queue(items: list, k: int) -> list:
       id: 'py_dp_fibonacci',
       title: '동적 계획법 (1D DP 피보나치)',
       tier: 3,
+      level: 'intermediate',
       category: 'Algorithm',
       complexity: { time: 'O(N)', space: 'O(N)' },
       description: '메모이제이션 테이블(DP)을 구축하여 n번째 피보나치 수를 O(N)에 구합니다.',
@@ -1371,6 +1547,7 @@ def rotate_queue(items: list, k: int) -> list:
       id: 'py_memoize_closure',
       title: '데코레이터(@memoize) & 클로저 캐싱',
       tier: 4,
+      level: 'advanced',
       category: 'Design Pattern',
       complexity: { time: 'O(N)', space: 'O(N)' },
       description: '파이썬 데코레이터와 클로저(*args)로 재귀 호출 결과를 자동 캐싱하는 메모이제이션 패턴을 구현합니다.',
@@ -1491,6 +1668,7 @@ def count_stairs(n: int) -> int:
       id: 'py_sliding_rate_limiter',
       title: '슬라이딩 윈도우 API 호출 제한기 (Rate Limiter)',
       tier: 4,
+      level: 'advanced',
       category: 'Design Pattern',
       complexity: { time: 'O(N)', space: 'O(L)' },
       description: 'deque 슬라이딩 윈도우로 최근 window초 동안 최대 limit회까지만 요청을 허용하는 API 게이트웨이 필터를 구현합니다.',
@@ -1621,9 +1799,108 @@ def allow_requests(timestamps: list, window: int, limit: int) -> list:
   c: [
     // --- Tier 1: Syntax & Operators ---
     {
+      id: 'c_find_max',
+      title: 'for 루프 & 조건문으로 배열 최댓값 찾기',
+      tier: 1,
+      level: 'beginner',
+      category: 'Syntax',
+      complexity: { time: 'O(N)', space: 'O(1)' },
+      description: '정수 배열의 첫 원소를 기준으로 잡고 for 루프를 돌며 가장 큰 정수를 찾아 반환합니다.',
+      explanation: {
+      "summary": "C 언어 입문에서 가장 많이 쓰이는 배열 인덱싱(arr[i])과 if 비교문으로 최댓값을 찾는 기본 순회 패턴입니다.",
+      "keyConcepts": [
+            "배열 매개변수 (int arr[])",
+            "초기 기준값 (arr[0])",
+            "for 인덱스 루프",
+            "if 비교 갱신"
+      ],
+      "lineByLine": [
+            {
+                  "line": 1,
+                  "code": "int find_max(int arr[], int size) {",
+                  "explain": "정수 배열 arr과 크기 size를 인자로 받는 함수 find_max를 선언합니다."
+            },
+            {
+                  "line": 2,
+                  "code": "    int max_val = arr[0];",
+                  "explain": "배열 첫 번째 원소 arr[0]을 현재까지의 최댓값으로 저장합니다."
+            },
+            {
+                  "line": 3,
+                  "code": "    for (int i = 1; i < size; i++) {",
+                  "explain": "인덱스 1부터 size - 1까지 배열을 차례로 순회합니다."
+            },
+            {
+                  "line": 4,
+                  "code": "        if (arr[i] > max_val) {",
+                  "explain": "현재 원소 arr[i]가 기존 최댓값 max_val보다 큰지 비교합니다."
+            },
+            {
+                  "line": 5,
+                  "code": "            max_val = arr[i];",
+                  "explain": "더 큰 값을 발견하면 max_val을 새 값으로 업데이트합니다."
+            },
+            {
+                  "line": 6,
+                  "code": "        }",
+                  "explain": "if 조건 블록을 닫습니다."
+            },
+            {
+                  "line": 7,
+                  "code": "    }",
+                  "explain": "for 루프를 종료합니다."
+            },
+            {
+                  "line": 8,
+                  "code": "    return max_val;",
+                  "explain": "찾아낸 최댓값을 호출자에게 반환합니다."
+            },
+            {
+                  "line": 9,
+                  "code": "}",
+                  "explain": "함수를 종료합니다."
+            }
+      ],
+      "complexity": {
+            "time": "O(N)",
+            "timeWhy": "크기 size에 비례해 배열 요소를 한 번씩만 비교합니다.",
+            "space": "O(1)",
+            "spaceWhy": "추가 메모리 할당 없이 단일 int 변수 max_val과 i만 사용합니다."
+      },
+      "pitfalls": [
+            "max_val을 0으로 하드코딩하면 모든 원소가 음수인 배열에서 잘못된 결과(0)를 반환하므로 arr[0]으로 시작해야 합니다."
+      ]
+},
+      entryPoint: 'find_max',
+      code: `int find_max(int arr[], int size) {
+    int max_val = arr[0];
+    for (int i = 1; i < size; i++) {
+        if (arr[i] > max_val) {
+            max_val = arr[i];
+        }
+    }
+    return max_val;
+}`,
+      skeleton: `int find_max(int arr[], int size) {
+    int max_val = arr[0];
+    for (int i = 1; i < size; i++) {
+        if (____) {
+            max_val = arr[i];
+        }
+    }
+    return max_val;
+}`,
+      tests: [
+        { input: [[4, 19, 8, 25, 12], 5], expected: 25, name: '양수 배열 최댓값 (25)' },
+        { input: [[-9, -3, -15, -4], 4], expected: -3, name: '음수 배열 최댓값 (-3)' },
+        { input: [[7], 1], expected: 7, name: '단일 원소 (7)' }
+      ]
+    },
+    {
       id: 'c_pointer_swap',
       title: '포인터를 활용한 두 정수 Swap',
       tier: 1,
+      level: 'beginner',
       category: 'Syntax',
       complexity: { time: 'O(1)', space: 'O(1)' },
       description: '포인터 역참조(*)를 통해 두 정수 변수의 메모리 주소 상의 값을 직접 교환합니다.',
@@ -1722,6 +1999,7 @@ int test_swap(int x, int y) {
       id: 'c_strlen_pointer',
       title: '포인터 산술을 이용한 문자열 길이 계산 (strlen)',
       tier: 1,
+      level: 'beginner',
       category: 'Syntax',
       complexity: { time: 'O(N)', space: 'O(1)' },
       description: '널 종료 문자(\\0)를 만날 때까지 포인터를 전진시켜 문자열의 길이를 구합니다.',
@@ -1805,6 +2083,7 @@ int test_swap(int x, int y) {
       id: 'c_array_sum',
       title: '배열 순회 및 총합 계산',
       tier: 2,
+      level: 'intermediate',
       category: 'Data Structure',
       complexity: { time: 'O(N)', space: 'O(1)' },
       description: '주어진 정수 배열의 모든 요소를 반복문으로 순회하여 총합을 반환합니다.',
@@ -1887,6 +2166,7 @@ int test_swap(int x, int y) {
       id: 'c_palindrome_ptr',
       title: '양방향 char 포인터 문자열 회문 판별',
       tier: 2,
+      level: 'intermediate',
       category: 'Pointers & Strings',
       complexity: { time: 'O(N)', space: 'O(1)' },
       description: '양끝을 가리키는 두 const char* 포인터를 중앙으로 좁히며 C 문자열이 회문인지 판별합니다.',
@@ -2020,6 +2300,7 @@ int test_swap(int x, int y) {
       id: 'c_binary_search',
       title: '이진 탐색 (Binary Search)',
       tier: 3,
+      level: 'intermediate',
       category: 'Algorithm',
       complexity: { time: 'O(log N)', space: 'O(1)' },
       description: '오름차순 정렬된 C 정수 배열에서 target의 인덱스를 이진 탐색으로 찾습니다.',
@@ -2158,6 +2439,7 @@ int test_swap(int x, int y) {
       id: 'c_reverse_array',
       title: '투 포인터 배열 뒤집기 (In-Place Reverse)',
       tier: 3,
+      level: 'intermediate',
       category: 'Algorithm',
       complexity: { time: 'O(N)', space: 'O(1)' },
       description: '추가 배열 생성 없이 양 끝 포인터를 좁혀가며 배열 요소를 제자리에서 뒤집습니다.',
@@ -2298,6 +2580,7 @@ int reverse_first_elem(int arr[], int size) {
       id: 'c_bitmask_flags',
       title: '비트마스크(Bitmask) 권한 플래그 제어',
       tier: 4,
+      level: 'advanced',
       category: 'Systems & Bitwise',
       complexity: { time: 'O(1)', space: 'O(1)' },
       description: 'C 비트 연산자(|=, &= ~, ^=)를 조합하여 OS/임베디드 권한 비트를 세트·해제·반전합니다.',
@@ -2402,6 +2685,7 @@ int reverse_first_elem(int arr[], int size) {
       id: 'c_ring_buffer_sum',
       title: '고정 크기 원형 버퍼(Ring Buffer) 쓰기 & 체크섬',
       tier: 4,
+      level: 'advanced',
       category: 'Systems & Embedded',
       complexity: { time: 'O(N + C)', space: 'O(C)' },
       description: '동적 할당 없이 고정 배열과 모듈러 인덱스((head + 1) % cap)로 임베디드 원형 큐를 구현합니다.',

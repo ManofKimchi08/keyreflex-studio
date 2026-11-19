@@ -6,12 +6,44 @@
 <div align="center">
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Web-success.svg)](#)
-[![Version](https://img.shields.io/badge/Release-v1.4.0-informational.svg)](https://github.com/ManofKimchi08/keyreflex-studio/releases)
+[![Live Web App](https://img.shields.io/badge/Live%20Web-GitHub%20Pages-14b8a6?logo=githubpages)](https://manofkimchi08.github.io/keyreflex-studio/)
+[![Platform](https://img.shields.io/badge/Platform-Web%20%7C%20Windows-success.svg)](#)
+[![Version](https://img.shields.io/badge/Release-v1.5.0-informational.svg)](https://github.com/ManofKimchi08/keyreflex-studio/releases)
 [![UI Theme](https://img.shields.io/badge/Design-Tactile%20Mech%20Studio-f97316.svg)](#)
-[![Pure Vanilla](https://img.shields.io/badge/Tech-HTML5%20%7C%20SVG%20%7C%20Web%20Audio-orange.svg)](#)
+[![Pure Vanilla](https://img.shields.io/badge/Tech-HTML5%20%7C%20SVG%20%7C%20Pyodide%20WASM-orange.svg)](#)
 
-<img src="docs/images/keyreflex_main.png" alt="KeyReflex Studio 메인 화면" width="950" />
+### 👉 [🌐 웹 브라우저에서 바로 실행하기 — KeyReflex Studio Live](https://manofkimchi08.github.io/keyreflex-studio/)
+
+<img src="docs/images/codelab_hybrid_state1.png" alt="KeyReflex Studio v1.5.0 CodeLab 하이브리드 UI 화면" width="950" />
+
+</div>
+
+---
+
+## ✨ v1.5.0 주요 신기능 (Hybrid UX & AI 시대 엔지니어링 트랙)
+
+- **⚡ CodeLab 하이브리드 UX ("Studio Pro")**:
+  - **상단 슬림화 + 우측 단일 통합 3-탭 (`📋 문제 개요` · `💡 라인별 해설` · `🧪 테스트·콘솔`)**: 3단 카드 적층과 3중 흰색 스크롤바를 완전히 제거하고 가용 높이를 `+41%`(`475px`)로 확장했습니다. (`⚙️ 손·타건음` 버튼으로 필요 시 설정 바 토글)
+  - **`📖 넓게 보기` 2.1× 풀높이 자동 확장 (`725px`)**: 키보드를 하단 슬림 도킹 바로 접고 `문제 개요`와 `라인별 상세 해설`을 한 화면에 동시에 펼쳐 읽을 수 있습니다.
+  - **에디터 ↔ 해설 양방향 라인 동기화**: 현재 입력 중인 줄(`L#`)이 좌측 에디터와 우측 해설 카드에 동시 강조되며, 해설 카드를 호버·클릭하면 에디터 해당 줄이 강조/이동됩니다.
+  - **가독성 최적화**: `13~13.5px` 해설 타이포, 다크 슬림 스크롤바, 합자 비활성화(`<=`, `===` 원형 유지), 제목 비잘림 2줄 표시.
+- **🤖 AI 시대 6대 실무 트랙 · 초/중/고급 난이도 필터 · 47개 커리큘럼** (`JS 17 · Python 15 · C 11 · 📜 스펙·설계 4`):
+  - **6개 트랙**: `📐 알고리즘(22)` · `🏗️ 설계·아키텍처(7)` · `🔄 리팩터링(4)` · `🤖 AI·RAG 인프라(5)` · `⚖️ 시스템 설계·ADR(5)` · `📜 스펙·다이어그램(4)`
+  - **4대 실습 모드**: `🌊 전체 타건 (Flow)` · `🧩 빈칸 인출 (Skeleton)` · `🛠️ 자유 수정 (Sandbox)` · **`🔍 AI 코드 리뷰 (Audit)`**(AI 결함 코드에서 버그 줄만 찾아 최소 타건으로 수정 & 해결)
+  - **아키텍처 인터랙티브 카드**: `🗺️ 실시간 Mermaid → SVG 다이어그램 프리뷰`, `⚖️ 시스템 설계 판단 (ADR)` 트레이드오프 선택 위젯, `🔄 Before: 기존 스파게티 레거시 코드` 비교 카드(접기/펼치기 지원).
+- **🖐️ 2D 벡터 손가락 IK 왜곡 수정 (`handRenderer.js?v=12.0`)**: 좌/우 소지·외곽 키 도달(`Shift` + `[`, `` ` `` 등) 시 손가락 꺾임/S-루프 왜곡을 원천 해결했습니다.
+
+<div align="center">
+
+| ⚡ 하이브리드 상태 1 · 단일 통합 탭 (키보드 ON · 475px) | 📖 하이브리드 상태 2 · 넓게 보기 (2.1× 풀높이 · 725px) |
+| :---: | :---: |
+| <img src="docs/images/codelab_hybrid_state1.png" alt="CodeLab 하이브리드 상태 1 화면" width="460" /> | <img src="docs/images/codelab_hybrid_wide.png" alt="CodeLab 넓게 보기 2.1배 확장 화면" width="460" /> |
+| 3중 스크롤바 제거 + L4 양방향 동기화 + 하단 고정 상태바 | `📖 넓게 보기` 시 키보드 도킹 + `개요`·`라인 해설` 동시 조망 |
+
+| 🔍 AI 코드 리뷰 (`Audit`) & `Before` 레거시 비교 | 📜 스펙·아키텍처 실시간 `SVG` 다이어그램 & `ADR` |
+| :---: | :---: |
+| <img src="docs/images/codelab_ai_audit.png" alt="AI 코드 리뷰 모드 화면" width="460" /> | <img src="docs/images/codelab_spec_diagram_adr.png" alt="실시간 SVG 다이어그램 및 ADR 화면" width="460" /> |
+| AI가 심은 결함을 찾아 최소 타건으로 수정하고 실패 테스트 해결 | Mermaid DSL 작성 즉시 우측 SVG 토폴로지 반영 + ADR 트레이드오프 |
 
 </div>
 
@@ -19,13 +51,14 @@
 
 ## 🌟 주요 특징 (Key Features)
 
-### 1. ⌨️ Tactile Mech Studio & 2D 벡터 손 가이드 (`v1.4.0` UI/UX 전면 개편)
+### 1. ⌨️ Tactile Mech Studio & 2D 벡터 손 가이드 (`v1.4.0`~`v1.5.0`)
 - **3D 이중사출(Double-Shot) PBT 키캡 & 아노다이징 섀시**: 웜 매트 차콜(`#151419`) 스튜디오 섀시 위에 오프화이트 알파열, 다크 차콜 모디파이어, 엠버 오렌지(`#F97316`) 엔터 액센트 및 리세스 스위치 플레이트/육각 나사를 입체 SVG로 구현.
-- **리세스드 OLED 계기판 UI & 4-Tier 컬러 위계**: 고대비 OLED 지표 카드와 Tier 1(Teal) · Tier 2(Blue) · Tier 3(Purple) · Tier 4(Amber) 난이도 시각 위계 적용.
-- **자연스러운 2D 벡터 캐노니컬 손 가이드**: 베지에 곡선과 이징 역운동학(IK) 뻗음 애니메이션을 유지하며, 자모 라벨(`ㅁㄴㅇㄹ / ㅓㅏㅣ;`), 투명도 슬라이더(0~100%), 손가락별 컬러 구역 힌트 제공.
+- **리세스드 OLED 계기판 UI & 4-Tier 컬러 위계**: 고대비 OLED 지표 카드와 초급(`Tier 1`) · 중급(`Tier 2~3`) · 고급(`Tier 4`) 난이도 시각 위계 적용.
+- **자연스러운 2D 벡터 캐노니컬 손 가이드**: 축방향 제어점 가중치 보간 기반 베지에 곡선과 이징 역운동학(IK)으로 외곽 키 도달 시에도 자연스러운 손가락 곡선 유지, 자모 라벨(`ㅁㄴㅇㄹ / ㅓㅏㅣ;`), 투명도 슬라이더, 손가락별 컬러 구역 힌트 제공.
 
 <div align="center">
-<img src="docs/images/hand_guide_comparison.png" alt="손 가이드 개선 비교" width="900" />
+<img src="docs/images/keyreflex_main.png" alt="KeyReflex Studio 메인 화면" width="460" />
+<img src="docs/images/hand_guide_comparison.png" alt="손 가이드 개선 비교" width="460" />
 </div>
 
 ---
@@ -142,16 +175,19 @@
 
 ## 🚀 빠른 시작 (Quick Start)
 
-### 방법 1. 원클릭 실행 파일 (권장)
-1. [GitHub Releases](https://github.com/ManofKimchi08/keyreflex-studio/releases)에서 `KeyReflex-Studio.exe`를 다운로드합니다.
-2. 다운로드한 `KeyReflex-Studio.exe`를 더블 클릭하여 즉시 실행합니다.
+### 방법 1. 웹에서 즉시 실행 (설치 불필요 · 권장)
+- 👉 **[https://manofkimchi08.github.io/keyreflex-studio/](https://manofkimchi08.github.io/keyreflex-studio/)** 에 접속하면 설치 없이 브라우저에서 즉시 모든 기능을 사용할 수 있습니다.
 
-### 방법 2. 웹 브라우저에서 바로 실행
+### 방법 2. Windows 무설치 단일 실행 파일
+1. [GitHub Releases](https://github.com/ManofKimchi08/keyreflex-studio/releases)에서 `KeyReflex-Studio.exe`를 다운로드합니다.
+2. 다운로드한 `KeyReflex-Studio.exe`를 더블 클릭하여 전용 앱 창 모드로 실행합니다.
+
+### 방법 3. 로컬 저장소 직접 실행
 1. 저장소를 클론하거나 ZIP으로 다운로드합니다:
    ```bash
    git clone https://github.com/ManofKimchi08/keyreflex-studio.git
    ```
-2. `index.html` 파일을 더블 클릭하여 아무 최신 브라우저(Edge, Chrome, Whale, Safari 등)에서 엽니다.
+2. `index.html` 파일을 아무 최신 브라우저(Edge, Chrome, Whale, Safari 등)에서 엽니다.
 
 ---
 
@@ -159,44 +195,46 @@
 
 ```text
 keyreflex-studio/
+├── .nojekyll                      # GitHub Pages 정적 자산 고속 서빙 설정
 ├── docs/
-│   ├── RELEASE_v1.4.0.md    # v1.4.0 GitHub 릴리즈 노트 & 스크린샷 문서
-│   └── images/              # README 및 릴리즈 문서용 고해상도 스크린샷
-│       ├── keyreflex_main.png
-│       ├── hand_guide_comparison.png
-│       ├── codelab_main.png
-│       ├── codelab_python.png
-│       ├── codelab_c.png
-│       ├── codelab_skeleton.png
-│       ├── codelab_explanation_tab.png
-│       ├── codelab_sandbox.png
-│       └── codelab_modal_view.png
+│   ├── RELEASE_v1.5.0.md          # v1.5.0 릴리즈 노트 & 스크린샷 문서
+│   ├── RELEASE_v1.4.0.md          # v1.4.0 릴리즈 노트
+│   └── images/                    # README 및 릴리즈 문서용 고해상도 스크린샷
 ├── js/
-│   ├── app.js               # 핵심 훈련 모드 상태 머신 & 통계 분석 엔진
-│   ├── data.js              # ANSI 쿼티 & 두벌식 키보드 레이아웃, 한글 자모 데이터셋
-│   ├── handRenderer.js      # 3D 이중사출 PBT 키캡 SVG & 2D 캐노니컬 벡터 손 IK 렌더러
-│   ├── sound.js             # Web Audio API 기반 기계식/무접점 타건 합성음 엔진
-│   ├── codeCurriculum.js    # 3대 언어(JS, Python, C) 4-Tier 알고리즘 템플릿 & 테스트 케이스
-│   └── codeRunner.js        # 인브라우저 삼중 언어(JS 클로저, Pyodide WASM, C99) 실행 샌드박스
-├── index.html               # 메인 인터페이스 (Tactile Mech Studio 다크 스튜디오 UI)
-├── styles.css               # Tactile Mech Studio & OLED 메트릭 스타일시트
-├── KeyReflex-Studio.exe     # 원클릭 무설치 단일 독립 데스크톱 실행 파일 (v1.4.0)
-├── LICENSE                  # MIT 라이선스
-└── README.md                # 종합 프로젝트 문서
+│   ├── app.js                     # 핵심 훈련 모드 상태 머신, 하이브리드 UX & 라인 동기화 엔진
+│   ├── data.js                    # ANSI 쿼티 & 두벌식 키보드 레이아웃, 한글 자모 데이터셋
+│   ├── handRenderer.js            # 3D 이중사출 PBT 키캡 SVG & 축 가중치 기반 2D 손 IK 렌더러
+│   ├── sound.js                   # Web Audio API 기반 기계식/무접점 타건 합성음 엔진
+│   ├── codeCurriculum.js          # 기본 알고리즘 커리큘럼 (JS, Python, C)
+│   ├── codeCurriculumExtras.js    # AI 시대 6대 트랙 · 47레슨 확장 커리큘럼 & ADR/Audit 데이터
+│   ├── specEngine.js              # 실시간 Mermaid → SVG 다이어그램 렌더러 & JSON 스키마 검증기
+│   └── codeRunner.js              # 인브라우저 4언어(JS, Pyodide WASM, C99, Spec) 실행 샌드박스
+├── index.html                     # 메인 인터페이스 (Tactile Mech Studio & CodeLab 하이브리드 UI)
+├── styles.css                     # Tactile Mech Studio · OLED 메트릭 · 다크 스크롤 스타일시트
+├── KeyReflex-Studio.exe           # 원클릭 무설치 단일 독립 데스크톱 실행 파일 (v1.5.0)
+├── LICENSE                        # MIT 라이선스
+└── README.md                      # 종합 프로젝트 문서
 ```
 
 ---
 
 ## 🛠️ 기술 스택 (Tech Stack)
 
-- **UI & Visualization**: Pure HTML5, Tactile Mech Studio SVG (3D Double-Shot PBT Keycaps + Canonical 2D Vector Hands), CSS3 Variables & Responsive Split Layout
-- **Interaction & Physics**: Vanilla JavaScript (ES6+), Eased Inverse Kinematics (IK), RequestAnimationFrame (60fps)
-- **Audio Engine**: HTML5 Web Audio API (Synthesized Key Sound Engine)
-- **Desktop Wrapper**: C# (.NET Framework 4.5+), Native WebView2 / App-Mode Sandbox
+- **UI & Visualization**: Pure HTML5, Tactile Mech Studio SVG (3D Double-Shot PBT Keycaps + Canonical 2D Vector Hands), Dynamic Flowchart SVG, CSS3 Variables
+- **Interaction & Physics**: Vanilla JavaScript (ES6+), Axial Control-Point IK, RequestAnimationFrame (60fps)
+- **Execution Engines**: JS Closure Sandbox, Pyodide 0.26.4 WebAssembly (Python 3), Built-in C99 Transpiler/VM, JSON Schema & Diagram DSL Grader
+- **Audio & Hosting**: HTML5 Web Audio API, GitHub Pages Static Hosting, C# (.NET Framework) App-Mode Launcher
 
 ---
 
 ## 📋 업데이트 히스토리 (Changelog)
+
+### `v1.5.0` — CodeLab 하이브리드 UX · AI 시대 6대 트랙(47레슨) · 손가락 IK 수정 · 웹 배포
+- **🌐 GitHub Pages 공식 웹 배포**: `.nojekyll`, SVG 파비콘, OpenGraph 메타를 추가해 [웹 라이브 버전](https://manofkimchi08.github.io/keyreflex-studio/)으로 즉시 실행 가능.
+- **⚡ CodeLab 하이브리드 UX ("Studio Pro")**: 상단 비관련 크롬 슬림화(`⚙️ 손·타건음` 토글) + 우측 단일 3-탭(`문제 개요` · `라인별 해설` · `테스트·콘솔`)으로 3중 스크롤바 제거 + `📖 넓게 보기` 2.1× 풀높이 확장(개요+해설 동시 표시) + 에디터↔해설 양방향 라인 동기화 + 합자 비활성화.
+- **🤖 AI 시대 커리큘럼 대규모 확장 (총 47레슨 · 6대 트랙 · 초/중/고급 난이도 필터)**: `JS 17 · Python 15 · C 11 · 📜 스펙·설계 4`, `🔍 AI 코드 리뷰(Audit)` 모드, `⚖️ 시스템 설계 판단(ADR)`, `🔄 Before` 레거시 비교 카드, `🗺️ 실시간 SVG 다이어그램` 탑재.
+- **🖐️ 2D 손가락 IK 왜곡 전면 수정 (`handRenderer.js?v=12.0`)**: 외곽 키 도달 시 소지·손가락 S-루프 뒤틀림 해결(120포즈 정밀 검증).
+- **✅ 자동화 검증**: 하이브리드 UX E2E `11/11 PASS` · v1.5.0 전체 47레슨 E2E `13/13 PASS` 및 `KeyReflex-Studio.exe` 재빌드.
 
 ### `v1.4.0` — Tactile Mech Studio (Option B) UI/UX 전면 개편 & CodeLab Tri-Engine 통합 업그레이드
 - **🎨 Tactile Mech Studio 테마**: 웜 매트 차콜(`#151419`) 스튜디오 섀시, 리세스드 OLED 메트릭 카드(`#100F14`), 엠버 오렌지(`#F97316`) · 스튜디오 틸(`#14B8A6`) 포인트 컬러 적용

@@ -305,6 +305,14 @@ class KeyboardHandRenderer {
     this.handsGroup.style.opacity = this.handOpacity;
     this.svg.appendChild(this.handsGroup);
 
+    this.fingerKinematics = {
+      pinky:  { baseX: 173.0, baseY: 284.0, tipX: 169.6, tipY: 192.5, segs: [4, 5, 6, 7, 8], caps: [6], preCap: 5, maxDx: 18, maxUp: 26, maxDown: 12 },
+      ring:   { baseX: 214.0, baseY: 272.0, tipX: 238.7, tipY: 173.3, segs: [9, 10, 11, 12, 13, 14], caps: [11], preCap: 10, maxDx: 20, maxUp: 28, maxDown: 13 },
+      middle: { baseX: 258.0, baseY: 276.8, tipX: 301.5, tipY: 163.0, segs: [15, 16, 17, 18, 19, 20, 21, 22], caps: [18, 19], preCap: 17, maxDx: 22, maxUp: 30, maxDown: 14 },
+      index:  { baseX: 310.0, baseY: 295.0, tipX: 361.5, tipY: 177.6, segs: [23, 24, 25, 26, 27, 28, 29, 30], caps: [26, 27], preCap: 25, maxDx: 22, maxUp: 30, maxDown: 14 },
+      thumb:  { baseX: 355.2, baseY: 352.5, tipX: 418.0, tipY: 288.1, segs: [31, 32, 33, 34, 35, 36], caps: [34], preCap: 33, maxDx: 18, maxUp: 18, maxDown: 14 }
+    };
+
     // 해부학적 손가락 좌표 (캐노니컬 베지어 손톱 중심 및 자연스러운 부채꼴 각도)
     const fingerDefs = {
       // 왼손
@@ -414,27 +422,120 @@ class KeyboardHandRenderer {
   }
 
   /**
-   * 동적 손 실루엣 Path 생성 (캐노니컬 인체 해부학적 베지어 변형)
+   * 뼈대 축 방향 투영을 통한 연속 제어점 가중치 계산 (S-루프/뒤틀림 방지)
    */
-  computeHandD(isRight) {
+  getControlPointAxialWeight(role, sIdx, ptIdx, px, py) {
+    const pv = this.fingerKinematics && this.fingerKinematics[role];
+    if (!pv || !pv.segs.includes(sIdx)) return 0;
+    if (pv.caps.includes(sIdx) || (sIdx === pv.preCap && ptIdx === 2)) return 1.0;
+
+    const vx = pv.tipX - pv.baseX;
+    const vy = pv.tipY - pv.baseY;
+    const l2 = vx * vx + vy * vy;
+    if (l2 <= 0) return 0;
+
+    const u = ((px - pv.baseX) * vx + (py - pv.baseY) * vy) / l2;
+    const t = Math.max(0, Math.min(1, u / 0.92));
+    return t * t * (3 - 2 * t);
+  }
+
+  /**
+   * 전체 손목/손바닥 이동(Glide) + 해부학적 한계 내 로컬 손가락 변위 분해
+   */
+  computeHandKinematics(isRight) {
     const prefix = isRight ? 'R_' : 'L_';
     const roles = ['pinky', 'ring', 'middle', 'index', 'thumb'];
+    const nonThumbRoles = ['pinky', 'ring', 'middle', 'index'];
 
-    // 5개 손가락의 상대적 이동 변위 (Canonical Left Hand 좌표계 기준)
-    const deltas = {};
+    const raw = {};
     roles.forEach((r) => {
       const fId = `${prefix}${r.toUpperCase()}`;
       const f = this.fingerStates[fId];
       if (f) {
         const rawDx = f.curX - f.homeX;
-        // 오른손의 경우 x 변위 반전 (홈 로우 중심 453.0 기준 대칭)
         const dx = isRight ? -rawDx : rawDx;
         const dy = (f.curY + f.pressOffset * 3.5) - f.homeY;
-        deltas[r] = { dx, dy };
+        raw[r] = { dx, dy };
       } else {
-        deltas[r] = { dx: 0, dy: 0 };
+        raw[r] = { dx: 0, dy: 0 };
       }
     });
+
+    // 가장 크게 뻗는 비-엄지 손가락을 기준으로 손바닥 이동량을 산출
+    let primaryRole = 'pinky';
+    let maxDist = 0;
+    nonThumbRoles.forEach((r) => {
+      const d = Math.hypot(raw[r].dx, raw[r].dy);
+      if (d > maxDist) {
+        maxDist = d;
+        primaryRole = r;
+      }
+    });
+
+    const pPv = this.fingerKinematics[primaryRole];
+    const pRaw = raw[primaryRole];
+    const locDx = maxDist > 0
+      ? Math.max(-pPv.maxDx, Math.min(pPv.maxDx, pRaw.dx * 0.45))
+      : 0;
+    const locDy = maxDist > 0
+      ? (pRaw.dy < 0
+        ? Math.max(-pPv.maxUp, Math.min(0, pRaw.dy * 0.50))
+        : Math.max(0, Math.min(pPv.maxDown, pRaw.dy * 0.28)))
+      : 0;
+
+    const handDx = pRaw.dx - locDx;
+    const handDy = pRaw.dy - locDy;
+
+    const local = {};
+    const pIdx = nonThumbRoles.indexOf(primaryRole);
+    const couplingTable = [1.0, 0.24, 0.08, 0.02];
+
+    nonThumbRoles.forEach((r, rIdx) => {
+      const dist = Math.hypot(raw[r].dx, raw[r].dy);
+      if (dist > 0.5) {
+        local[r] = {
+          dx: raw[r].dx - handDx,
+          dy: raw[r].dy - handDy
+        };
+      } else {
+        const c = couplingTable[Math.abs(rIdx - pIdx)] || 0;
+        local[r] = {
+          dx: locDx * c,
+          dy: locDy * c * 0.8
+        };
+      }
+    });
+
+    // 손바닥이 크게 이동할 때 엄지는 스페이스바 부근에서 자연스럽게 추종 완화
+    local.thumb = {
+      dx: raw.thumb.dx - handDx * 0.55,
+      dy: raw.thumb.dy - handDy * 0.65
+    };
+
+    return { handDx, handDy, local };
+  }
+
+  /**
+   * 넓은 모디파이어 키(Shift, Enter, Ctrl 등)의 인체공학적 안쪽 타점 산출
+   */
+  getErgonomicKeyTarget(keyData, fingerState) {
+    let tx = keyData.cx;
+    const ty = keyData.cy + 2;
+    if (keyData.w > 1.2 && !fingerState.isThumb) {
+      const dir = Math.sign(fingerState.homeX - keyData.cx);
+      const maxShift = Math.max(0, (keyData.wPx - 48) * 0.42);
+      const shift = Math.min(Math.abs(fingerState.homeX - keyData.cx) * 0.35, maxShift);
+      tx = keyData.cx + dir * shift;
+    }
+    return { x: tx, y: ty };
+  }
+
+  /**
+   * 동적 손 실루엣 Path 생성 (캐노니컬 인체 해부학적 베지어 변형)
+   */
+  computeHandD(isRight) {
+    const roles = ['pinky', 'ring', 'middle', 'index', 'thumb'];
+    const { handDx, handDy, local } = this.computeHandKinematics(isRight);
 
     const dParts = [];
     const N = CANONICAL_SEGMENTS.length;
@@ -444,21 +545,33 @@ class KeyboardHandRenderer {
       const cmd = seg.cmd;
       const pts = seg.p;
 
-      // 누적 가중 변위 합산
-      let totDx = 0;
-      let totDy = 0;
-      for (let rIdx = 0; rIdx < roles.length; rIdx++) {
-        const r = roles[rIdx];
-        const w = FINGER_WEIGHTS[r][sIdx];
-        if (w > 0) {
-          totDx += deltas[r].dx * w;
-          totDy += deltas[r].dy * w;
-        }
-      }
+      const shiftedPts = pts.map(([px, py], ptIdx) => {
+        const wristT = Math.max(0, Math.min(1, (py - 405) / 80));
+        const baseDx = handDx * (1 - 0.35 * wristT);
+        const baseDy = handDy < 0
+          ? handDy * (1 - 0.75 * wristT)
+          : handDy * (1 - 0.45 * wristT);
 
-      const shiftedPts = pts.map(([px, py]) => {
-        let sx = px + totDx;
-        const sy = py + totDy;
+        let totLocalDx = 0;
+        let totLocalDy = 0;
+        for (let rIdx = 0; rIdx < roles.length; rIdx++) {
+          const r = roles[rIdx];
+          const w = this.getControlPointAxialWeight(r, sIdx, ptIdx, px, py);
+          if (w > 0) {
+            totLocalDx += local[r].dx * w;
+            totLocalDy += local[r].dy * w;
+          }
+        }
+
+        // 바깥 손날(seg 3)과 소지 뿌리 사이 부드러운 이행
+        if (sIdx === 3 && ptIdx >= 1) {
+          const outerMetaW = 0.08 * (ptIdx === 2 ? 1 : 0.5);
+          totLocalDx += local.pinky.dx * outerMetaW;
+          totLocalDy += local.pinky.dy * outerMetaW;
+        }
+
+        let sx = px + baseDx + totLocalDx;
+        const sy = py + baseDy + totLocalDy;
         if (isRight) {
           sx = 906.0 - sx;
         }
@@ -496,37 +609,57 @@ class KeyboardHandRenderer {
       this.leftHandPath.setAttribute('d', this.computeHandD(false));
       this.rightHandPath.setAttribute('d', this.computeHandD(true));
 
-      // 3. 손톱(Oval Nails) 및 가이드 라벨 갱신
+      const leftKin = this.computeHandKinematics(false);
+      const rightKin = this.computeHandKinematics(true);
+
+      // 3. 실제 렌더링된 손가락 뼈대(Tip -> Knuckle) 축에 맞춰 가이드 라벨 정렬
       Object.keys(this.fingerStates).forEach((fId) => {
         const f = this.fingerStates[fId];
         const labelGroup = this.fingerLabelElements[fId];
+        if (!labelGroup) return;
 
-        const ty = f.curY + f.pressOffset * 3.5;
-        const dx = f.curX - f.homeX;
-        const angle = f.angle + dx * 0.15;
+        const children = labelGroup.children;
+        const isRight = f.hand === 'right';
+        const kin = isRight ? rightKin : leftKin;
+        const pv = this.fingerKinematics[f.role];
+        const loc = kin.local[f.role];
 
-        // 운지 가이드 텍스트 배치
-        if (labelGroup) {
-          const children = labelGroup.children;
-          if (f.isThumb) {
-            if (children[0]) {
-              const tx = f.hand === 'left' ? (f.curX - 42) : (f.curX + 42);
-              const tyPos = ty + 36;
-              const rotAngle = f.hand === 'left' ? 40 : -40;
-              children[0].setAttribute('x', tx.toFixed(1));
-              children[0].setAttribute('y', tyPos.toFixed(1));
-              children[0].setAttribute('transform', `rotate(${rotAngle} ${tx.toFixed(1)} ${tyPos.toFixed(1)})`);
-            }
-          } else {
-            for (let cIdx = 0; cIdx < children.length; cIdx++) {
-              const textNode = children[cIdx];
-              const dist = 18 + cIdx * 13;
-              const lx = f.curX - dist * (-angle * 0.012);
-              const ly = ty + dist;
-              textNode.setAttribute('x', lx.toFixed(1));
-              textNode.setAttribute('y', ly.toFixed(1));
-            }
+        const tipCx = pv.tipX + kin.handDx + loc.dx;
+        const tipY = pv.tipY + kin.handDy + loc.dy;
+        const tipX = isRight ? 906.0 - tipCx : tipCx;
+
+        if (f.isThumb) {
+          if (children[0]) {
+            const tx = isRight ? (tipX + 42) : (tipX - 42);
+            const tyPos = tipY + 36;
+            const rotAngle = isRight ? -40 : 40;
+            children[0].setAttribute('x', tx.toFixed(1));
+            children[0].setAttribute('y', tyPos.toFixed(1));
+            children[0].setAttribute('transform', `rotate(${rotAngle} ${tx.toFixed(1)} ${tyPos.toFixed(1)})`);
           }
+          return;
+        }
+
+        const baseCx = pv.baseX + kin.handDx;
+        const baseY = pv.baseY + kin.handDy;
+        const baseX = isRight ? 906.0 - baseCx : baseCx;
+
+        const vx = baseX - tipX;
+        const vy = baseY - tipY;
+        const len = Math.hypot(vx, vy) || 1;
+        const ux = vx / len;
+        const uy = vy / len;
+
+        const l0 = Math.hypot(pv.baseX - pv.tipX, pv.baseY - pv.tipY);
+        const s = Math.max(0.76, Math.min(1.08, len / l0));
+
+        for (let cIdx = 0; cIdx < children.length; cIdx++) {
+          const textNode = children[cIdx];
+          const dist = (18 + cIdx * 13) * s;
+          const lx = tipX + ux * dist;
+          const ly = tipY + uy * dist;
+          textNode.setAttribute('x', lx.toFixed(1));
+          textNode.setAttribute('y', ly.toFixed(1));
         }
       });
 
@@ -593,9 +726,10 @@ class KeyboardHandRenderer {
         f.targetX = f.hand === 'left' ? 418.0 : (906.0 - 418.0);
         f.targetY = 288.1;
       } else {
-        // 목표 키의 중심 좌표로 손가락 끝 이동
-        f.targetX = keyEl.data.cx;
-        f.targetY = keyEl.data.cy + 2;
+        // 넓은 모디파이어 키는 안쪽 타점으로, 일반 키는 중심으로 손가락 끝 이동
+        const targetPos = this.getErgonomicKeyTarget(keyEl.data, f);
+        f.targetX = targetPos.x;
+        f.targetY = targetPos.y;
       }
     }
   }
