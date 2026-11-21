@@ -617,105 +617,114 @@ window.CODE_CURRICULUM = {
     },
     {
       id: 'js_debounce_pattern',
-      title: '실무 디바운스 (Debounce Pattern)',
+      title: '실무 디바운스 시뮬레이터 (Debounce Pattern)',
       tier: 4,
       level: 'advanced',
       category: 'Pattern',
-      complexity: { time: 'O(1)', space: 'O(1)' },
-      description: '연속된 호출을 지연시켜 마지막 호출만 실행하는 고차 함수 디바운스를 구현합니다.',
+      complexity: { time: 'O(N)', space: 'O(N)' },
+      description: '연속 입력 이벤트 스트림(시각, 값)에서 delay ms 이내 후속 호출을 취소하고 마지막 호출만 방출하는 Trailing 디바운스를 구현합니다.',
       explanation: {
-      "summary": "짧은 시간 동안 반복 호출되는 이벤트를 마지막 호출 시점에 한 번만 실행하도록 제어하는 실무 필수 패턴입니다.",
+      "summary": "짧은 간격(delay 미만)으로 연속 발생하는 이벤트를 억누르고, 다음 입력까지 delay ms 이상 휴지기가 이어진 마지막 입력만 방출하는 실무 디바운스 타임라인 시뮬레이터입니다.",
       "keyConcepts": [
-            "디바운스 (Debounce)",
-            "클로저 (Closure)",
-            "이벤트 최적화",
-            "검색창 자동완성"
+            "Trailing Debounce",
+            "연속 이벤트 억제",
+            "경계 간격 비교 (>= delay)",
+            "Sentinel Infinity 처리"
       ],
       "lineByLine": [
             {
                   "line": 1,
-                  "code": "function testDebounceSync(val) {",
-                  "explain": "디바운스 트리거 동작을 테스트하는 동기 함수입니다."
+                  "code": "function simulateDebounce(events, delay) {",
+                  "explain": "[시각(ms), 값] 쌍의 정렬된 이벤트 배열과 지연 임계치 delay를 입력받습니다."
             },
             {
                   "line": 2,
-                  "code": "    let timer = null;",
-                  "explain": "이전 타이머/대기 상태를 기억하는 클로저 변수를 선언합니다."
+                  "code": "    const emitted = [];",
+                  "explain": "디바운스를 통과해 최종 실행(방출)된 값들을 순서대로 저장할 배열입니다."
             },
             {
                   "line": 3,
-                  "code": "    let result = null;",
-                  "explain": "최종 콜백이 실행되었을 때의 결과를 저장할 변수입니다."
+                  "code": "    for (let i = 0; i < events.length; i++) {",
+                  "explain": "모든 입력 이벤트를 시간 순서대로 순회합니다."
             },
             {
                   "line": 4,
-                  "code": "    const trigger = (x) => {",
-                  "explain": "사용자가 키를 누르거나 이벤트를 일으킬 때마다 호출되는 핸들러입니다."
+                  "code": "        const [time, val] = events[i];",
+                  "explain": "현재 이벤트의 발생 시각과 입력 값을 구조분해할당으로 꺼냅니다."
             },
             {
                   "line": 5,
-                  "code": "        timer = x;",
-                  "explain": "최신 입력 인자로 상태를 갱신합니다."
+                  "code": "        const nextTime = i + 1 < events.length ? events[i + 1][0] : Infinity;",
+                  "explain": "다음 이벤트 시각을 조회하고, 마지막 이벤트면 반드시 실행되도록 Infinity로 둡니다."
             },
             {
                   "line": 6,
-                  "code": "        result = `Saved: ${x}`;",
-                  "explain": "지연 후 최종적으로 수행할 로직을 실행하여 결과를 바인딩합니다."
+                  "code": "        if (nextTime - time >= delay) {",
+                  "explain": "다음 호출까지의 간격이 delay 이상이면 타이머가 만료되어 현재 값을 방출합니다."
             },
             {
                   "line": 7,
-                  "code": "    };",
-                  "explain": "트리거 함수 정의 완료"
+                  "code": "            emitted.push(val);",
+                  "explain": "디바운스 실행 결과 목록에 값을 추가합니다."
             },
             {
                   "line": 8,
-                  "code": "    trigger(val);",
-                  "explain": "입력값 val로 트리거를 호출합니다."
+                  "code": "        }",
+                  "explain": "if 조건 블록을 닫습니다."
             },
             {
                   "line": 9,
-                  "code": "    return result;",
-                  "explain": "처리된 결과 문자열을 반환합니다."
+                  "code": "    }",
+                  "explain": "이벤트 순회 루프를 종료합니다."
             },
             {
                   "line": 10,
+                  "code": "    return emitted;",
+                  "explain": "최종 방출된 이벤트 값 배열을 반환합니다."
+            },
+            {
+                  "line": 11,
                   "code": "}",
-                  "explain": "함수 종료"
+                  "explain": "함수를 종료합니다."
             }
       ],
       "complexity": {
-            "time": "O(1)",
-            "timeWhy": "타이머 취소 및 재설정 연산은 상수 시간에 완료됩니다.",
-            "space": "O(1)",
-            "spaceWhy": "클로저로 캡처되는 변수 몇 개만 메모리에 유지됩니다."
+            "time": "O(N)",
+            "timeWhy": "정렬된 N개의 입력 이벤트를 단 한 번 순회하며 상수 시간에 간격을 비교합니다.",
+            "space": "O(N)",
+            "spaceWhy": "방출된 결과 값을 저장할 배열이 최대 N 크기를 가집니다."
       },
       "pitfalls": [
-            "실제 비동기 브라우저 환경에서는 clearTimeout(timer)으로 이전 타이머를 취소한 뒤 setTimeout을 새로 걸어주어야 마지막 타자 후 한 번만 실행됩니다."
+            "실제 브라우저에서는 clearTimeout(timer) 후 setTimeout을 다시 걸어 delay 미만 간격의 이전 타이머를 취소합니다. 경계값(nextTime - time === delay)에서는 이미 타이머가 만료되어 실행되어야 하므로 >= 연산자를 사용해야 합니다."
       ]
 },
-      entryPoint: 'testDebounceSync',
-      code: `function testDebounceSync(val) {
-    let timer = null;
-    let result = null;
-    const trigger = (x) => {
-        timer = x;
-        result = \`Saved: \${x}\`;
-    };
-    trigger(val);
-    return result;
+      entryPoint: 'simulateDebounce',
+      code: `function simulateDebounce(events, delay) {
+    const emitted = [];
+    for (let i = 0; i < events.length; i++) {
+        const [time, val] = events[i];
+        const nextTime = i + 1 < events.length ? events[i + 1][0] : Infinity;
+        if (nextTime - time >= delay) {
+            emitted.push(val);
+        }
+    }
+    return emitted;
 }`,
-      skeleton: `function testDebounceSync(val) {
-    let timer = null;
-    let result = null;
-    const trigger = (x) => {
-        ____;
-        result = \`Saved: \${x}\`;
-    };
-    trigger(val);
-    return result;
+      skeleton: `function simulateDebounce(events, delay) {
+    const emitted = [];
+    for (let i = 0; i < events.length; i++) {
+        const [time, val] = events[i];
+        const nextTime = i + 1 < events.length ? events[i + 1][0] : ____;
+        if (____ >= delay) {
+            emitted.push(val);
+        }
+    }
+    return emitted;
 }`,
       tests: [
-        { input: ['KeyReflex'], expected: 'Saved: KeyReflex', name: '값 업데이트' }
+        { input: [[[0, 'k'], [50, 'ke'], [90, 'key'], [250, 'x']], 100], expected: ['key', 'x'], name: '100ms 이내 연속 입력 합치기' },
+        { input: [[[0, 'a'], [100, 'b'], [150, 'c']], 100], expected: ['a', 'c'], name: '정확한 100ms 경계(>=) 방출' },
+        { input: [[], 100], expected: [], name: '빈 이벤트 배열 안전 처리' }
       ]
     },
     {
@@ -1065,7 +1074,7 @@ window.CODE_CURRICULUM = {
       tier: 2,
       level: 'intermediate',
       category: 'Data Structure',
-      complexity: { time: 'O(K)', space: 'O(N)' },
+      complexity: { time: 'O(N + K)', space: 'O(N)' },
       description: 'deque를 활용하여 큐의 첫 요소를 k번 꺼내 맨 뒤로 보내는 회전 연산을 수행합니다.',
       explanation: {
       "summary": "collections 모듈의 양방향 큐인 deque를 활용하여 O(1) 시간 복잡도로 앞뒤 회전 및 추출을 수행합니다.",
@@ -2687,7 +2696,7 @@ int reverse_first_elem(int arr[], int size) {
       tier: 4,
       level: 'advanced',
       category: 'Systems & Embedded',
-      complexity: { time: 'O(N + C)', space: 'O(C)' },
+      complexity: { time: 'O(N + C)', space: 'O(1)' },
       description: '동적 할당 없이 고정 배열과 모듈러 인덱스((head + 1) % cap)로 임베디드 원형 큐를 구현합니다.',
       explanation: {
       "summary": "커널/통신/오디오 드라이버 등에서 힙 할당(malloc) 없이 최신 데이터 C개만 덮어쓰며 유지하는 원형 버퍼(Circular Ring Buffer)의 인덱스 래핑과 체크섬 계산을 구현합니다.",

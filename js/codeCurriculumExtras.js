@@ -84,6 +84,22 @@
     return -1;
 }`
     },
+    js_debounce_pattern: {
+      bugSummary: 'AI가 지연 만료 비교에 >= 대신 > 를 사용하여 정확히 delay ms 간격에 들어온 호출 이전 입력을 누락합니다.',
+      checklist: ['경계 등호(nextTime - time >= delay) 확인', '마지막 이벤트 Infinity 폴백 검증'],
+      focusLine: 6,
+      buggyCode: `function simulateDebounce(events, delay) {
+    const emitted = [];
+    for (let i = 0; i < events.length; i++) {
+        const [time, val] = events[i];
+        const nextTime = i + 1 < events.length ? events[i + 1][0] : Infinity;
+        if (nextTime - time > delay) {
+            emitted.push(val);
+        }
+    }
+    return emitted;
+}`
+    },
     py_count_vowels: {
       bugSummary: 'AI가 .lower() 정규화를 빠뜨려 대문자 모음("A", "E", "O")을 누락합니다.',
       checklist: ['대소문자 정규화(.lower()) 누락 확인', '모음 멤버십 검사 검증'],
@@ -617,24 +633,27 @@
           { line: 1, code: 'function simulateBreaker(events, threshold) {', explain: '요청 결과 배열(OK, FAIL, TICK)과 차단 임계치를 입력받습니다.' },
           { line: 2, code: "    let state = 'CLOSED';", explain: '초기 회로 상태는 정상 통과(CLOSED)로 시작합니다.' },
           { line: 3, code: '    let fails = 0;', explain: '연속 실패 카운터를 0으로 초기화합니다.' },
-          { line: 4, code: '    const log = [];', explain: '각 이벤트 처리 결과(PASS, TRIP, SHORT_CIRCUIT 등)를 기록합니다.' },
+          { line: 4, code: '    const log = [];', explain: '각 이벤트 처리 결과(FAIL, OPEN, BLOCKED, HALF, OK)를 기록합니다.' },
           { line: 5, code: '    for (const ev of events) {', explain: '시뮬레이션 이벤트를 시간 순서대로 처리합니다.' },
-          { line: 6, code: "        if (ev === 'TICK' && state === 'OPEN') { state = 'HALF_OPEN'; log.push('HALF'); continue; }", explain: 'OPEN 상태에서 쿨다운 틱이 오면 반열림(HALF_OPEN)으로 전이합니다.' },
-          { line: 7, code: "        if (state === 'OPEN') { log.push('BLOCKED'); continue; }", explain: 'OPEN 상태의 요청은 외부 호출 없이 즉시 차단(Fail-Fast)합니다.' },
-          { line: 8, code: "        if (ev === 'OK') { fails = 0; state = 'CLOSED'; log.push('OK'); }", explain: '성공하면 실패 카운트를 0으로 비우고 CLOSED로 완전 복구합니다.' },
-          { line: 9, code: "        else if (++fails >= threshold || state === 'HALF_OPEN') { state = 'OPEN'; log.push('OPEN'); }", explain: '임계치 이상 실패하거나 HALF_OPEN 탐침이 실패하면 회로를 OPEN으로 차단합니다.' },
-          { line: 10, code: "        else { log.push('FAIL'); }", explain: '아직 임계치 미만인 단일 실패는 CLOSED를 유지합니다.' },
-          { line: 11, code: '    }', explain: '이벤트 루프를 종료합니다.' },
-          { line: 12, code: '    return log;', explain: '전체 상태 전이 및 차단 이력을 반환합니다.' },
-          { line: 13, code: '}', explain: '함수를 종료합니다.' }
+          { line: 6, code: "        if (ev === 'TICK') {", explain: '쿨다운 타이머 틱(TICK) 이벤트가 도착한 경우' },
+          { line: 7, code: "            if (state === 'OPEN') { state = 'HALF_OPEN'; log.push('HALF'); }", explain: 'OPEN 상태일 때만 반열림(HALF_OPEN)으로 전이하고, CLOSED 등 다른 상태의 TICK은 무시합니다.' },
+          { line: 8, code: '            continue;', explain: 'TICK 이벤트가 실패 카운터로 떨어지지 않도록 다음 이벤트로 넘어갑니다.' },
+          { line: 9, code: '        }', explain: 'TICK 분기 블록을 닫습니다.' },
+          { line: 10, code: "        if (state === 'OPEN') { log.push('BLOCKED'); continue; }", explain: 'OPEN 상태의 요청은 외부 호출 없이 즉시 차단(Fail-Fast)합니다.' },
+          { line: 11, code: "        if (ev === 'OK') { fails = 0; state = 'CLOSED'; log.push('OK'); }", explain: '성공하면 실패 카운트를 0으로 비우고 CLOSED로 완전 복구합니다.' },
+          { line: 12, code: "        else if (++fails >= threshold || state === 'HALF_OPEN') { state = 'OPEN'; log.push('OPEN'); }", explain: '임계치 이상 실패하거나 HALF_OPEN 탐침이 실패하면 회로를 OPEN으로 차단합니다.' },
+          { line: 13, code: "        else { log.push('FAIL'); }", explain: '아직 임계치 미만인 단일 실패는 CLOSED를 유지합니다.' },
+          { line: 14, code: '    }', explain: '이벤트 루프를 종료합니다.' },
+          { line: 15, code: '    return log;', explain: '전체 상태 전이 및 차단 이력을 반환합니다.' },
+          { line: 16, code: '}', explain: '함수를 종료합니다.' }
         ],
         complexity: { time: 'O(N)', timeWhy: 'N개 이벤트를 순차적으로 1회 순회합니다.', space: 'O(N)', spaceWhy: '이벤트 결과 로그 배열 크기에 비례합니다.' },
-        pitfalls: ['HALF_OPEN 상태에서 단 한 번의 탐침만 실패해도 즉시 OPEN으로 되돌리지 않으면 불완전한 서버로 트래픽이 쏟아집니다.']
+        pitfalls: ['HALF_OPEN 상태에서 단 한 번의 탐침만 실패해도 즉시 OPEN으로 되돌리지 않으면 불완전한 서버로 트래픽이 쏟아집니다. 또한 CLOSED 상태의 유휴 TICK이 실패 카운터로 새어 들어가지 않도록 반드시 조기 continue 해야 합니다.']
       },
       audit: {
-        bugSummary: 'AI가 성공(OK) 시 fails = 0으로 리셋하는 코드를 빠뜨려 예전 실패가 누적돼 정상 요청 뒤에도 쉽게 회로가 열립니다.',
-        checklist: ['OK 수신 시 fails = 0 초기화 확인', 'OPEN 상태에서 Fail-Fast BLOCKED 처리 확인'],
-        focusLine: 8,
+        bugSummary: 'AI가 성공(OK) 시 fails = 0 초기화를 빠뜨리고 CLOSED 상태 TICK 처리까지 실패 분기로 흘려보내 회로가 오작동합니다.',
+        checklist: ['OK 수신 시 fails = 0 초기화 확인', 'TICK 수신 시 OPEN 이외 상태에서도 조기 continue 확인'],
+        focusLine: 11,
         buggyCode: `function simulateBreaker(events, threshold) {
     let state = 'CLOSED';
     let fails = 0;
@@ -655,7 +674,10 @@
     let fails = 0;
     const log = [];
     for (const ev of events) {
-        if (ev === 'TICK' && state === 'OPEN') { state = 'HALF_OPEN'; log.push('HALF'); continue; }
+        if (ev === 'TICK') {
+            if (state === 'OPEN') { state = 'HALF_OPEN'; log.push('HALF'); }
+            continue;
+        }
         if (state === 'OPEN') { log.push('BLOCKED'); continue; }
         if (ev === 'OK') { fails = 0; state = 'CLOSED'; log.push('OK'); }
         else if (++fails >= threshold || state === 'HALF_OPEN') { state = 'OPEN'; log.push('OPEN'); }
@@ -668,7 +690,10 @@
     let fails = 0;
     const log = [];
     for (const ev of events) {
-        if (ev === 'TICK' && state === 'OPEN') { state = 'HALF_OPEN'; log.push('HALF'); continue; }
+        if (ev === 'TICK') {
+            if (state === 'OPEN') { state = 'HALF_OPEN'; log.push('HALF'); }
+            continue;
+        }
         if (state === 'OPEN') { log.push(____); continue; }
         if (ev === 'OK') { ____; state = 'CLOSED'; log.push('OK'); }
         else if (++fails >= threshold || state === 'HALF_OPEN') { state = 'OPEN'; log.push('OPEN'); }
@@ -678,7 +703,9 @@
 }`,
       tests: [
         { input: [['FAIL', 'FAIL', 'OK', 'TICK', 'OK'], 2], expected: ['FAIL', 'OPEN', 'BLOCKED', 'HALF', 'OK'], name: '차단 -> Fail-Fast -> Half-Open 복구' },
-        { input: [['FAIL', 'OK', 'FAIL', 'OK'], 2], expected: ['FAIL', 'OK', 'FAIL', 'OK'], name: '성공 시 연속 실패 카운터 초기화' }
+        { input: [['FAIL', 'OK', 'FAIL', 'OK'], 2], expected: ['FAIL', 'OK', 'FAIL', 'OK'], name: '성공 시 연속 실패 카운터 초기화' },
+        { input: [['TICK', 'FAIL', 'TICK', 'OK'], 2], expected: ['FAIL', 'OK'], name: 'CLOSED 유휴 TICK 무시' },
+        { input: [['FAIL', 'FAIL', 'TICK', 'FAIL', 'OK'], 2], expected: ['FAIL', 'OPEN', 'HALF', 'OPEN', 'BLOCKED'], name: 'HALF_OPEN 탐침 실패 시 즉시 재차단' }
       ]
     },
     {
@@ -688,7 +715,7 @@
       level: 'advanced',
       track: 'system_design',
       category: 'System Design',
-      complexity: { time: 'O(N)', space: 'O(N)' },
+      complexity: { time: 'O(N)', space: 'O(U)' },
       description: '네트워크 타임아웃으로 동일 결제/웹훅 요청이 여러 번 재전송되어도 1회만 실행하고 저장된 결과를 돌려주는 멱등성 게이트를 구현합니다.',
       adr: {
         scenario: '결제 완료 직후 응답 패킷이 유실되어 클라이언트가 2초 뒤 똑같은 결제 요청을 3번 재전송했습니다.',
@@ -758,6 +785,418 @@
       tests: [
         { input: [[{ key: 'k1', amount: 5000 }, { key: 'k1', amount: 5000 }, { key: 'k2', amount: 3000 }]], expected: { chargedTotal: 8000, uniqueOps: 2 }, name: '동일 키 재시도 이중 결제 방지' },
         { input: [[{ key: 'a', amount: 1000 }, { key: 'b', amount: 1000 }]], expected: { chargedTotal: 2000, uniqueOps: 2 }, name: '서로 다른 키 동일 금액 정상 처리' }
+      ]
+    },
+    {
+      id: 'js_refactor_optional_chain',
+      title: '옵셔널 체이닝(?.) & 안전 기본값 리팩터링',
+      tier: 1,
+      level: 'beginner',
+      track: 'refactoring',
+      category: 'Refactoring',
+      complexity: { time: 'O(1)', space: 'O(1)' },
+      description: '깊게 중첩된 null 체크 사슬을 ES2020 옵셔널 체이닝(?.)과 정제 후 기본값 폴백으로 깔끔하게 리팩터링합니다.',
+      refactoringGoal: 'order && order.shipping && order.shipping.address 반복 가드를 ?. 체이닝으로 단순화하고 공백 전용 도시명도 차단하세요.',
+      refactoringBefore: `function getShippingCity(order) {
+    if (order && order.shipping && order.shipping.address && order.shipping.address.city) {
+        const clean = order.shipping.address.city.trim();
+        return clean.length > 0 ? clean : 'UNKNOWN';
+    }
+    return 'UNKNOWN';
+}`,
+      explanation: {
+        summary: '옵셔널 체이닝(?.)으로 중간 객체가 null/undefined여도 TypeError 없이 안전하게 평가하고, trim() 후 빈 문자열은 UNKNOWN으로 대체합니다.',
+        keyConcepts: ['Optional Chaining (?.)', 'Short-Circuit Evaluation', 'String.prototype.trim()', 'Safe Fallback'],
+        lineByLine: [
+          { line: 1, code: 'function getShippingCity(order) {', explain: '중첩 배송 정보를 가진 order 객체를 입력받습니다.' },
+          { line: 2, code: '    const city = order?.shipping?.address?.city?.trim();', explain: '어느 단계라도 null/undefined면 즉시 undefined를 반환해 TypeError를 방어합니다.' },
+          { line: 3, code: "    return city || 'UNKNOWN';", explain: '추출된 도시명이 비어 있거나 undefined면 표준 폴백 UNKNOWN을 반환합니다.' },
+          { line: 4, code: '}', explain: '함수를 종료합니다.' }
+        ],
+        complexity: { time: 'O(1)', timeWhy: '고정 깊이 4단계 프로퍼티 조회와 짧은 문자열 trim만 수행합니다.', space: 'O(1)', spaceWhy: '단일 정제 문자열만 반환합니다.' },
+        pitfalls: ['city ?? "UNKNOWN"만 쓰면 city가 공백("   ")일 때 trim() 결과가 빈 문자열("")이 되어 그대로 통과할 수 있으므로 || 폴백이 안전합니다.']
+      },
+      audit: {
+        bugSummary: 'AI가 옵셔널 체이닝(?.)을 빠져먹고 order.shipping.address에 직접 접근해 shipping 누락 시 TypeError로 중단됩니다.',
+        checklist: ['중첩 프로퍼티 ?. 체이닝 적용 확인', '공백/null 입력 시 UNKNOWN 폴백 확인'],
+        focusLine: 2,
+        buggyCode: `function getShippingCity(order) {
+    const city = order.shipping.address.city.trim();
+    return city || 'UNKNOWN';
+}`
+      },
+      entryPoint: 'getShippingCity',
+      code: `function getShippingCity(order) {
+    const city = order?.shipping?.address?.city?.trim();
+    return city || 'UNKNOWN';
+}`,
+      skeleton: `function getShippingCity(order) {
+    const city = ____;
+    return city || ____;
+}`,
+      tests: [
+        { input: [{ shipping: { address: { city: '  Seoul ' } } }], expected: 'Seoul', name: '공백 제거 후 도시명 반환' },
+        { input: [{ shipping: {} }], expected: 'UNKNOWN', name: '중간 객체 누락 안전 폴백' },
+        { input: [{ shipping: { address: { city: '   ' } } }], expected: 'UNKNOWN', name: '공백 전용 도시명 폴백' },
+        { input: [null], expected: 'UNKNOWN', name: 'null 입력 TypeError 방지' }
+      ]
+    },
+    {
+      id: 'js_retry_backoff_schedule',
+      title: '지수 백오프 재시도(Retry Backoff) 스케줄러',
+      tier: 2,
+      level: 'intermediate',
+      track: 'system_design',
+      category: 'Resilience',
+      complexity: { time: 'O(R)', space: 'O(R)' },
+      description: '일시적 네트워크 오류 재시도 시 서버 부하 폭주(Thundering Herd)를 막기 위해 2배씩 증가하되 상한(maxMs)으로 제한되는 대기 시간표를 생성합니다.',
+      adr: {
+        scenario: '외부 결제/Webhook 서버가 순간 과부하로 HTTP 503을 반환하고 있습니다.',
+        prompt: '장애 복구를 도우면서 재시도 폭주(Retry Storm)를 피하기 위한 대기 전략은?',
+        options: [
+          { id: 'fixed', label: 'A. 매번 100ms 고정 간격으로 즉시 20회 재시도', recommended: false, critique: '실패한 모든 클라이언트가 같은 100ms 주기로 동시에 서버를 두드려 장애를 고착시킵니다.' },
+          { id: 'exp', label: 'B. 2의 거듭제곱 지수 백오프(base * 2^i) + maxMs 상한 캡(Cap) 적용', recommended: true, critique: '정확합니다! 점진적으로 대기 시간을 넓혀 서버 회복 시간을 확보하고 상한 캡으로 무한 대기를 막습니다.' }
+        ]
+      },
+      explanation: {
+        summary: '재시도 횟수 i에 따라 baseMs * (2 ** i) 지수 간격으로 대기 시간을 늘리면서 Math.min(maxMs, raw)로 상한을 캡핑합니다.',
+        keyConcepts: ['Exponential Backoff', 'Exponentiation (**)', 'Upper-Bound Cap (Math.min)', 'Retry Resilience'],
+        lineByLine: [
+          { line: 1, code: 'function calcBackoffDelays(retries, baseMs, maxMs) {', explain: '재시도 횟수 retries, 초기 대기 baseMs, 최대 상한 maxMs를 받습니다.' },
+          { line: 2, code: '    const delays = [];', explain: '회차별 대기 시간(ms)을 담을 배열을 초기화합니다.' },
+          { line: 3, code: '    for (let i = 0; i < retries; i++) {', explain: '0회차부터 retries - 1회차까지 재시도 간격을 계산합니다.' },
+          { line: 4, code: '        const raw = baseMs * (2 ** i);', explain: '매 회차 대기 시간을 2배(2^i)씩 지수적으로 증가시킵니다.' },
+          { line: 5, code: '        delays.push(Math.min(maxMs, raw));', explain: '계산값이 maxMs를 넘지 않도록 상한 캡을 씌워 기록합니다.' },
+          { line: 6, code: '    }', explain: 'for 루프를 종료합니다.' },
+          { line: 7, code: '    return delays;', explain: '생성된 지수 백오프 대기 스케줄 배열을 반환합니다.' },
+          { line: 8, code: '}', explain: '함수를 종료합니다.' }
+        ],
+        complexity: { time: 'O(R)', timeWhy: '재시도 횟수 R에 비례해 상수 산술 연산을 반복합니다.', space: 'O(R)', spaceWhy: '크기 R의 대기 시간 배열을 생성합니다.' },
+        pitfalls: ['Math.min(maxMs, raw) 상한 캡을 두지 않으면 retries=20일 때 대기 시간이 수십 시간을 넘어 요청이 사실상 멈춥니다.']
+      },
+      audit: {
+        bugSummary: 'AI가 maxMs 상한 캡(Math.min)을 빠뜨려 4회차 지연이 maxMs(500ms)를 초과한 800ms로 계산됩니다.',
+        checklist: ['Math.min(maxMs, raw) 상한 적용 확인', 'retries=0 빈 배열 반환 확인'],
+        focusLine: 5,
+        buggyCode: `function calcBackoffDelays(retries, baseMs, maxMs) {
+    const delays = [];
+    for (let i = 0; i < retries; i++) {
+        const raw = baseMs * (2 ** i);
+        delays.push(raw);
+    }
+    return delays;
+}`
+      },
+      entryPoint: 'calcBackoffDelays',
+      code: `function calcBackoffDelays(retries, baseMs, maxMs) {
+    const delays = [];
+    for (let i = 0; i < retries; i++) {
+        const raw = baseMs * (2 ** i);
+        delays.push(Math.min(maxMs, raw));
+    }
+    return delays;
+}`,
+      skeleton: `function calcBackoffDelays(retries, baseMs, maxMs) {
+    const delays = [];
+    for (let i = 0; i < retries; i++) {
+        const raw = ____;
+        delays.push(____);
+    }
+    return delays;
+}`,
+      tests: [
+        { input: [4, 100, 500], expected: [100, 200, 400, 500], name: '지수 증가 + 500ms 상한 캡' },
+        { input: [0, 100, 500], expected: [], name: '재시도 0회 빈 스케줄' },
+        { input: [3, 250, 1000], expected: [250, 500, 1000], name: '정확한 1000ms 도달' }
+      ]
+    },
+    {
+      id: 'js_event_emitter_pubsub',
+      title: 'Pub/Sub EventEmitter 구독 · 해제 브로커',
+      tier: 3,
+      level: 'intermediate',
+      track: 'architecture',
+      category: 'Architecture',
+      complexity: { time: 'O(N + D)', space: 'O(S)' },
+      description: '이벤트 기반 아키텍처의 핵심인 Map<Event, Set<Subscriber>> 기반 Pub/Sub 발행·구독·해제 브로커를 구현합니다.',
+      explanation: {
+        summary: '발행자(Producer)와 구독자(Consumer) 결합을 끊기 위해 Map과 Set을 결합해 중복 구독을 막고 안전한 구독 해제를 지원합니다.',
+        keyConcepts: ['Pub/Sub EventEmitter', 'Map<string, Set>', 'Set 중복 구독 방지', '옵셔널 체이닝 해제 (?.)'],
+        lineByLine: [
+          { line: 1, code: 'function simulatePubSub(ops) {', explain: 'on/off/emit 연산 시퀀스 ops를 받아 전달된 메시지 로그를 반환합니다.' },
+          { line: 2, code: '    const bus = new Map();', explain: '이벤트 이름별로 구독자 Set을 관리할 중앙 버스를 생성합니다.' },
+          { line: 3, code: '    const delivered = [];', explain: 'emit 시 실제로 구독자에게 전달된 이벤트 기록 배열입니다.' },
+          { line: 4, code: '    for (const [op, ev, val] of ops) {', explain: '구조분해할당으로 연산 종류, 이벤트명, 인자를 순회합니다.' },
+          { line: 5, code: "        if (op === 'on') {", explain: '구독 등록(on) 연산 분기입니다.' },
+          { line: 6, code: '            if (!bus.has(ev)) bus.set(ev, new Set());', explain: '최초 이벤트면 중복 방지용 Set 컬렉션을 초기화합니다.' },
+          { line: 7, code: '            bus.get(ev).add(val);', explain: '구독자 ID(val)를 해당 이벤트 Set에 등록합니다.' },
+          { line: 8, code: "        } else if (op === 'off') {", explain: '구독 해제(off) 연산 분기입니다.' },
+          { line: 9, code: '            bus.get(ev)?.delete(val);', explain: '등록된 이벤트가 있는 경우 안전하게 해당 구독자를 제거합니다.' },
+          { line: 10, code: "        } else if (op === 'emit') {", explain: '이벤트 발행(emit) 연산 분기입니다.' },
+          { line: 11, code: '            for (const sub of bus.get(ev) || []) {', explain: '구독자가 없더라도 빈 배열로 안전하게 순회합니다.' },
+          { line: 12, code: '                delivered.push(`${sub}:${val}`);', explain: '각 활성 구독자에게 페이로드를 전달한 기록을 남깁니다.' },
+          { line: 13, code: '            }', explain: '구독자 브로드캐스트 루프를 닫습니다.' },
+          { line: 14, code: '        }', explain: '연산 분기를 닫습니다.' },
+          { line: 15, code: '    }', explain: '전체 연산 루프를 종료합니다.' },
+          { line: 16, code: '    return delivered;', explain: '누적 전달 기록을 반환합니다.' },
+          { line: 17, code: '}', explain: '함수를 종료합니다.' }
+        ],
+        complexity: { time: 'O(N + D)', timeWhy: 'N개의 연산 처리와 총 발행 전달 수 D에 비례합니다.', space: 'O(S)', spaceWhy: '활성 구독자 S명과 전달 로그를 유지합니다.' },
+        pitfalls: ['배열 대신 Set을 써야 동일 리스너가 실수로 중복 등록돼도 알림이 2번 발송되지 않으며, 삭제도 O(1)에 처리됩니다.']
+      },
+      audit: {
+        bugSummary: 'AI가 off 분기에서 구독자 삭제(delete)를 누락해 구독 해지된 리스너까지 계속 이벤트를 수신합니다.',
+        checklist: ['off 시 bus.get(ev)?.delete(val) 제거 확인', 'Set 기반 중복 등록 방지 확인'],
+        focusLine: 9,
+        buggyCode: `function simulatePubSub(ops) {
+    const bus = new Map();
+    const delivered = [];
+    for (const [op, ev, val] of ops) {
+        if (op === 'on') {
+            if (!bus.has(ev)) bus.set(ev, new Set());
+            bus.get(ev).add(val);
+        } else if (op === 'off') {
+            bus.get(ev)?.has(val);
+        } else if (op === 'emit') {
+            for (const sub of bus.get(ev) || []) {
+                delivered.push(\`\${sub}:\${val}\`);
+            }
+        }
+    }
+    return delivered;
+}`
+      },
+      entryPoint: 'simulatePubSub',
+      code: `function simulatePubSub(ops) {
+    const bus = new Map();
+    const delivered = [];
+    for (const [op, ev, val] of ops) {
+        if (op === 'on') {
+            if (!bus.has(ev)) bus.set(ev, new Set());
+            bus.get(ev).add(val);
+        } else if (op === 'off') {
+            bus.get(ev)?.delete(val);
+        } else if (op === 'emit') {
+            for (const sub of bus.get(ev) || []) {
+                delivered.push(\`\${sub}:\${val}\`);
+            }
+        }
+    }
+    return delivered;
+}`,
+      skeleton: `function simulatePubSub(ops) {
+    const bus = new Map();
+    const delivered = [];
+    for (const [op, ev, val] of ops) {
+        if (op === 'on') {
+            if (!bus.has(ev)) bus.set(ev, new Set());
+            bus.get(ev).add(val);
+        } else if (op === 'off') {
+            ____;
+        } else if (op === 'emit') {
+            for (const sub of ____) {
+                delivered.push(\`\${sub}:\${val}\`);
+            }
+        }
+    }
+    return delivered;
+}`,
+      tests: [
+        { input: [[['on', 'paid', 'mail'], ['on', 'paid', 'slack'], ['on', 'paid', 'mail'], ['emit', 'paid', '100'], ['off', 'paid', 'mail'], ['emit', 'paid', '200']]], expected: ['mail:100', 'slack:100', 'slack:200'], name: '구독 중복 제거 + emit + off 해제' },
+        { input: [[['off', 'none', 'a'], ['emit', 'none', 'ping']]], expected: [], name: '미등록 이벤트 안전 무시' }
+      ]
+    },
+    {
+      id: 'js_context_token_trimmer',
+      title: 'LLM 컨텍스트 윈도우 토큰 예산 트리머',
+      tier: 3,
+      level: 'intermediate',
+      track: 'ai',
+      category: 'AI Engineering',
+      complexity: { time: 'O(N)', space: 'O(N)' },
+      description: 'LLM 프롬프트 길이 제한(maxTokens) 내에서 System 지침을 최상단에 고정 보존하고 최신 대화 턴부터 역방향으로 채웁니다.',
+      explanation: {
+        summary: '긴 대화 이력을 LLM에 전송할 때 맨 앞 system 프롬프트는 반드시 남기면서 최신 연속 대화를 토큰 예산 안에서 보존해 시간순으로 정렬 반환합니다.',
+        keyConcepts: ['Context Window Management', 'System Prompt Pinning', '역순 그리디 적재', '대화 순서 복원 (reverse)'],
+        lineByLine: [
+          { line: 1, code: 'function trimMessagesToBudget(messages, maxTokens) {', explain: '대화 메시지 목록과 허용 최대 토큰 예산 maxTokens를 받습니다.' },
+          { line: 2, code: '    if (messages.length === 0) return [];', explain: '빈 대화 입력은 즉시 빈 배열을 반환합니다.' },
+          { line: 3, code: "    const sys = messages[0].role === 'system' ? messages[0] : null;", explain: '첫 메시지가 system 역할이면 고정 보존 대상으로 분리합니다.' },
+          { line: 4, code: '    let budget = maxTokens - (sys ? sys.tokens : 0);', explain: 'system 프롬프트가 차지한 토큰을 먼저 차감해 가용 예산을 계산합니다.' },
+          { line: 5, code: '    if (budget < 0) return [];', explain: 'system 프롬프트만으로 이미 예산을 초과하면 빈 배열을 반환합니다.' },
+          { line: 6, code: '    const kept = [];', explain: '예산 내에 들어오는 최신 대화 턴들을 담을 배열입니다.' },
+          { line: 7, code: '    const start = sys ? 1 : 0;', explain: '역순 탐색 시 system 메시지와 겹치지 않게 하한 인덱스를 정합니다.' },
+          { line: 8, code: '    for (let i = messages.length - 1; i >= start; i--) {', explain: '가장 최근 메시지부터 거꾸로 예산 여유를 확인합니다.' },
+          { line: 9, code: '        if (messages[i].tokens <= budget) {', explain: '현재 턴이 남은 예산 안에 들어오면' },
+          { line: 10, code: '            kept.push(messages[i]);', explain: '유지 목록에 담고' },
+          { line: 11, code: '            budget -= messages[i].tokens;', explain: '남은 토큰 예산을 차감합니다.' },
+          { line: 12, code: '        } else { break; }', explain: '대화 연속성(연대기)이 깨지지 않도록 예산 초과 시 즉시 멈춥니다.' },
+          { line: 13, code: '    }', explain: '역순 적재 루프를 닫습니다.' },
+          { line: 14, code: '    kept.reverse();', explain: '뒤에서부터 모은 대화들을 원래 시간순으로 되돌립니다.' },
+          { line: 15, code: '    return sys ? [sys, ...kept] : kept;', explain: 'system 지침을 맨 앞에 붙여 최종 프롬프트 배열을 반환합니다.' },
+          { line: 16, code: '}', explain: '함수를 종료합니다.' }
+        ],
+        complexity: { time: 'O(N)', timeWhy: '메시지 목록을 뒤에서부터 1회 순회 후 reverse합니다.', space: 'O(N)', spaceWhy: '유지된 메시지 참조 배열을 반환합니다.' },
+        pitfalls: ['break 없이 건너뛰어 예전 대화를 띄엄띄엄 넣거나 kept.reverse()를 빠뜨리면 질문-답변 문맥 순서가 뒤집혀 LLM 품질이 급락합니다.']
+      },
+      audit: {
+        bugSummary: 'AI가 역순 탐색 후 kept.reverse() 호출을 누락해 대화가 최신->과거 역순으로 뒤집혀 모델에 전달됩니다.',
+        checklist: ['kept.reverse() 시간순 복원 확인', 'system 메시지 선차감 및 앞부분 고정 확인'],
+        focusLine: 14,
+        buggyCode: `function trimMessagesToBudget(messages, maxTokens) {
+    if (messages.length === 0) return [];
+    const sys = messages[0].role === 'system' ? messages[0] : null;
+    let budget = maxTokens - (sys ? sys.tokens : 0);
+    if (budget < 0) return [];
+    const kept = [];
+    const start = sys ? 1 : 0;
+    for (let i = messages.length - 1; i >= start; i--) {
+        if (messages[i].tokens <= budget) {
+            kept.push(messages[i]);
+            budget -= messages[i].tokens;
+        } else { break; }
+    }
+    return sys ? [sys, ...kept] : kept;
+}`
+      },
+      entryPoint: 'trimMessagesToBudget',
+      code: `function trimMessagesToBudget(messages, maxTokens) {
+    if (messages.length === 0) return [];
+    const sys = messages[0].role === 'system' ? messages[0] : null;
+    let budget = maxTokens - (sys ? sys.tokens : 0);
+    if (budget < 0) return [];
+    const kept = [];
+    const start = sys ? 1 : 0;
+    for (let i = messages.length - 1; i >= start; i--) {
+        if (messages[i].tokens <= budget) {
+            kept.push(messages[i]);
+            budget -= messages[i].tokens;
+        } else { break; }
+    }
+    kept.reverse();
+    return sys ? [sys, ...kept] : kept;
+}`,
+      skeleton: `function trimMessagesToBudget(messages, maxTokens) {
+    if (messages.length === 0) return [];
+    const sys = messages[0].role === 'system' ? messages[0] : null;
+    let budget = maxTokens - (sys ? sys.tokens : 0);
+    if (budget < 0) return [];
+    const kept = [];
+    const start = sys ? 1 : 0;
+    for (let i = messages.length - 1; i >= start; i--) {
+        if (messages[i].tokens <= budget) {
+            kept.push(messages[i]);
+            budget -= messages[i].tokens;
+        } else { break; }
+    }
+    ____;
+    return sys ? [sys, ...kept] : ____;
+}`,
+      tests: [
+        {
+          input: [[{ role: 'system', tokens: 20 }, { role: 'user', tokens: 40 }, { role: 'assistant', tokens: 30 }, { role: 'user', tokens: 25 }], 80],
+          expected: [{ role: 'system', tokens: 20 }, { role: 'assistant', tokens: 30 }, { role: 'user', tokens: 25 }],
+          name: 'System 유지 + 최신 2턴 시간순 보존'
+        },
+        {
+          input: [[{ role: 'user', tokens: 30 }, { role: 'assistant', tokens: 20 }], 60],
+          expected: [{ role: 'user', tokens: 30 }, { role: 'assistant', tokens: 20 }],
+          name: 'System 없는 대화 전체 수용'
+        },
+        {
+          input: [[{ role: 'system', tokens: 100 }, { role: 'user', tokens: 10 }], 50],
+          expected: [],
+          name: 'System 자체 예산 초과 시 빈 배열'
+        }
+      ]
+    },
+    {
+      id: 'js_token_bucket_limiter',
+      title: '토큰 버킷(Token Bucket) 버스트 Rate Limiter',
+      tier: 4,
+      level: 'advanced',
+      track: 'system_design',
+      category: 'System Design',
+      complexity: { time: 'O(N)', space: 'O(N)' },
+      description: '일정량의 순간 버스트(cap)를 허용하면서도 장기 평균 처리율(refillPerSec)을 정밀 제어하는 Token Bucket 알고리즘을 구현합니다.',
+      adr: {
+        scenario: '사용자가 페이지를 열 때 초기 API 3개를 동시에 한 번에 호출하지만, 이후에는 초당 1회 속도로만 제한해야 합니다.',
+        prompt: '초기 순간 버스트(Burst)는 부드럽게 허용하되 장기 유입량을 제한하는 표준 알고리즘은?',
+        options: [
+          { id: 'leaky', label: 'A. 모든 요청을 무조건 일정 간격으로만 꺼내는 엄격한 Leaky Bucket', recommended: false, critique: '초기 화면 로딩 시 동시 3건 호출조차 강제로 지연시켜 체감 UX가 느려집니다.' },
+          { id: 'token', label: 'B. 버킷 용량(cap)까지 순간 버스트를 허용하고 경과 시간만큼 토큰을 보충하는 Token Bucket', recommended: true, critique: '정확합니다! cap 만큼의 정상 버스트를 허용하면서도 refillPerSec 속도로 평균 유량을 완벽히 제어합니다.' }
+        ]
+      },
+      explanation: {
+        summary: '요청이 들어올 때마다 마지막 시각과의 차이(elapsed) * refillPerSec 만큼 토큰을 채우되 Math.min(cap, ...)로 최대 수용량을 넘지 않도록 제한합니다.',
+        keyConcepts: ['Token Bucket Algorithm', 'Burst Capacity (cap)', 'Lazy Refill (elapsed * rate)', 'Math.min 상한 제한'],
+        lineByLine: [
+          { line: 1, code: 'function simulateTokenBucket(timestamps, cap, refillPerSec) {', explain: '요청 시각 배열(초), 버킷 최대 용량 cap, 초당 충전량 refillPerSec을 받습니다.' },
+          { line: 2, code: '    let tokens = cap;', explain: '초기 버킷에는 최대 용량 cap만큼의 토큰이 가득 찬 상태로 시작합니다.' },
+          { line: 3, code: '    let lastTs = timestamps.length > 0 ? timestamps[0] : 0;', explain: '첫 요청 시각을 기준으로 경과 시간 측정을 초기화합니다.' },
+          { line: 4, code: '    const results = [];', explain: '각 요청의 허용(true)/차단(false) 결과를 담을 배열입니다.' },
+          { line: 5, code: '    for (const ts of timestamps) {', explain: '들어오는 요청 타임스탬프를 시간순으로 순회합니다.' },
+          { line: 6, code: '        const elapsed = Math.max(0, ts - lastTs);', explain: '직전 갱신 이후 흐른 경과 시간(음수 방지)을 구합니다.' },
+          { line: 7, code: '        tokens = Math.min(cap, tokens + elapsed * refillPerSec);', explain: '경과 시간만큼 토큰을 보충하되 버킷 용량 cap을 절대 넘지 않게 제한합니다.' },
+          { line: 8, code: '        lastTs = ts;', explain: '마지막 토큰 갱신 기준 시각을 현재 시각으로 업데이트합니다.' },
+          { line: 9, code: '        if (tokens >= 1) { tokens -= 1; results.push(true); }', explain: '토큰 1개 이상이 남아 있으면 1개를 소비하고 요청을 허용합니다.' },
+          { line: 10, code: '        else { results.push(false); }', explain: '토큰이 부족하면 소비 없이 요청을 거절합니다.' },
+          { line: 11, code: '    }', explain: '요청 루프를 종료합니다.' },
+          { line: 12, code: '    return results;', explain: '각 요청의 허용 여부 배열을 반환합니다.' },
+          { line: 13, code: '}', explain: '함수를 종료합니다.' }
+        ],
+        complexity: { time: 'O(N)', timeWhy: '요청 N개마다 별도 백그라운드 타이머 없이 지연 계산(Lazy Refill) O(1)로 처리합니다.', space: 'O(N)', spaceWhy: '요청별 허용 결과 배열 크기에 비례합니다.' },
+        pitfalls: ['Math.min(cap, ...) 없이 오랫동안 유휴 상태였던 사용자가 들어오면 수백만 개의 토큰이 누적되어 버킷 제한이 무력화됩니다.']
+      },
+      audit: {
+        bugSummary: 'AI가 토큰 보충 시 Math.min(cap, ...) 상한 제한을 빠뜨려 유휴 후 한꺼번에 버킷 용량을 초과한 버스트가 허용됩니다.',
+        checklist: ['Math.min(cap, tokens + elapsed * refillPerSec) 상한 검증', '토큰 1 미만일 때 차단(false) 확인'],
+        focusLine: 7,
+        buggyCode: `function simulateTokenBucket(timestamps, cap, refillPerSec) {
+    let tokens = cap;
+    let lastTs = timestamps.length > 0 ? timestamps[0] : 0;
+    const results = [];
+    for (const ts of timestamps) {
+        const elapsed = Math.max(0, ts - lastTs);
+        tokens = tokens + elapsed * refillPerSec;
+        lastTs = ts;
+        if (tokens >= 1) { tokens -= 1; results.push(true); }
+        else { results.push(false); }
+    }
+    return results;
+}`
+      },
+      entryPoint: 'simulateTokenBucket',
+      code: `function simulateTokenBucket(timestamps, cap, refillPerSec) {
+    let tokens = cap;
+    let lastTs = timestamps.length > 0 ? timestamps[0] : 0;
+    const results = [];
+    for (const ts of timestamps) {
+        const elapsed = Math.max(0, ts - lastTs);
+        tokens = Math.min(cap, tokens + elapsed * refillPerSec);
+        lastTs = ts;
+        if (tokens >= 1) { tokens -= 1; results.push(true); }
+        else { results.push(false); }
+    }
+    return results;
+}`,
+      skeleton: `function simulateTokenBucket(timestamps, cap, refillPerSec) {
+    let tokens = cap;
+    let lastTs = timestamps.length > 0 ? timestamps[0] : 0;
+    const results = [];
+    for (const ts of timestamps) {
+        const elapsed = Math.max(0, ts - lastTs);
+        tokens = ____;
+        lastTs = ts;
+        if (tokens >= 1) { ____; results.push(true); }
+        else { results.push(false); }
+    }
+    return results;
+}`,
+      tests: [
+        { input: [[0, 0, 0, 1, 2], 2, 1], expected: [true, true, false, true, true], name: 'cap=2 버스트 후 1초당 1개 재충전' },
+        { input: [[0, 100, 100, 100], 2, 1], expected: [true, true, true, false], name: '100초 유휴 후에도 cap=2 상한 초과 방지' },
+        { input: [[], 3, 1], expected: [], name: '빈 요청 스트림 안전 처리' }
       ]
     }
   );
@@ -909,7 +1348,7 @@
       level: 'intermediate',
       track: 'refactoring',
       category: 'Refactoring',
-      complexity: { time: 'O(N)', space: 'O(N)' },
+      complexity: { time: 'O(N log N)', space: 'O(N)' },
       description: '필터링·정규화·정렬이 한 루프에 뒤섞인 레거시 코드를 순수 단계(Filter -> Transform) 컴프리헨션 파이프라인으로 리팩터링합니다.',
       refactoringGoal: '원본 리스트를 mutate(수정)하며 처리하던 레거시 코드를 불변 순수 파이프라인으로 분리하세요.',
       refactoringBefore: `def summarize_scores(records):
@@ -961,7 +1400,7 @@
       level: 'intermediate',
       track: 'ai',
       category: 'AI Engineering',
-      complexity: { time: 'O(M * D)', space: 'O(M)' },
+      complexity: { time: 'O(M * D + M log M)', space: 'O(M)' },
       description: '외부 벡터 DB 없이 pure Python으로 코사인 유사도를 계산하여 질의 임베딩과 가장 가까운 상위 K개 문서 ID를 검색합니다.',
       explanation: {
         summary: 'RAG 검색 엔진의 수학적 핵심인 코사인 유사도(내적 / 벡터 노름 곱)를 계산하고 영벡터(0 나눗셈)를 방어하여 Top-K 문서를 추출합니다.',
@@ -1108,6 +1547,364 @@
     return {'db_hits': db_hits, 'results': results}`,
       tests: [
         { input: [['u1', 'missing', 'missing', 'missing', 'u1'], { u1: 'Kim' }], expected: { db_hits: 2, results: ['Kim', null, null, null, 'Kim'] }, name: 'Negative Cache로 미존재 키 3회 공격 시 DB 1회만 조회' }
+      ]
+    },
+    {
+      id: 'py_prompt_template_safe',
+      title: 'AI 프롬프트 안전 변수 치환기 ({{var}})',
+      tier: 1,
+      level: 'beginner',
+      track: 'ai',
+      category: 'AI Engineering',
+      complexity: { time: 'O(N)', space: 'O(N)' },
+      description: '파이썬 정규식 치환(re.sub)을 이용해 템플릿의 {{var}} 플레이스홀더만 안전하게 렌더링하고 미정의 키나 중괄호 문법은 보존합니다.',
+      explanation: {
+        summary: '사용자 입력이나 JSON 예시가 섞인 AI 프롬프트에 str.format()을 쓰면 중괄호 충돌·KeyError가 발생합니다. re.sub 콜백으로 {{word}} 토큰만 안전하게 치환합니다.',
+        keyConcepts: ['Safe Prompt Templating', 're.sub 콜백 치환', '미정의 키 보존 방어', 'Format Injection 방지'],
+        lineByLine: [
+          { line: 1, code: 'import re', explain: '정규표현식 모듈 re를 불러옵니다.' },
+          { line: 3, code: 'def render_prompt(template: str, values: dict) -> str:', explain: '프롬프트 템플릿 문자열과 치환 변수 딕셔너리를 받습니다.' },
+          { line: 4, code: '    def replace(match):', explain: '매칭된 {{key}} 패턴마다 호출되는 치환 콜백입니다.' },
+          { line: 5, code: '        key = match.group(1)', explain: '첫 번째 캡처 그룹에서 변수 이름을 추출합니다.' },
+          { line: 6, code: '        return str(values[key]) if key in values else match.group(0)', explain: '키가 존재하면 문자열로 치환하고 없으면 원본 플레이스홀더를 유지합니다.' },
+          { line: 7, code: "    return re.sub(r'\\{\\{(\\w+)\\}\\}', replace, template)", explain: '이중 중괄호 토큰만 탐지해 치환 결과를 반환합니다.' }
+        ],
+        complexity: { time: 'O(N)', timeWhy: '템플릿 길이 N을 1회 정규식 스캔하며 치환합니다.', space: 'O(N)', spaceWhy: '치환된 완성 프롬프트 문자열 크기만큼 사용합니다.' },
+        pitfalls: ['key in values 검사 없이 values[key]로 바로 접근하면 선택 변수가 빠졌을 때 KeyError로 에이전트 파이프라인이 중단됩니다.']
+      },
+      audit: {
+        bugSummary: 'AI가 키 존재 검사(if key in values)를 생략해 미전달 변수 {{tone}} 처리 중 KeyError가 발생합니다.',
+        checklist: ['key in values 존재 여부 확인 후 원본 보존', 'str(values[key]) 타입 변환 확인'],
+        focusLine: 6,
+        buggyCode: `import re
+
+def render_prompt(template: str, values: dict) -> str:
+    def replace(match):
+        key = match.group(1)
+        return str(values[key])
+    return re.sub(r'\\{\\{(\\w+)\\}\\}', replace, template)`
+      },
+      entryPoint: 'render_prompt',
+      code: `import re
+
+def render_prompt(template: str, values: dict) -> str:
+    def replace(match):
+        key = match.group(1)
+        return str(values[key]) if key in values else match.group(0)
+    return re.sub(r'\\{\\{(\\w+)\\}\\}', replace, template)`,
+      skeleton: `import re
+
+def render_prompt(template: str, values: dict) -> str:
+    def replace(match):
+        key = match.group(1)
+        return ____ if key in values else ____
+    return re.sub(r'\\{\\{(\\w+)\\}\\}', replace, template)`,
+      tests: [
+        { input: ['안녕 {{user}}, 한도 {{top_k}}개 {{tone}}', { user: 'Kim', top_k: 5 }], expected: '안녕 Kim, 한도 5개 {{tone}}', name: '정수 변환 및 미정의 키 보존' },
+        { input: ['JSON {a:1} for {{role}}', { role: 'admin' }], expected: 'JSON {a:1} for admin', name: '일반 중괄호 JSON 충돌 방지' }
+      ]
+    },
+    {
+      id: 'py_refactor_guard_extract',
+      title: '중첩 결제 분기 → Guard + 단계 분리 리팩터링',
+      tier: 1,
+      level: 'beginner',
+      track: 'refactoring',
+      category: 'Refactoring',
+      complexity: { time: 'O(1)', space: 'O(1)' },
+      description: '복잡한 중첩 VIP 할인·쿠폰·무료배송 조건문을 조기 반환(Guard)과 명확한 3단계 순수 계산으로 리팩터링합니다.',
+      refactoringGoal: 'if/else가 얽혀 배송비 조건과 음수 하한을 놓치기 쉬운 레거시 결제 로직을 단계별 변수로 평탄화하세요.',
+      refactoringBefore: `def calc_checkout_total(subtotal: int, is_vip: bool, coupon: int) -> int:
+    if subtotal > 0:
+        if is_vip:
+            total = subtotal * 9 // 10 - max(0, coupon)
+            return max(0, total)
+        else:
+            total = max(0, subtotal - max(0, coupon))
+            if total >= 30000: return total
+            else: return total + 3000
+    else:
+        return 0`,
+      explanation: {
+        summary: '비정상 주문(0원 이하)을 맨 위에서 즉시 차단한 뒤 할인 → 쿠폰 → 배송비를 일직선 파이프라인으로 계산해 경계 버그를 없앱니다.',
+        keyConcepts: ['Guard Clause (조기 차단)', '선형 파이프라인 계산', '경계값 (>= 30000)', '정수 나눗셈 (//)'],
+        lineByLine: [
+          { line: 1, code: 'def calc_checkout_total(subtotal: int, is_vip: bool, coupon: int) -> int:', explain: '상품 소계, VIP 여부, 쿠폰 금액을 입력받습니다.' },
+          { line: 2, code: '    if subtotal <= 0:', explain: '0 이하의 비정상 주문 소계를 진입 즉시 차단하는 Guard 절입니다.' },
+          { line: 3, code: '        return 0', explain: '무효 주문에 대해 0원을 즉시 반환합니다.' },
+          { line: 4, code: '    discounted = (subtotal * 9 // 10) if is_vip else subtotal', explain: '1단계: VIP 고객에게 부동소수 오차 없이 10% 할인을 적용합니다.' },
+          { line: 5, code: '    after_coupon = max(0, discounted - max(0, coupon))', explain: '2단계: 쿠폰을 차감하되 최종 상품 금액이 0원 미만이 되지 않게 보호합니다.' },
+          { line: 6, code: '    shipping = 0 if (is_vip or after_coupon >= 30000) else 3000', explain: '3단계: VIP이거나 실결제액 30,000원 이상이면 무료배송을 적용합니다.' },
+          { line: 7, code: '    return after_coupon + shipping', explain: '상품 결제액과 배송비를 합산해 최종 청구 금액을 반환합니다.' }
+        ],
+        complexity: { time: 'O(1)', timeWhy: '고정된 상수 시간 산술 및 조건 연산만 수행합니다.', space: 'O(1)', spaceWhy: '단순 지역 변수 3개만 사용합니다.' },
+        pitfalls: ['subtotal * 0.9 같은 부동소수점은 값에 따라 1원 반올림 오차가 날 수 있고, shipping 기준에서 >= 대신 > 를 쓰면 정확히 30,000원 고객에게 배송비가 부과됩니다.']
+      },
+      audit: {
+        bugSummary: 'AI가 무료배송 경계 조건을 after_coupon > 30000으로 작성해 딱 30,000원 주문 시 배송비 3,000원이 잘못 청구됩니다.',
+        checklist: ['무료배송 경계 등호(after_coupon >= 30000) 확인', 'subtotal <= 0 가드 및 0원 하한 방어 확인'],
+        focusLine: 6,
+        buggyCode: `def calc_checkout_total(subtotal: int, is_vip: bool, coupon: int) -> int:
+    if subtotal <= 0:
+        return 0
+    discounted = (subtotal * 9 // 10) if is_vip else subtotal
+    after_coupon = max(0, discounted - max(0, coupon))
+    shipping = 0 if (is_vip or after_coupon > 30000) else 3000
+    return after_coupon + shipping`
+      },
+      entryPoint: 'calc_checkout_total',
+      code: `def calc_checkout_total(subtotal: int, is_vip: bool, coupon: int) -> int:
+    if subtotal <= 0:
+        return 0
+    discounted = (subtotal * 9 // 10) if is_vip else subtotal
+    after_coupon = max(0, discounted - max(0, coupon))
+    shipping = 0 if (is_vip or after_coupon >= 30000) else 3000
+    return after_coupon + shipping`,
+      skeleton: `def calc_checkout_total(subtotal: int, is_vip: bool, coupon: int) -> int:
+    if subtotal <= 0:
+        return 0
+    discounted = (subtotal * 9 // 10) if is_vip else subtotal
+    after_coupon = ____
+    shipping = 0 if (____) else 3000
+    return after_coupon + shipping`,
+      tests: [
+        { input: [20000, true, 1000], expected: 17000, name: 'VIP 10% 할인 + 무료배송' },
+        { input: [35000, false, 5000], expected: 30000, name: '정확히 30,000원 무료배송 경계' },
+        { input: [25000, false, 0], expected: 28000, name: '3만원 미만 배송비 3,000원 부과' },
+        { input: [0, true, 1000], expected: 0, name: '0원 이하 주문 조기 차단' }
+      ]
+    },
+    {
+      id: 'py_heapq_task_scheduler',
+      title: 'heapq 최소 힙 우선순위 작업 스케줄러',
+      tier: 2,
+      level: 'intermediate',
+      track: 'algorithm',
+      category: 'Algorithm',
+      complexity: { time: 'O(N log N)', space: 'O(N)' },
+      description: '파이썬 표준 라이브러리 heapq 최소 힙을 이용해 (우선순위 숫자, 작업명) 작업 중 가장 급한 상위 K개 작업을 O(N + K log N)에 추출합니다.',
+      explanation: {
+        summary: '우선순위 숫자가 작을수록 먼저 처리되는 최소 힙(Min-Heap)에 튜플 (priority, name)을 push/pop하여 상위 K개 작업을 꺼냅니다.',
+        keyConcepts: ['collections heapq (Min-Heap)', '튜플 사전식 우선순위 비교', 'O(log N) heappush/heappop', '상위 K개 경계 추출'],
+        lineByLine: [
+          { line: 1, code: 'import heapq', explain: '이진 최소 힙 알고리즘 표준 모듈 heapq를 불러옵니다.' },
+          { line: 3, code: 'def pick_top_tasks(tasks: list[list], k: int) -> list[str]:', explain: '[우선순위, 작업명] 목록과 추출 개수 k를 받습니다.' },
+          { line: 4, code: '    heap = []', explain: '최소 힙으로 관리할 빈 리스트를 준비합니다.' },
+          { line: 5, code: '    for priority, name in tasks:', explain: '입력 작업 쌍을 순회하며 언패킹합니다.' },
+          { line: 6, code: '        heapq.heappush(heap, (priority, name))', explain: '우선순위(1순위) · 작업명 알파벳(2순위) 튜플로 힙에 삽입합니다.' },
+          { line: 7, code: '    picked = []', explain: '선별된 작업 이름을 담을 결과 리스트입니다.' },
+          { line: 8, code: '    while heap and len(picked) < k:', explain: '힙이 비지 않았고 아직 k개를 채우지 않았을 동안만 반복합니다.' },
+          { line: 9, code: '        _, name = heapq.heappop(heap)', explain: '가장 우선순위가 높은 최소 튜플을 O(log N)에 꺼냅니다.' },
+          { line: 10, code: '        picked.append(name)', explain: '작업 이름만 결과 목록에 추가합니다.' },
+          { line: 11, code: '    return picked', explain: '우선순위 순으로 선별된 최대 k개 작업 리스트를 반환합니다.' }
+        ],
+        complexity: { time: 'O(N log N)', timeWhy: 'N개 삽입 후 k개를 pop할 때마다 O(log N) 비용이 듭니다.', space: 'O(N)', spaceWhy: 'N개 작업 튜플을 힙 리스트에 보관합니다.' },
+        pitfalls: ['while 루프 조건에 len(picked) < k 제한을 빠뜨리면 전체 작업이 모두 반환되어 상위 K 스케줄러의 의미가 사라집니다.']
+      },
+      audit: {
+        bugSummary: 'AI가 while heap 조건에서 len(picked) < k 개수 제한을 빠뜨려 k=2여도 모든 작업을 전부 반환합니다.',
+        checklist: ['while heap and len(picked) < k 조건 확인', '튜플 (priority, name) 동점 타이브레이킹 확인'],
+        focusLine: 8,
+        buggyCode: `import heapq
+
+def pick_top_tasks(tasks: list[list], k: int) -> list[str]:
+    heap = []
+    for priority, name in tasks:
+        heapq.heappush(heap, (priority, name))
+    picked = []
+    while heap:
+        _, name = heapq.heappop(heap)
+        picked.append(name)
+    return picked`
+      },
+      entryPoint: 'pick_top_tasks',
+      code: `import heapq
+
+def pick_top_tasks(tasks: list[list], k: int) -> list[str]:
+    heap = []
+    for priority, name in tasks:
+        heapq.heappush(heap, (priority, name))
+    picked = []
+    while heap and len(picked) < k:
+        _, name = heapq.heappop(heap)
+        picked.append(name)
+    return picked`,
+      skeleton: `import heapq
+
+def pick_top_tasks(tasks: list[list], k: int) -> list[str]:
+    heap = []
+    for priority, name in tasks:
+        heapq.heappush(heap, ____)
+    picked = []
+    while heap and ____:
+        _, name = heapq.heappop(heap)
+        picked.append(name)
+    return picked`,
+      tests: [
+        { input: [[[3, 'logs'], [1, 'billing'], [1, 'auth'], [2, 'mail']], 2], expected: ['auth', 'billing'], name: '우선순위 1 동점 시 알파벳 순 Top-2' },
+        { input: [[[2, 'job_b'], [1, 'job_a']], 5], expected: ['job_a', 'job_b'], name: 'k가 작업 수보다 클 때 전체 안전 반환' },
+        { input: [[[1, 'urgent']], 0], expected: [], name: 'k=0 요청 시 빈 리스트' }
+      ]
+    },
+    {
+      id: 'py_graph_bfs_shortest',
+      title: '그래프 너비 우선 탐색(BFS) 최단 경로',
+      tier: 3,
+      level: 'intermediate',
+      track: 'algorithm',
+      category: 'Algorithm',
+      complexity: { time: 'O(V + E)', space: 'O(V)' },
+      description: '가중치 없는 방향 그래프에서 collections.deque를 사용한 BFS로 시작 노드에서 목표 노드까지의 최소 홉(Hop) 거리를 구합니다.',
+      explanation: {
+        summary: '시작점에서 가까운 거리 순서(레벨별)로 탐색하는 BFS를 deque + visited 집합으로 구현하여 순환 그래프에서도 무한 루프 없이 최단 홉을 찾습니다.',
+        keyConcepts: ['Breadth-First Search (BFS)', 'collections.deque popleft()', 'visited 사이클 방어', '최단 거리 (O(V + E))'],
+        lineByLine: [
+          { line: 1, code: 'from collections import deque', explain: '선입선출(FIFO) 큐를 O(1)로 처리하기 위해 deque를 불러옵니다.' },
+          { line: 3, code: 'def shortest_path_steps(graph: dict, start: str, target: str) -> int:', explain: '인접 리스트 그래프, 시작 노드, 목표 노드를 받습니다.' },
+          { line: 4, code: '    if start == target:', explain: '시작점과 목표점이 이미 같다면 이동이 필요 없으므로' },
+          { line: 5, code: '        return 0', explain: '최단 거리 0을 즉시 반환합니다.' },
+          { line: 6, code: '    q = deque([(start, 0)])', explain: '(현재 노드, 누적 거리) 쌍을 큐에 넣고 탐색을 시작합니다.' },
+          { line: 7, code: '    visited = {start}', explain: '사이클(순환) 그래프에서 재방문을 막기 위해 시작 노드를 방문 처리합니다.' },
+          { line: 8, code: '    while q:', explain: '탐색할 노드가 남아있는 동안 레벨 순서대로 꺼냅니다.' },
+          { line: 9, code: '        node, dist = q.popleft()', explain: '큐 맨 앞에서 가장 가까운 노드를 O(1)로 꺼냅니다.' },
+          { line: 10, code: '        for nxt in graph.get(node, []):', explain: '현재 노드에서 이동 가능한 인접 노드들을 확인합니다.' },
+          { line: 11, code: '            if nxt == target:', explain: '목표 노드를 처음 발견하는 순간이 곧 최단 거리이므로' },
+          { line: 12, code: '                return dist + 1', explain: 'dist + 1을 즉시 반환해 탐색을 종료합니다.' },
+          { line: 13, code: '            if nxt not in visited:', explain: '아직 방문하지 않은 노드라면' },
+          { line: 14, code: '                visited.add(nxt)', explain: '중복 큐 삽입을 막기 위해 큐에 넣기 직전 방문 표시합니다.' },
+          { line: 15, code: '                q.append((nxt, dist + 1))', explain: '다음 거리(dist + 1)와 함께 큐 맨 뒤에 등록합니다.' },
+          { line: 16, code: '    return -1', explain: '큐가 빌 때까지 목표에 도달하지 못하면 경로 없음을 뜻하는 -1을 반환합니다.' }
+        ],
+        complexity: { time: 'O(V + E)', timeWhy: '모든 정점 V와 간선 E를 최대 한 번씩만 확인합니다.', space: 'O(V)', spaceWhy: 'visited 집합과 큐에 최대 정점 수 V만큼 저장됩니다.' },
+        pitfalls: ['q.popleft() 대신 q.pop()을 쓰면 스택(DFS)으로 바뀌어 최단 경로가 아닌 우회 경로 거리를 반환하게 됩니다.']
+      },
+      audit: {
+        bugSummary: 'AI가 q.popleft() 대신 q.pop()을 사용해 너비 우선(BFS)이 아니라 깊이 우선(DFS)으로 동작하며 긴 우회 거리를 반환합니다.',
+        checklist: ['FIFO 큐 꺼내기(q.popleft()) 확인', 'start == target 및 도달 불가(-1) 경계 확인'],
+        focusLine: 9,
+        buggyCode: `from collections import deque
+
+def shortest_path_steps(graph: dict, start: str, target: str) -> int:
+    if start == target:
+        return 0
+    q = deque([(start, 0)])
+    visited = {start}
+    while q:
+        node, dist = q.pop()
+        for nxt in graph.get(node, []):
+            if nxt == target:
+                return dist + 1
+            if nxt not in visited:
+                visited.add(nxt)
+                q.append((nxt, dist + 1))
+    return -1`
+      },
+      entryPoint: 'shortest_path_steps',
+      code: `from collections import deque
+
+def shortest_path_steps(graph: dict, start: str, target: str) -> int:
+    if start == target:
+        return 0
+    q = deque([(start, 0)])
+    visited = {start}
+    while q:
+        node, dist = q.popleft()
+        for nxt in graph.get(node, []):
+            if nxt == target:
+                return dist + 1
+            if nxt not in visited:
+                visited.add(nxt)
+                q.append((nxt, dist + 1))
+    return -1`,
+      skeleton: `from collections import deque
+
+def shortest_path_steps(graph: dict, start: str, target: str) -> int:
+    if start == target:
+        return 0
+    q = deque([(start, 0)])
+    visited = {start}
+    while q:
+        node, dist = ____
+        for nxt in graph.get(node, []):
+            if nxt == target:
+                return dist + 1
+            if ____ not in visited:
+                visited.add(nxt)
+                q.append((nxt, dist + 1))
+    return -1`,
+      tests: [
+        { input: [{ A: ['C', 'B'], C: ['Z'], B: ['D'], D: ['E'], E: ['Z'], Z: [] }, 'A', 'Z'], expected: 2, name: '다중 경로 중 최단 홉 (A->C->Z = 2)' },
+        { input: [{ A: ['B'], B: ['A'] }, 'A', 'Z'], expected: -1, name: '순환 그래프에서 도달 불가(-1)' },
+        { input: [{ A: ['B'] }, 'A', 'A'], expected: 0, name: '시작과 목표 동일(0)' }
+      ]
+    },
+    {
+      id: 'py_rag_rrf_hybrid_rank',
+      title: 'RAG 하이브리드 검색 RRF 순위 융합',
+      tier: 4,
+      level: 'advanced',
+      track: 'ai',
+      category: 'AI Engineering',
+      complexity: { time: 'O(N log N)', space: 'O(N)' },
+      description: '키워드(BM25) 검색과 의미 벡터(Vector) 검색 결과를 Reciprocal Rank Fusion(RRF = 1 / (k + rank)) 점수로 융합해 최적 Top-N 문서를 선별합니다.',
+      adr: {
+        scenario: '고유 코드명/에러코드에는 BM25가 강하고, 자연어 의도 검색에는 Vector 검색이 강해 단일 검색기로는 정확도가 떨어집니다.',
+        prompt: '서로 점수 척도(Scale)가 다른 두 검색기 결과를 가장 안정적으로 결합하는 실무 RAG 기법은?',
+        options: [
+          { id: 'raw', label: 'A. 정규화 없이 BM25 점수(0~30)와 Cosine 유사도(0~1)를 그대로 덧셈', recommended: false, critique: '점수 척도 차이로 인해 BM25 점수가 벡터 순위를 완전히 압도해 버립니다.' },
+          { id: 'rrf', label: 'B. 순위 역수(1 / (k + rank))만 합산하는 Reciprocal Rank Fusion (RRF)', recommended: true, critique: '정확합니다! 원 점수의 스케일 차이 없이 순위 기반 합의(Consensus)로 두 검색기 상위권 문서를 안정적으로 끌어올립니다.' }
+        ]
+      },
+      explanation: {
+        summary: '각 검색 리스트의 1-based 순위(rank)를 이용해 1.0 / (k + rank) 점수를 누적한 뒤, 점수 내림차순 · ID 오름차순으로 정렬해 Top-N 문서를 추출합니다.',
+        keyConcepts: ['Hybrid Search (BM25 + Dense)', 'Reciprocal Rank Fusion (RRF)', 'enumerate(..., start=1)', '결정적 타이브레이킹 (-score, id)'],
+        lineByLine: [
+          { line: 1, code: 'def rrf_fuse(bm25_ids: list[str], vec_ids: list[str], k: int, top_n: int) -> list[str]:', explain: 'BM25 순위 목록, 벡터 순위 목록, 완화 상수 k, 상위 개수 top_n을 받습니다.' },
+          { line: 2, code: '    scores = {}', explain: '문서 ID별 RRF 누적 점수를 저장할 딕셔너리입니다.' },
+          { line: 3, code: '    for rank, doc_id in enumerate(bm25_ids, start=1):', explain: '키워드 검색 결과에 1등부터 순위를 매겨 순회합니다.' },
+          { line: 4, code: '        scores[doc_id] = scores.get(doc_id, 0.0) + 1.0 / (k + rank)', explain: 'BM25 순위에 해당하는 RRF 점수 1/(k+rank)를 더합니다.' },
+          { line: 5, code: '    for rank, doc_id in enumerate(vec_ids, start=1):', explain: '벡터 검색 결과에도 1등부터 순위를 매겨 순회합니다.' },
+          { line: 6, code: '        scores[doc_id] = scores.get(doc_id, 0.0) + 1.0 / (k + rank)', explain: '양쪽 모두에 등장한 합의 문서는 두 검색기 점수가 합산되어 크게 상승합니다.' },
+          { line: 7, code: '    ranked = sorted(scores.items(), key=lambda item: (-item[1], item[0]))', explain: '점수 높은 순(-item[1]), 동점이면 문서 ID 오름차순(item[0])으로 결정적 정렬합니다.' },
+          { line: 8, code: '    return [doc_id for doc_id, _ in ranked[:top_n]]', explain: '최종 상위 top_n개 문서 ID만 추출해 반환합니다.' }
+        ],
+        complexity: { time: 'O(N log N)', timeWhy: '문서 합산 O(N) 후 고유 문서 정렬 O(N log N)이 소요됩니다.', space: 'O(N)', spaceWhy: '합집합 문서 점수 딕셔너리를 유지합니다.' },
+        pitfalls: ['sorted에서 -item[1] 대신 양수 item[1]을 키로 주면 가장 관련 없는 최하위 문서가 Top-1으로 올라옵니다.']
+      },
+      audit: {
+        bugSummary: 'AI가 sorted 키에 음수 부호(-item[1])를 빠져 오름차순으로 정렬해 최하위 점수의 문서가 먼저 반환됩니다.',
+        checklist: ['점수 내림차순(-item[1], item[0]) 정렬 확인', '1-based 순위(start=1) 계산 확인'],
+        focusLine: 7,
+        buggyCode: `def rrf_fuse(bm25_ids: list[str], vec_ids: list[str], k: int, top_n: int) -> list[str]:
+    scores = {}
+    for rank, doc_id in enumerate(bm25_ids, start=1):
+        scores[doc_id] = scores.get(doc_id, 0.0) + 1.0 / (k + rank)
+    for rank, doc_id in enumerate(vec_ids, start=1):
+        scores[doc_id] = scores.get(doc_id, 0.0) + 1.0 / (k + rank)
+    ranked = sorted(scores.items(), key=lambda item: (item[1], item[0]))
+    return [doc_id for doc_id, _ in ranked[:top_n]]`
+      },
+      entryPoint: 'rrf_fuse',
+      code: `def rrf_fuse(bm25_ids: list[str], vec_ids: list[str], k: int, top_n: int) -> list[str]:
+    scores = {}
+    for rank, doc_id in enumerate(bm25_ids, start=1):
+        scores[doc_id] = scores.get(doc_id, 0.0) + 1.0 / (k + rank)
+    for rank, doc_id in enumerate(vec_ids, start=1):
+        scores[doc_id] = scores.get(doc_id, 0.0) + 1.0 / (k + rank)
+    ranked = sorted(scores.items(), key=lambda item: (-item[1], item[0]))
+    return [doc_id for doc_id, _ in ranked[:top_n]]`,
+      skeleton: `def rrf_fuse(bm25_ids: list[str], vec_ids: list[str], k: int, top_n: int) -> list[str]:
+    scores = {}
+    for rank, doc_id in enumerate(bm25_ids, start=1):
+        scores[doc_id] = scores.get(doc_id, 0.0) + ____
+    for rank, doc_id in enumerate(vec_ids, start=1):
+        scores[doc_id] = scores.get(doc_id, 0.0) + 1.0 / (k + rank)
+    ranked = sorted(scores.items(), key=lambda item: (____, item[0]))
+    return [doc_id for doc_id, _ in ranked[:top_n]]`,
+      tests: [
+        { input: [['d2', 'd1'], ['d3', 'd2'], 60, 2], expected: ['d2', 'd3'], name: '양쪽 등장 합의 문서(d2) 1위 승격' },
+        { input: [['b'], ['a'], 60, 2], expected: ['a', 'b'], name: '동점 시 ID 알파벳 결정적 타이브레이킹' },
+        { input: [[], [], 60, 3], expected: [], name: '빈 검색 결과 안전 처리' }
       ]
     }
   );
@@ -1264,6 +2061,372 @@
         { input: [[1, 2, 1], 3], expected: 1, name: '정상 전이 (IDLE->READY->IDLE->READY)' },
         { input: [[1, 9, 1], 3], expected: 2, name: '오류 발생 시 코인 투입 무시 & LOCKED 유지' },
         { input: [[9, 0], 2], expected: 0, name: '관리자 리셋(0)으로 IDLE 복귀' }
+      ]
+    },
+    {
+      id: 'c_refactor_clamp_normalize',
+      title: '센서 경계 보정 헬퍼(clamp) 추출 리팩터링',
+      tier: 1,
+      level: 'beginner',
+      track: 'refactoring',
+      category: 'Refactoring',
+      complexity: { time: 'O(N)', space: 'O(1)' },
+      description: '루프 안에 중복 섞여 있던 센서 값 상하한 보정 분기를 단일 순수 함수 clamp_int()로 추출해 모듈성과 테스트 용이성을 높입니다.',
+      refactoringGoal: '배열 순회 루프 내부에 중복 작성된 [lo, hi] 범위 제한 로직을 재사용 가능한 헬퍼 함수 clamp_int로 분리하세요.',
+      refactoringBefore: `int sum_clamped(int vals[], int n, int lo, int hi) {
+    int total = 0;
+    for (int i = 0; i < n; i++) {
+        int x = vals[i];
+        if (x < lo) total += lo;
+        else if (x > hi) total += hi;
+        else total += x;
+    }
+    return total;
+}`,
+      explanation: {
+        summary: '임베디드 센서 노이즈 스파이크를 [lo, hi] 허용 구간으로 잘라내는 clamp_int 함수를 추출하고, 합산 루프는 재사용에만 집중하도록 리팩터링합니다.',
+        keyConcepts: ['Extract Function 리팩터링', 'Range Clamping [lo, hi]', '관심사 분리', '순수 C 헬퍼 함수'],
+        lineByLine: [
+          { line: 1, code: 'int clamp_int(int v, int lo, int hi) {', explain: '원본 정수 v와 허용 범위 [lo, hi]를 받는 클램핑 헬퍼 함수입니다.' },
+          { line: 2, code: '    if (v < lo) return lo;', explain: '하한 미만이면 최솟값 lo로 보정해 즉시 반환합니다.' },
+          { line: 3, code: '    if (v > hi) return hi;', explain: '상한 초과면 최댓값 hi로 보정해 즉시 반환합니다.' },
+          { line: 4, code: '    return v;', explain: '정상 범위 안의 값은 그대로 반환합니다.' },
+          { line: 5, code: '}', explain: 'clamp_int 헬퍼 함수를 닫습니다.' },
+          { line: 7, code: 'int sum_clamped(int vals[], int n, int lo, int hi) {', explain: '센서 배열 vals[n]의 보정된 합계를 구합니다.' },
+          { line: 8, code: '    int total = 0;', explain: '누적 합계 변수를 0으로 초기화합니다.' },
+          { line: 9, code: '    for (int i = 0; i < n; i++) {', explain: '배열의 모든 n개 측정치를 순회합니다.' },
+          { line: 10, code: '        total += clamp_int(vals[i], lo, hi);', explain: '추출한 헬퍼 함수로 각 샘플을 안전 범위로 정규화해 더합니다.' },
+          { line: 11, code: '    }', explain: 'for 루프를 닫습니다.' },
+          { line: 12, code: '    return total;', explain: '보정된 총합을 반환합니다.' },
+          { line: 13, code: '}', explain: '함수를 종료합니다.' }
+        ],
+        complexity: { time: 'O(N)', timeWhy: 'n개 원소를 순회하며 각 O(1) 헬퍼 함수를 호출합니다.', space: 'O(1)', spaceWhy: '단일 누적 변수만 사용합니다.' },
+        pitfalls: ['상한 검사(v > hi)나 하한 검사 중 하나만 빠져도 센서 이상치 하나가 전체 평균·체크섬을 망가뜨립니다.']
+      },
+      audit: {
+        bugSummary: 'AI가 clamp_int에서 상한 초과 가드(if (v > hi) return hi;)를 빠져먹어 250 같은 센서 스파이크가 그대로 합산됩니다.',
+        checklist: ['하한(v < lo)과 상한(v > hi) 모두 검사 확인', '빈 배열 n=0 시 0 반환 확인'],
+        focusLine: 3,
+        buggyCode: `int clamp_int(int v, int lo, int hi) {
+    if (v < lo) return lo;
+    return v;
+}
+
+int sum_clamped(int vals[], int n, int lo, int hi) {
+    int total = 0;
+    for (int i = 0; i < n; i++) {
+        total += clamp_int(vals[i], lo, hi);
+    }
+    return total;
+}`
+      },
+      entryPoint: 'sum_clamped',
+      code: `int clamp_int(int v, int lo, int hi) {
+    if (v < lo) return lo;
+    if (v > hi) return hi;
+    return v;
+}
+
+int sum_clamped(int vals[], int n, int lo, int hi) {
+    int total = 0;
+    for (int i = 0; i < n; i++) {
+        total += clamp_int(vals[i], lo, hi);
+    }
+    return total;
+}`,
+      skeleton: `int clamp_int(int v, int lo, int hi) {
+    if (v < lo) return lo;
+    if (____) return hi;
+    return v;
+}
+
+int sum_clamped(int vals[], int n, int lo, int hi) {
+    int total = 0;
+    for (int i = 0; i < n; i++) {
+        total += ____;
+    }
+    return total;
+}`,
+      tests: [
+        { input: [[-20, 50, 140], 3, 0, 100], expected: 150, name: '음수/상한 초과 모두 [0, 100]으로 클램핑 (0+50+100)' },
+        { input: [[-30, -5, 8, 99], 4, -10, 10], expected: 3, name: '음수 구간 [-10, 10] 보정 (-10-5+8+10)' },
+        { input: [[], 0, 0, 100], expected: 0, name: '빈 입력 n=0 안전 처리' }
+      ]
+    },
+    {
+      id: 'c_int8_quantized_dot',
+      title: 'Edge AI Int8 양자화 벡터 내적 & 시프트',
+      tier: 2,
+      level: 'intermediate',
+      track: 'ai',
+      category: 'AI Inference / C',
+      complexity: { time: 'O(N)', space: 'O(1)' },
+      description: '모바일·MCU 온디바이스 AI(NPU)에서 부동소수 없이 Int8 가중치와 활성화 값을 정수 누산 후 우측 시프트(>>)로 재스케일링합니다.',
+      explanation: {
+        summary: 'FP32 연산기가 없는 저전력 엣지 AI 디바이스에서 정수 곱셈·누산(MAC) 후 2^shift 나눗셈을 비트 우측 시프트(>>)로 고속 처리하는 커널 연산입니다.',
+        keyConcepts: ['Edge AI Int8 Quantization', 'Multiply-Accumulate (MAC)', 'Arithmetic Right Shift (>>)', '부호 유지 스케일링'],
+        lineByLine: [
+          { line: 1, code: 'int quantized_dot_i8(int a[], int b[], int n, int shift) {', explain: '양자화된 두 정수 벡터 a, b와 길이 n, 출력 스케일 시프트 비트를 받습니다.' },
+          { line: 2, code: '    int acc = 0;', explain: '곱셈 누적(Accumulator) 값을 0으로 초기화합니다.' },
+          { line: 3, code: '    for (int i = 0; i < n; i++) {', explain: '벡터 차원 n만큼 MAC 연산을 반복합니다.' },
+          { line: 4, code: '        acc += a[i] * b[i];', explain: '대응하는 두 양자화 원소를 곱해 정수 누산기에 더합니다.' },
+          { line: 5, code: '    }', explain: '내적 루프를 닫습니다.' },
+          { line: 6, code: '    if (shift <= 0) {', explain: '스케일 시프트가 0 이하면 시프트 연산을 건너뛰어 UB를 방지합니다.' },
+          { line: 7, code: '        return acc;', explain: '누산된 원 내적값을 그대로 반환합니다.' },
+          { line: 8, code: '    }', explain: '조건 블록을 닫습니다.' },
+          { line: 9, code: '    return acc >> shift;', explain: '2의 shift 제곱으로 나눈 양자화 재스케일 결과를 반환합니다.' },
+          { line: 10, code: '}', explain: '함수를 종료합니다.' }
+        ],
+        complexity: { time: 'O(N)', timeWhy: '차원 길이 N에 비례해 정수 곱셈 및 덧셈을 수행합니다.', space: 'O(1)', spaceWhy: '단일 정수 누산 레지스터 acc만 사용합니다.' },
+        pitfalls: ['우측 시프트(>>) 대신 좌측 시프트(<<)를 쓰면 나눗셈이 곱셈으로 뒤집혀 모든 레이어 출력값이 폭발합니다.']
+      },
+      audit: {
+        bugSummary: 'AI가 출력 재스케일에 우측 시프트(>>) 대신 좌측 시프트(<<)를 잘못 써서 값이 4배 커집니다.',
+        checklist: ['acc >> shift 우측 시프트 방향 확인', 'shift <= 0 가드 확인'],
+        focusLine: 9,
+        buggyCode: `int quantized_dot_i8(int a[], int b[], int n, int shift) {
+    int acc = 0;
+    for (int i = 0; i < n; i++) {
+        acc += a[i] * b[i];
+    }
+    if (shift <= 0) {
+        return acc;
+    }
+    return acc << shift;
+}`
+      },
+      entryPoint: 'quantized_dot_i8',
+      code: `int quantized_dot_i8(int a[], int b[], int n, int shift) {
+    int acc = 0;
+    for (int i = 0; i < n; i++) {
+        acc += a[i] * b[i];
+    }
+    if (shift <= 0) {
+        return acc;
+    }
+    return acc >> shift;
+}`,
+      skeleton: `int quantized_dot_i8(int a[], int b[], int n, int shift) {
+    int acc = 0;
+    for (int i = 0; i < n; i++) {
+        acc += ____;
+    }
+    if (shift <= 0) {
+        return acc;
+    }
+    return ____;
+}`,
+      tests: [
+        { input: [[10, -20, 30], [2, 3, 4], 3, 2], expected: 20, name: '누산 80 >> 2 = 20 재스케일' },
+        { input: [[3, 5], [4, 2], 2, 0], expected: 22, name: 'shift=0 시 원 내적 반환' },
+        { input: [[-16, -16], [2, 2], 2, 3], expected: -8, name: '음수 누산 부호 유지 (-64 >> 3 = -8)' }
+      ]
+    },
+    {
+      id: 'c_bitpack_packet_parser',
+      title: '네트워크 바이너리 헤더 비트 언패커',
+      tier: 3,
+      level: 'intermediate',
+      track: 'system_design',
+      category: 'Systems & Protocol',
+      complexity: { time: 'O(1)', space: 'O(1)' },
+      description: '32비트 패킷 헤더에 압축된 Version(4bit), Flags(8bit), Payload Length(16bit) 필드를 시프트(>>)와 마스크(&)로 추출·검증합니다.',
+      explanation: {
+        summary: '네트워크 프로토콜 및 임베디드 통신 프레임을 32비트 정수 하나로 전송한 뒤, 비트 시프트와 16진수 마스크로 버전(1)·ACK 플래그(bit 0)·길이를 고속 추출합니다.',
+        keyConcepts: ['Binary Header Unpacking', 'Bitwise Shift + Mask (>> &)', '16진수 마스크 (0x0F, 0xFF, 0xFFFF)', '프로토콜 버전 검증'],
+        lineByLine: [
+          { line: 1, code: 'int parse_packet_len(int header) {', explain: '압축된 32비트 프로토콜 헤더 정수를 입력받습니다.' },
+          { line: 2, code: '    int version = (header >> 24) & 0x0F;', explain: '상위 24~27비트에 실린 4비트 프로토콜 버전 번호를 추출합니다.' },
+          { line: 3, code: '    int flags = (header >> 16) & 0xFF;', explain: '16~23비트에 담긴 8비트 제어 플래그를 추출합니다.' },
+          { line: 4, code: '    int length = header & 0xFFFF;', explain: '하위 16비트(0xFFFF) 마스크로 0~65535 범위 페이로드 길이를 분리합니다.' },
+          { line: 5, code: '    if (version != 1) {', explain: '프로토콜 버전이 v1이 아니면 호환 불가 헤더이므로' },
+          { line: 6, code: '        return -1;', explain: '오류 코드 -1을 반환합니다.' },
+          { line: 7, code: '    }', explain: '버전 검증 블록을 닫습니다.' },
+          { line: 8, code: '    if ((flags & 1) == 0) {', explain: '유효 패킷 필수 플래그(ACK 0번 비트)가 꺼져 있으면' },
+          { line: 9, code: '        return -2;', explain: '오류 코드 -2를 반환합니다.' },
+          { line: 10, code: '    }', explain: '플래그 검증 블록을 닫습니다.' },
+          { line: 11, code: '    return length;', explain: '모든 헤더 검증을 통과한 페이로드 바이트 길이를 반환합니다.' },
+          { line: 12, code: '}', explain: '함수를 종료합니다.' }
+        ],
+        complexity: { time: 'O(1)', timeWhy: 'CPU 비트 시프트와 AND 마스크 몇 회만으로 상수 시간에 파싱합니다.', space: 'O(1)', spaceWhy: '3개의 로컬 정수 레지스터만 사용합니다.' },
+        pitfalls: ['length 마스크를 16비트(0xFFFF) 대신 8비트(0xFF)로 잘못 적으면 256바이트 이상 길이가 8비트로 잘려 데이터 손상이 일어납니다.']
+      },
+      audit: {
+        bugSummary: 'AI가 length 추출 마스크를 16비트 0xFFFF 대신 0xFF로 잘못 작성해 512바이트 길이가 0으로 절단됩니다.',
+        checklist: ['16비트 길이 마스크 0xFFFF 확인', 'flags & 1 괄호 우선순위 검증'],
+        focusLine: 4,
+        buggyCode: `int parse_packet_len(int header) {
+    int version = (header >> 24) & 0x0F;
+    int flags = (header >> 16) & 0xFF;
+    int length = header & 0xFF;
+    if (version != 1) {
+        return -1;
+    }
+    if ((flags & 1) == 0) {
+        return -2;
+    }
+    return length;
+}`
+      },
+      entryPoint: 'parse_packet_len',
+      code: `int parse_packet_len(int header) {
+    int version = (header >> 24) & 0x0F;
+    int flags = (header >> 16) & 0xFF;
+    int length = header & 0xFFFF;
+    if (version != 1) {
+        return -1;
+    }
+    if ((flags & 1) == 0) {
+        return -2;
+    }
+    return length;
+}`,
+      skeleton: `int parse_packet_len(int header) {
+    int version = (header >> 24) & 0x0F;
+    int flags = (header >> 16) & 0xFF;
+    int length = header & ____;
+    if (version != 1) {
+        return -1;
+    }
+    if (____ == 0) {
+        return -2;
+    }
+    return length;
+}`,
+      tests: [
+        { input: [16974336], expected: 512, name: 'v1 + ACK + 512B 정상 언패킹 (0x01030200)' },
+        { input: [33619968], expected: -1, name: 'v2 미지원 버전 거부 (-1)' },
+        { input: [16908416], expected: -2, name: 'ACK 비트 누락 패킷 거부 (-2)' },
+        { input: [16842752], expected: 0, name: '0바이트 빈 페이로드 패킷 통과' }
+      ]
+    },
+    {
+      id: 'c_fixed_slot_pool',
+      title: '고정 크기 비트맵 메모리 풀 할당기 (No malloc)',
+      tier: 4,
+      level: 'advanced',
+      track: 'architecture',
+      category: 'Systems & Memory',
+      complexity: { time: 'O(N * S)', space: 'O(1)' },
+      description: '단편화(Fragmentation)를 원천 차단하기 위해 정수 비트맵으로 고정 슬롯을 O(1) 해제·재사용하는 임베디드 Pool 할당기를 구현합니다.',
+      adr: {
+        scenario: '실시간 펌웨어에서 초당 수천 번 malloc/free를 호출했다가 힙 단편화(Fragmentation)로 가용 메모리가 남았는데도 할당 실패(OOM)가 발생했습니다.',
+        prompt: '실시간 안전(Deterministic) 시스템에 가장 적합한 동적 메모리 대체 설계는?',
+        options: [
+          { id: 'malloc', label: 'A. 범용 malloc/free 그대로 유지하고 주기적으로 재부팅', recommended: false, critique: '실시간 임베디드 장치에서 임의의 힙 단편화와 예기치 않은 지연·재부팅은 치명적 장애입니다.' },
+          { id: 'pool', label: 'B. 고정 크기 슬롯 배열 + 비트맵 할당 상태를 추적하는 Fixed Slot Pool', recommended: true, critique: '정확합니다! 힙 단편화 0%, 결정적 실행 시간, 이중 해제(Double-Free) 방어를 동시에 달성합니다.' }
+        ]
+      },
+      explanation: {
+        summary: '정수 bitmap의 각 비트를 슬롯 사용 여부(0=빈 슬롯, 1=사용 중)로 삼아 op=1 시 가장 낮은 빈 슬롯을 할당하고, op<=0 시 이중 해제(Double-Free) 없이 안전 반환합니다.',
+        keyConcepts: ['Fixed Slot Pool Allocator', 'Bitmap Allocation Table', 'Double-Free 방어', 'Heap Fragmentation 0%'],
+        lineByLine: [
+          { line: 1, code: 'int simulate_pool(int ops[], int n, int slots) {', explain: '할당(1)/해제(-slotIdx) 연산 배열, 길이 n, 총 슬롯 수 slots를 받습니다.' },
+          { line: 2, code: '    int bitmap = 0;', explain: '각 비트 s가 슬롯 s의 사용 여부를 뜻하는 비트맵 레지스터입니다.' },
+          { line: 3, code: '    int active = 0;', explain: '현재 사용 중인 슬롯 수를 추적합니다.' },
+          { line: 4, code: '    for (int i = 0; i < n; i++) {', explain: '할당/해제 시퀀스를 순서대로 실행합니다.' },
+          { line: 5, code: '        int op = ops[i];', explain: '현재 연산 코드를 읽습니다.' },
+          { line: 6, code: '        if (op == 1) {', explain: '슬롯 할당 요청(op == 1)인 경우' },
+          { line: 7, code: '            for (int s = 0; s < slots; s++) {', explain: '0번부터 빈 슬롯을 차례로 찾습니다.' },
+          { line: 8, code: '                if ((bitmap & (1 << s)) == 0) {', explain: 's번 슬롯 비트가 0(미사용)인지 검사합니다.' },
+          { line: 9, code: '                    bitmap |= (1 << s);', explain: 's번 비트를 1로 켜 할당 상태로 마킹합니다.' },
+          { line: 10, code: '                    active++;', explain: '활성 슬롯 카운트를 1 증가시키고' },
+          { line: 11, code: '                    break;', explain: '첫 빈 슬롯만 할당한 뒤 탐색을 마칩니다.' },
+          { line: 12, code: '                }', explain: '슬롯 점유 검사 블록 종료' },
+          { line: 13, code: '            }', explain: '슬롯 스캔 루프 종료' },
+          { line: 14, code: '        } else if (op <= 0) {', explain: '0 또는 음수(-slotIndex)면 해당 슬롯 해제 요청입니다.' },
+          { line: 15, code: '            int idx = -op;', explain: '해제할 슬롯 번호(0 이상)를 계산합니다.' },
+          { line: 16, code: '            if (idx < slots && (bitmap & (1 << idx)) != 0) {', explain: '범위 유효성 및 실제로 사용 중인 슬롯인지 검사해 Double-Free를 막습니다.' },
+          { line: 17, code: '                bitmap &= ~(1 << idx);', explain: '해당 비트를 0으로 지워 슬롯을 풀에 반납합니다.' },
+          { line: 18, code: '                active--;', explain: '활성 슬롯 카운트를 1 감소시킵니다.' },
+          { line: 19, code: '            }', explain: '해제 가드 블록 종료' },
+          { line: 20, code: '        }', explain: '연산 분기 종료' },
+          { line: 21, code: '    }', explain: '연산 루프 종료' },
+          { line: 22, code: '    return active;', explain: '최종 점유 중인 활성 슬롯 개수를 반환합니다.' },
+          { line: 23, code: '}', explain: '함수를 종료합니다.' }
+        ],
+        complexity: { time: 'O(N * S)', timeWhy: '연산 N회당 최대 슬롯 수 S비트를 스캔하며 힙 할당 없이 동작합니다.', space: 'O(1)', spaceWhy: '고정 비트맵 정수 하나만으로 최대 30여 개 슬롯 상태를 관리합니다.' },
+        pitfalls: ['이중 해제 시 (bitmap & (1 << idx)) != 0 가드가 없으면 active 카운트가 계속 깎여 슬롯 계수 상태가 손상됩니다.']
+      },
+      audit: {
+        bugSummary: 'AI가 해제 전에 해당 비트가 켜져 있는지 검사하는 Double-Free 가드를 빠뜨려 같은 슬롯을 두 번 해제할 때 active 수가 틀어집니다.',
+        checklist: ['이중 해제 방지((bitmap & (1 << idx)) != 0) 확인', '범위 초과 인덱스(idx < slots) 방어 확인'],
+        focusLine: 16,
+        buggyCode: `int simulate_pool(int ops[], int n, int slots) {
+    int bitmap = 0;
+    int active = 0;
+    for (int i = 0; i < n; i++) {
+        int op = ops[i];
+        if (op == 1) {
+            for (int s = 0; s < slots; s++) {
+                if ((bitmap & (1 << s)) == 0) {
+                    bitmap |= (1 << s);
+                    active++;
+                    break;
+                }
+            }
+        } else if (op <= 0) {
+            int idx = -op;
+            if (idx < slots) {
+                bitmap &= ~(1 << idx);
+                active--;
+            }
+        }
+    }
+    return active;
+}`
+      },
+      entryPoint: 'simulate_pool',
+      code: `int simulate_pool(int ops[], int n, int slots) {
+    int bitmap = 0;
+    int active = 0;
+    for (int i = 0; i < n; i++) {
+        int op = ops[i];
+        if (op == 1) {
+            for (int s = 0; s < slots; s++) {
+                if ((bitmap & (1 << s)) == 0) {
+                    bitmap |= (1 << s);
+                    active++;
+                    break;
+                }
+            }
+        } else if (op <= 0) {
+            int idx = -op;
+            if (idx < slots && (bitmap & (1 << idx)) != 0) {
+                bitmap &= ~(1 << idx);
+                active--;
+            }
+        }
+    }
+    return active;
+}`,
+      skeleton: `int simulate_pool(int ops[], int n, int slots) {
+    int bitmap = 0;
+    int active = 0;
+    for (int i = 0; i < n; i++) {
+        int op = ops[i];
+        if (op == 1) {
+            for (int s = 0; s < slots; s++) {
+                if ((bitmap & (1 << s)) == 0) {
+                    bitmap |= (1 << s);
+                    active++;
+                    break;
+                }
+            }
+        } else if (op <= 0) {
+            int idx = -op;
+            if (idx < slots && ____ != 0) {
+                ____;
+                active--;
+            }
+        }
+    }
+    return active;
+}`,
+      tests: [
+        { input: [[1, 1, 1, 1], 4, 3], expected: 3, name: '최대 3슬롯 포화 시 추가 할당 안전 무시' },
+        { input: [[1, 1, 0, 0, 1], 5, 3], expected: 2, name: '0번 슬롯 이중 해제(Double-Free) 방어 & 재할당' },
+        { input: [[1, -5, 0], 3, 2], expected: 0, name: '범위 밖 슬롯(-5) 무시 후 0번 정상 해제' }
       ]
     }
   );
@@ -1534,6 +2697,202 @@ LLM -->> User: Safe Answer`,
         { input: [{ kind: 'message', from: 'Guard', to: 'VectorDB' }], expected: true, name: 'Guard → VectorDB 검색 요청' },
         { input: [{ kind: 'message', from: 'VectorDB', to: 'Guard', isDashed: true }], expected: true, name: 'VectorDB -->> Guard 청크 반환' },
         { input: [{ kind: 'message', from: 'LLM', to: 'User', isDashed: true }], expected: true, name: 'LLM -->> User 최종 응답' }
+      ]
+    },
+    {
+      id: 'spec_schema_webhook_event',
+      title: '결제 Webhook 이벤트 스펙 계약 (JSON Schema)',
+      tier: 1,
+      level: 'beginner',
+      track: 'spec',
+      specKind: 'schema',
+      category: 'Spec / Contract',
+      complexity: { time: 'Schema', space: 'Strict' },
+      description: '외부 결제 사에서 전달받는 Webhook 이벤트 페이로드의 ID 접두사 패턴(^evt_), 이벤트 종류(enum), 재시도 횟수 상한(1~10) 계약을 작성합니다.',
+      explanation: {
+        summary: '수신측 Webhook 핸들러가 위조되거나 비정상 재전송된 페이로드를 즉시 거절할 수 있도록 정규식 pattern과 범위 제약을 스펙으로 선언합니다.',
+        keyConcepts: ['Webhook Payload Schema', 'pattern 정규식 검증', '재전송 attempt 상한(10)', 'enum 이벤트 제한'],
+        lineByLine: [
+          { line: 1, code: '{', explain: 'Webhook 루트 JSON Schema 객체를 엽니다.' },
+          { line: 2, code: '  "type": "object",', explain: '루트 페이로드 타입을 객체로 제한합니다.' },
+          { line: 3, code: '  "required": ["eventId", "type", "attempt"],', explain: '중복 차단을 위한 eventId, 이벤트 유형, 재시도 횟수를 필수로 지정합니다.' },
+          { line: 4, code: '  "additionalProperties": false,', explain: '계약 외 주입 필드를 엄격히 차단합니다.' },
+          { line: 5, code: '  "properties": {', explain: '각 필드별 검증 규칙을 정의합니다.' },
+          { line: 6, code: '    "eventId": { "type": "string", "pattern": "^evt_[a-z0-9]+$" },', explain: '이벤트 ID가 표준 evt_ 접두사와 영소문자·숫자 형식인지 검증합니다.' },
+          { line: 7, code: '    "type": { "type": "string", "enum": ["payment.paid", "payment.failed", "refund.done"] },', explain: '허용된 3가지 결제 상태 이벤트 문자열만 통과시킵니다.' },
+          { line: 8, code: '    "attempt": { "type": "integer", "minimum": 1, "maximum": 10 }', explain: 'Webhook 전달 재시도 회차를 1~10 정수로 제한합니다.' },
+          { line: 9, code: '  }', explain: 'properties 객체를 닫습니다.' },
+          { line: 10, code: '}', explain: '루트 스키마를 닫습니다.' }
+        ],
+        complexity: { time: 'Schema', timeWhy: '필드 수 K에 비례해 O(K)에 계약 검증을 수행합니다.', space: 'Strict', spaceWhy: '허용되지 않은 임의 속성을 원천 차단합니다.' },
+        pitfalls: ['eventId의 pattern 정규식을 빼먹으면 빈 ID나 형식 밖 문자열이 멱등성 캐시 키로 들어가 중복 처리 오류가 생길 수 있습니다.']
+      },
+      audit: {
+        bugSummary: 'AI가 eventId의 pattern 정규식을 누락해 evt_ 접두사가 없는 잘못된 ID("bad_123")도 검증을 통과합니다.',
+        checklist: ['eventId의 "^evt_[a-z0-9]+$" pattern 확인', 'attempt 1~10 정수 범위 확인'],
+        focusLine: 6,
+        buggyCode: `{
+  "type": "object",
+  "required": ["eventId", "type", "attempt"],
+  "additionalProperties": false,
+  "properties": {
+    "eventId": { "type": "string" },
+    "type": { "type": "string", "enum": ["payment.paid", "payment.failed", "refund.done"] },
+    "attempt": { "type": "integer", "minimum": 1, "maximum": 10 }
+  }
+}`
+      },
+      entryPoint: 'schema',
+      code: `{
+  "type": "object",
+  "required": ["eventId", "type", "attempt"],
+  "additionalProperties": false,
+  "properties": {
+    "eventId": { "type": "string", "pattern": "^evt_[a-z0-9]+$" },
+    "type": { "type": "string", "enum": ["payment.paid", "payment.failed", "refund.done"] },
+    "attempt": { "type": "integer", "minimum": 1, "maximum": 10 }
+  }
+}`,
+      skeleton: `{
+  "type": "object",
+  "required": ["eventId", "type", "attempt"],
+  "additionalProperties": false,
+  "properties": {
+    "eventId": { "type": "string", "pattern": ____ },
+    "type": { "type": "string", "enum": ["payment.paid", "payment.failed", "refund.done"] },
+    "attempt": { "type": "integer", "minimum": 1, "maximum": ____ }
+  }
+}`,
+      tests: [
+        { input: [{ eventId: 'evt_901a', type: 'payment.paid', attempt: 1 }], expected: true, name: '유효 결제 Webhook 통과' },
+        { input: [{ eventId: 'bad_901a', type: 'payment.paid', attempt: 1 }], expected: false, name: '잘못된 eventId 패턴 거부' },
+        { input: [{ eventId: 'evt_901a', type: 'payment.paid', attempt: 11 }], expected: false, name: '재시도 상한(10) 초과 거부' },
+        { input: [{ eventId: 'evt_901a', type: 'payment.paid', attempt: 1, spoof: true }], expected: false, name: '미정의 필드 거부' }
+      ]
+    },
+    {
+      id: 'spec_arch_cicd_bluegreen',
+      title: '아키텍처 흐름도: Blue-Green 무중단 배포 파이프라인',
+      tier: 2,
+      level: 'intermediate',
+      track: 'spec',
+      specKind: 'diagram',
+      category: 'Architecture DSL',
+      complexity: { time: 'Arch', space: 'Live SVG' },
+      description: '코드 Push부터 CI 빌드, 컨테이너 레지스트리, Load Balancer 라우팅 전환 및 Health Check 게이트까지 Blue-Green 무중단 배포 아키텍처를 설계합니다.',
+      adr: {
+        scenario: '주간 트래픽 피크 시간에 신규 API 버전을 배포해야 하며, 배포 중 1초의 중단도 허용되지 않습니다.',
+        prompt: '신규 버전 장애 시 1초 만에 구버전으로 즉시 복구(Rollback)할 수 있는 안전 배포 아키텍처는?',
+        options: [
+          { id: 'inplace', label: 'A. 기존 서버 프로세스를 멈추고(In-Place) 새 코드 덮어쓰기 후 재기동', recommended: false, critique: '기동 시간 동안 서비스 중단이 발생하며, 장애 시 이전 빌드로 즉시 돌리기 어렵습니다.' },
+          { id: 'bluegreen', label: 'B. Green 환경에 먼저 배포 후 Health Check 통과 시 LB 라우팅을 Blue -> Green으로 전환', recommended: true, critique: '정확합니다! 무중단 전환과 동시에 문제가 발견되면 LB만 다시 Blue로 돌려 1초 롤백이 가능합니다.' }
+        ]
+      },
+      explanation: {
+        summary: 'CI 빌드 이미지를 신규 Green 슬롯에 띄운 뒤 Health Probe가 정상 응답할 때만 Load Balancer 트래픽을 전환하는 무중단 배포 토폴로지입니다.',
+        keyConcepts: ['Blue-Green Deployment', 'Health Check Gate', 'Load Balancer Traffic Switch', 'Instant Rollback'],
+        lineByLine: [
+          { line: 1, code: 'flowchart LR', explain: '좌→우 방향의 CI/CD 배포 파이프라인 흐름도를 선언합니다.' },
+          { line: 2, code: 'Git[Git Repo] -->|Push| CI(CI Build)', explain: '코드 푸시 이벤트가 CI 빌드·테스트 파이프라인을 트리거합니다.' },
+          { line: 3, code: 'CI -->|Push Image| Reg[(Image Registry)]', explain: '테스트를 통과한 컨테이너 이미지를 레지스트리에 등록합니다.' },
+          { line: 4, code: 'LB[Load Balancer] -->|Active| Blue(Blue v1)', explain: '현재 운영 트래픽이 기존 Blue v1 클러스터로 흐르고 있습니다.' },
+          { line: 5, code: 'LB -.->|Switch| Green(Green v2)', explain: '준비된 신규 Green v2로 무중단 트래픽 스위칭 경로를 연결합니다.' },
+          { line: 6, code: 'Health{Health Probe} -->|Pass| LB', explain: '헬스 체크 게이트가 통과 신호를 주어야 LB가 전환을 승인합니다.' }
+        ],
+        complexity: { time: 'Arch', timeWhy: '실시간 Mermaid Flowchart 파싱으로 파이프라인 의존성을 즉시 시각화합니다.', space: 'Live SVG', spaceWhy: '우측 패널에 노드 6개 · 엣지 5개 토폴로지를 렌더링합니다.' },
+        pitfalls: ['Health Check 게이트 연결(Health --> LB) 없이 CI가 곧바로 LB를 전환하면 부팅 실패 컨테이너로 트래픽이 쏟아집니다.']
+      },
+      audit: {
+        bugSummary: 'AI가 Health Probe → LB 게이트와 LB -.-> Green 경로를 빠뜨리고 CI가 곧바로 Blue 서버를 덮어씁니다.',
+        checklist: ['Git -> CI -> Reg 파이프라인 확인', 'LB -> Green 전환 및 Health -> LB 검증 게이트 확인'],
+        focusLine: 5,
+        buggyCode: `flowchart LR
+Git[Git Repo] -->|Push| CI(CI Build)
+CI -->|Overwrite| Blue(Blue v1)
+LB[Load Balancer] -->|Active| Blue(Blue v1)`
+      },
+      entryPoint: 'diagram',
+      code: `flowchart LR
+Git[Git Repo] -->|Push| CI(CI Build)
+CI -->|Push Image| Reg[(Image Registry)]
+LB[Load Balancer] -->|Active| Blue(Blue v1)
+LB -.->|Switch| Green(Green v2)
+Health{Health Probe} -->|Pass| LB`,
+      skeleton: `flowchart LR
+Git[Git Repo] -->|Push| ____
+CI -->|Push Image| Reg[(Image Registry)]
+LB[Load Balancer] -->|Active| Blue(Blue v1)
+LB -.->|Switch| ____
+Health{Health Probe} -->|Pass| LB`,
+      tests: [
+        { input: [{ kind: 'direction', direction: 'LR' }], expected: true, name: '좌→우(LR) 배포 흐름' },
+        { input: [{ kind: 'edge', from: 'Git', to: 'CI' }], expected: true, name: 'Git → CI 빌드 트리거 존재' },
+        { input: [{ kind: 'edge', from: 'LB', to: 'Green' }], expected: true, name: 'LB → Green 무중단 스위칭 존재' },
+        { input: [{ kind: 'edge', from: 'Health', to: 'LB' }], expected: true, name: 'Health → LB 검증 게이트 존재' },
+        { input: [{ kind: 'minCount', nodes: 6, edges: 5 }], expected: true, name: '6개 컴포넌트 · 5개 연결 완전성' }
+      ]
+    },
+    {
+      id: 'spec_seq_saga_outbox',
+      title: '분산 Saga 보상 트랜잭션 & Outbox 시퀀스',
+      tier: 4,
+      level: 'advanced',
+      track: 'spec',
+      specKind: 'diagram',
+      category: 'Distributed Sequence',
+      complexity: { time: 'Sequence', space: 'Live SVG' },
+      description: '마이크로서비스 분산 환경에서 Outbox 패턴으로 결제 이벤트를 발행하고 결제 실패 시 주문 취소 보상(Compensate)을 수행하는 시퀀스를 설계합니다.',
+      adr: {
+        scenario: '주문 서비스 DB 커밋 직후 메시지 브로커로 결제 이벤트를 보내려다 네트워크가 끊어져 주문은 생성됐는데 결제가 안 된 불일치가 발생했습니다.',
+        prompt: 'DB 저장과 이벤트 발행 원자성 + 후속 단계 실패 시 정합성 복구 전략은?',
+        options: [
+          { id: '2pc', label: 'A. 마이크로서비스 간 동기 2단계 커밋(2PC) 전역 락 유지', recommended: false, critique: '외부 결제 장애 시 주문 서비스 DB 락까지 장시간 묶여 전체 시스템 가용성이 떨어집니다.' },
+          { id: 'saga', label: 'B. Transactional Outbox 이벤트 발행 + 실패 시 보상 이벤트(Saga)로 최종 일관성 달성', recommended: true, critique: '정확합니다! 로컬 트랜잭션과 Outbox 테이블을 원자 커밋하고, 결제 실패 시 보상 명령으로 안전하게 주문을 취소합니다.' }
+        ]
+      },
+      explanation: {
+        summary: 'Transactional OutboxDB에 이벤트를 안전 기록한 뒤 Broker를 거쳐 PaySvc가 실패하면 Compensate Cancel 보상 화살표로 주문을 원복하는 Saga 시퀀스입니다.',
+        keyConcepts: ['Saga Choreography Pattern', 'Transactional Outbox', 'Compensating Transaction (보상)', 'Eventual Consistency'],
+        lineByLine: [
+          { line: 1, code: 'sequenceDiagram', explain: '시간 순서에 따른 분산 트랜잭션 호출 시퀀스를 시작합니다.' },
+          { line: 2, code: 'OrderSvc ->> OutboxDB: Save Order + Event', explain: '주문 서비스가 단일 로컬 DB 트랜잭션에 주문과 Outbox 이벤트를 함께 커밋합니다.' },
+          { line: 3, code: 'OutboxDB ->> Broker: Publish OrderCreated', explain: '릴레이가 Outbox 이벤트를 메시지 브로커로 안전 전달합니다.' },
+          { line: 4, code: 'Broker ->> PaySvc: Request Payment', explain: '결제 서비스가 주문 생성 이벤트를 구독해 결제를 시도합니다.' },
+          { line: 5, code: 'PaySvc -->> Broker: Payment Failed', explain: '잔액 부족 등으로 결제 실패 시 실패 이벤트를 브로커로 회신합니다.' },
+          { line: 6, code: 'Broker -->> OrderSvc: Compensate Cancel', explain: '브로커가 주문 서비스에 보상 트랜잭션(주문 취소) 명령을 전달합니다.' }
+        ],
+        complexity: { time: 'Sequence', timeWhy: '실시간 메시지 흐름을 라이프라인과 화살표 SVG로 렌더링합니다.', space: 'Live SVG', spaceWhy: '비동기 요청(->>)과 실패/보상 회신(-->>)을 구분 표시합니다.' },
+        pitfalls: ['PaySvc 실패 후 Broker -->> OrderSvc 보상 흐름이 누락되면 결제 실패 주문이 "결제 대기/완료" 상태로 영원히 유령 잔류합니다.']
+      },
+      audit: {
+        bugSummary: 'AI가 결제 실패 이후 주문 서비스로 되돌아가는 보상 트랜잭션 메시지(Broker -->> OrderSvc)를 누락해 데이터 불일치가 남습니다.',
+        checklist: ['OutboxDB -> Broker -> PaySvc 흐름 확인', 'PaySvc -->> Broker 및 Broker -->> OrderSvc 보상 회신 확인'],
+        focusLine: 6,
+        buggyCode: `sequenceDiagram
+OrderSvc ->> OutboxDB: Save Order + Event
+OutboxDB ->> Broker: Publish OrderCreated
+Broker ->> PaySvc: Request Payment
+PaySvc -->> Broker: Payment Failed`
+      },
+      entryPoint: 'diagram',
+      code: `sequenceDiagram
+OrderSvc ->> OutboxDB: Save Order + Event
+OutboxDB ->> Broker: Publish OrderCreated
+Broker ->> PaySvc: Request Payment
+PaySvc -->> Broker: Payment Failed
+Broker -->> OrderSvc: Compensate Cancel`,
+      skeleton: `sequenceDiagram
+OrderSvc ->> ____: Save Order + Event
+OutboxDB ->> Broker: Publish OrderCreated
+Broker ->> PaySvc: Request Payment
+PaySvc -->> Broker: Payment Failed
+Broker -->> OrderSvc: ____`,
+      tests: [
+        { input: [{ kind: 'message', from: 'OrderSvc', to: 'OutboxDB' }], expected: true, name: 'OrderSvc → OutboxDB 원자 기록' },
+        { input: [{ kind: 'message', from: 'Broker', to: 'PaySvc' }], expected: true, name: 'Broker → PaySvc 결제 요청' },
+        { input: [{ kind: 'message', from: 'PaySvc', to: 'Broker', isDashed: true }], expected: true, name: 'PaySvc -->> Broker 실패 회신' },
+        { input: [{ kind: 'message', from: 'Broker', to: 'OrderSvc', isDashed: true }], expected: true, name: 'Broker -->> OrderSvc 보상 취소 전달' },
+        { input: [{ kind: 'minCount', nodes: 4, edges: 5 }], expected: true, name: '4개 참여자 · 5개 시퀀스 흐름 완전성' }
       ]
     }
   ];

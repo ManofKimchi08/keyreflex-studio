@@ -59,11 +59,16 @@ class TypingReflexApp {
       activeBlankIdx: 0,
       showSkeletonHint: false,
       keyboardHidden: false,
-      settingsOpen: false,
       activeDescTab: 'overview',
       _lastSyncedLine: null,
       solvedLessons: this.loadCodeLabProgress()
     };
+
+    // 통합 설정 (Proposal B+D LocalStorage 영속 상태)
+    this.userSettings = this.loadUserSettings();
+    this.lang = this.userSettings.lang;
+    this._nonCodeLang = this.userSettings.lang;
+    this.codeLab.keyboardHidden = Boolean(this.userSettings.codelabWideDefault);
 
     // 누적 통계 (LocalStorage 연동)
     this.stats = this.loadStats();
@@ -71,11 +76,15 @@ class TypingReflexApp {
     this.bindElements();
     this.bindEvents();
     this.initCodeLabSplitResizer();
+    this.initTelemetryResizer();
+    this.applyUserSettings();
+    this.syncSettingsUI();
     this.updatePyodideStatusBadge(this.codeRunner.pyodideStatus);
     this.codeRunner.onPyodideStatusChange((status, msg) => {
       this.updatePyodideStatusBadge(status, msg);
     });
     this.switchMode('reflex_single');
+    this.renderMenuCodeLabCourseGrid();
     this.updateFingerStatsUI();
     this.updateWeakSymbolsUI();
   }
@@ -155,6 +164,7 @@ class TypingReflexApp {
       this.renderer.renderHeatmap(this.stats.keys);
       this.renderer.renderHeatmap(this.stats.keys);
     }
+    this.syncSettingsUI();
   }
 
   bindElements() {
@@ -167,6 +177,20 @@ class TypingReflexApp {
     this.elMetricSpeedUnit = document.getElementById('metric-speed-unit');
     this.elMetricAccuracy = document.getElementById('metric-accuracy');
     this.elMetricCombo = document.getElementById('metric-combo');
+
+    // 상단 접이식·크기 조절형 통합 통계 패널 요소
+    this.elTelemetryDockWrap = document.getElementById('telemetry-dock-wrap');
+    this.elTelemetryToggleBtn = document.getElementById('telemetry-toggle-btn');
+    this.elTelemetrySheet = document.getElementById('telemetry-sheet');
+    this.elTelemetryCollapseBtn = document.getElementById('telemetry-collapse-btn');
+    this.elTelemetryWeakTag = document.getElementById('telemetry-weak-tag');
+    this.elTelemetrySizeBadge = document.getElementById('telemetry-size-badge');
+    this.elTelemetryResetSizeBtn = document.getElementById('telemetry-reset-size-btn');
+    this.elTelemetryHeatmapBtn = document.getElementById('telemetry-heatmap-btn');
+    this.elTelemetryResetStatsBtn = document.getElementById('telemetry-reset-stats-btn');
+    this.elTelemetryResizeY = document.getElementById('telemetry-resize-y');
+    this.elTelemetryResizeX = document.getElementById('telemetry-resize-x');
+    this.elTelemetryResizeCorner = document.getElementById('telemetry-resize-corner');
 
     // 중앙 스테이지 영역
     this.elReflexStage = document.getElementById('reflex-stage');
@@ -192,10 +216,90 @@ class TypingReflexApp {
     this.elCodeLangPill = document.getElementById('code-lang-pill');
     this.elCodeLangText = document.getElementById('code-lang-text');
 
-    // 서브 필터 툴바 요소
-    this.elSubFilterBar = document.getElementById('sub-filter-bar');
-    this.elSubFilterLabel = document.getElementById('sub-filter-label');
-    this.elSubFilterButtons = document.getElementById('sub-filter-buttons');
+    // 상단 Zen 헤더 · 통합 메뉴(B+C) · 빠른 설정 팝오버 엘리먼트
+    this.elStudioMenuBtn = document.getElementById('studio-menu-btn');
+    this.elStudioBreadcrumbBtn = document.getElementById('studio-breadcrumb-btn');
+    this.elCodeFingerBadge = document.getElementById('codelab-finger-badge');
+
+    this.elSettingsMenuWrap = document.getElementById('studio-settings-menu-wrap');
+    this.elSettingsBtn = document.getElementById('studio-settings-btn');
+    this.elSettingsSummary = document.getElementById('studio-settings-summary');
+    this.elSettingsPopover = document.getElementById('settings-popover');
+
+    this.elPopTileZones = document.getElementById('pop-tile-zones');
+    this.elPopTileZonesSub = document.getElementById('pop-tile-zones-sub');
+    this.elPopTileWide = document.getElementById('pop-tile-wide');
+    this.elPopTileWideTitle = document.getElementById('pop-tile-wide-title');
+    this.elPopTileWideSub = document.getElementById('pop-tile-wide-sub');
+    this.elPopTileHeatmap = document.getElementById('pop-tile-heatmap');
+    this.elPopTileHeatmapSub = document.getElementById('pop-tile-heatmap-sub');
+    this.elPopTileLang = document.getElementById('pop-tile-lang');
+    this.elPopTileLangSub = document.getElementById('pop-tile-lang-sub');
+    this.elPopOpacitySlider = document.getElementById('pop-hand-opacity-slider');
+    this.elPopOpacityVal = document.getElementById('pop-hand-opacity-val');
+    this.elPopSoundBtns = document.querySelectorAll('.pop-sound-btn');
+    this.elPopSubfilterSection = document.getElementById('pop-subfilter-section');
+    this.elSubFilterLabel = document.getElementById('pop-subfilter-label');
+    this.elSubFilterButtons = document.getElementById('pop-subfilter-buttons');
+    this.elPopOpenHubBtn = document.getElementById('pop-open-hub-btn');
+    this.elPopExplainBtn = document.getElementById('pop-explain-btn');
+    this.elPopResetStatsBtn = document.getElementById('pop-reset-stats-btn');
+
+    // 통합 메뉴창 (안 B + 안 C)
+    this.elStudioMenuOverlay = document.getElementById('studio-menu-overlay');
+    this.elStudioMenuBody = document.getElementById('studio-menu-body');
+    this.elMenuCloseBtn = document.getElementById('menu-close-btn');
+    this.elMenuConfirmBtn = document.getElementById('menu-confirm-btn');
+    this.elHubRestoreDefaultsBtn = document.getElementById('hub-restore-defaults-btn');
+    this.elMenuSearchInput = document.getElementById('menu-search-input');
+    this.elMenuSearchClearBtn = document.getElementById('menu-search-clear-btn');
+    this.elMenuSearchResults = document.getElementById('menu-search-results');
+    this.elMenuRailBtns = document.querySelectorAll('.menu-rail-btn');
+    this.elMenuPanes = document.querySelectorAll('.menu-pane');
+    this.elMenuReflexSubfiltersWrap = document.getElementById('menu-reflex-subfilters-wrap');
+    this.elMenuReflexSubfilters = document.getElementById('menu-reflex-subfilters');
+    this.elMenuTypingSubfiltersWrap = document.getElementById('menu-typing-subfilters-wrap');
+    this.elMenuTypingSubfilterLabel = document.getElementById('menu-typing-subfilter-label');
+    this.elMenuTypingSubfilters = document.getElementById('menu-typing-subfilters');
+    this.elMenuCodeLabCourseGrid = document.getElementById('menu-codelab-course-grid');
+    this.elMenuCodeLabProgress = document.getElementById('menu-codelab-progress');
+
+    // 통합 메뉴 우측 실시간 퀵 설정 독 (안 C)
+    this.elMenuQuickDock = document.getElementById('menu-quick-dock');
+    this.elDockTileZones = document.getElementById('dock-tile-zones');
+    this.elDockTileZonesSub = document.getElementById('dock-tile-zones-sub');
+    this.elDockTileWide = document.getElementById('dock-tile-wide');
+    this.elDockTileWideTitle = document.getElementById('dock-tile-wide-title');
+    this.elDockTileWideSub = document.getElementById('dock-tile-wide-sub');
+    this.elDockTileHeatmap = document.getElementById('dock-tile-heatmap');
+    this.elDockTileHeatmapSub = document.getElementById('dock-tile-heatmap-sub');
+    this.elDockTileLang = document.getElementById('dock-tile-lang');
+    this.elDockTileLangSub = document.getElementById('dock-tile-lang-sub');
+    this.elDockOpacitySlider = document.getElementById('dock-hand-opacity-slider');
+    this.elDockOpacityVal = document.getElementById('dock-hand-opacity-val');
+    this.elDockSoundBtns = document.querySelectorAll('.dock-sound-btn');
+    this.elDockExplainBtn = document.getElementById('dock-explain-btn');
+    this.elDockOpenFullSettingsBtn = document.getElementById('dock-open-full-settings-btn');
+    this.elDockResetStatsBtn = document.getElementById('dock-reset-stats-btn');
+
+    // 상세 설정 컨트롤 (#hub-*)
+    this.elHubLangKo = document.getElementById('hub-lang-ko');
+    this.elHubLangEn = document.getElementById('hub-lang-en');
+    this.elHubSubfilterRow = document.getElementById('hub-subfilter-row');
+    this.elHubSubfilterTitle = document.getElementById('hub-subfilter-title');
+    this.elHubSubfilterSelect = document.getElementById('hub-subfilter-select');
+    this.elHubOpacitySlider = document.getElementById('hub-hand-opacity-slider');
+    this.elHubOpacityVal = document.getElementById('hub-hand-opacity-val');
+    this.elHubToggleZones = document.getElementById('hub-toggle-zones');
+    this.elHubToggleHeatmap = document.getElementById('hub-toggle-heatmap');
+    this.elHubSoundCards = document.querySelectorAll('.hub-sound-card');
+    this.elHubWideOff = document.getElementById('hub-codelab-wide-off');
+    this.elHubWideOn = document.getElementById('hub-codelab-wide-on');
+    this.elHubOpenExplainBtn = document.getElementById('hub-open-explain-btn');
+    this.elHubProgressText = document.getElementById('hub-codelab-progress-text');
+    this.elHubResetCodelabBtn = document.getElementById('hub-reset-codelab-btn');
+    this.elHubResetStatsBtn = document.getElementById('hub-reset-stats-btn');
+    this.elHubResetHwBtn = document.getElementById('hub-reset-hw-btn');
 
     // CodeLab 스테이지 요소
     this.elCodeLabStage = document.getElementById('codelab-stage');
@@ -215,7 +319,6 @@ class TypingReflexApp {
     this.elCodeEditorModeHint = document.getElementById('codelab-editor-mode-hint');
     this.elCodeHintBtn = document.getElementById('codelab-hint-btn');
     this.elCodeSandboxResetBtn = document.getElementById('codelab-sandbox-reset-btn');
-    this.elCodeKbdToggleBtn = document.getElementById('codelab-kbd-toggle-btn');
     this.elCodeImeBanner = document.getElementById('codelab-ime-banner');
     this.elCodeAuditBanner = document.getElementById('codelab-audit-banner');
     this.elCodeAuditSummary = document.getElementById('codelab-audit-summary');
@@ -234,8 +337,6 @@ class TypingReflexApp {
     this.elCodeSplitView = document.querySelector('.codelab-split-view');
     this.elCodeSplitResizer = document.getElementById('codelab-split-resizer');
     this.elCodeSidePanel = document.getElementById('codelab-side-panel');
-    this.elCodeSettingsToggleBtn = document.getElementById('codelab-settings-toggle-btn');
-    this.elCodeStageWideBtn = document.getElementById('codelab-stage-wide-btn');
     this.elCodeWideToggleBtn = document.getElementById('codelab-wide-toggle-btn');
     this.elCodeKbdDockBar = document.getElementById('codelab-kbd-dock-bar');
     this.elCodeKbdDockBtn = document.getElementById('codelab-kbd-dock-btn');
@@ -264,8 +365,6 @@ class TypingReflexApp {
     this.elCodeExplanationContainer = document.getElementById('codelab-explanation-container');
     this.elCodeQuickTags = document.getElementById('codelab-quick-tags');
     this.elCodeLineHint = document.getElementById('codelab-current-line-hint');
-    this.elCodeExplainToggleBtn = document.getElementById('codelab-explain-toggle-btn');
-    this.elCodeCardModalBtn = document.getElementById('codelab-card-modal-btn');
     this.elCodeOpenModalBtn = document.getElementById('codelab-open-modal-btn');
     this.elCodeModalOverlay = document.getElementById('codelab-modal-overlay');
     this.elModalCloseBtn = document.getElementById('modal-close-btn');
@@ -298,57 +397,324 @@ class TypingReflexApp {
       });
     });
 
-    // 세부 범위(서브 옵션) 버튼 이벤트 위임
-    if (this.elSubFilterButtons) {
-      this.elSubFilterButtons.addEventListener('click', (e) => {
-        const btn = e.target.closest('.sub-filter-btn');
-        if (!btn) return;
-        this.elSubFilterButtons.querySelectorAll('.sub-filter-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        this.subOption = btn.getAttribute('data-filter');
-        this.restartCurrentMode();
+    // ------------------------------------------
+    // 통합 메뉴창 (안 B+C) & 빠른 설정 팝오버 바인딩
+    // ------------------------------------------
+    if (this.elStudioMenuBtn) {
+      this.elStudioMenuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (this.isStudioMenuOpen()) this.closeStudioMenu();
+        else this.openStudioMenu(null, { focusSearch: true });
       });
     }
 
-    // 한/영 언어 토글
-    document.querySelectorAll('.lang-switch-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const lang = btn.getAttribute('data-lang');
-        this.setLanguage(lang);
+    if (this.elSettingsBtn) {
+      this.elSettingsBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.toggleSettingsPopover();
+      });
+    }
+
+    if (this.elSettingsPopover) {
+      this.elSettingsPopover.addEventListener('click', (e) => e.stopPropagation());
+    }
+
+    document.addEventListener('click', (e) => {
+      if (!this.isSettingsPopoverOpen()) return;
+      if (this.elSettingsMenuWrap && this.elSettingsMenuWrap.contains(e.target)) return;
+      this.closeSettingsPopover();
+    });
+
+    // 전역 단축키: Ctrl+K/M (통합 메뉴), Ctrl+, (설정 탭), Ctrl+I (상단 통계 패널), Esc (메뉴 -> 팝오버 순 닫기)
+    window.addEventListener('keydown', (e) => {
+      const mod = e.ctrlKey || e.metaKey;
+      if (mod && !e.shiftKey && !e.altKey && (e.key.toLowerCase() === 'k' || e.key.toLowerCase() === 'm')) {
+        e.preventDefault();
+        if (this.isStudioMenuOpen()) {
+          this.closeStudioMenu();
+        } else {
+          this.openStudioMenu(null, { focusSearch: true });
+        }
+        return;
+      }
+      if (mod && (e.key === ',' || e.code === 'Comma')) {
+        e.preventDefault();
+        if (this.isStudioMenuOpen() && this.elStudioMenuBody && this.elStudioMenuBody.classList.contains('is-settings-view')) {
+          this.closeStudioMenu();
+        } else {
+          this.openStudioMenu('settings_keyboard');
+        }
+        return;
+      }
+      if (mod && !e.shiftKey && !e.altKey && (e.key.toLowerCase() === 'i' || e.code === 'KeyI')) {
+        e.preventDefault();
+        this.toggleTelemetryPanel();
+        return;
+      }
+      if (e.key === 'Escape') {
+        if (this.isStudioMenuOpen()) {
+          e.preventDefault();
+          if (this.elMenuSearchInput && this.elMenuSearchInput.value.trim() && document.activeElement === this.elMenuSearchInput) {
+            this.elMenuSearchInput.value = '';
+            this.renderMenuSearchResults('');
+          } else {
+            this.closeStudioMenu();
+          }
+        } else if (this.isSettingsPopoverOpen()) {
+          e.preventDefault();
+          this.closeSettingsPopover();
+        }
+      }
+    });
+
+    // 빠른 설정 팝오버 + 메뉴 우측 퀵 독 공통 토글 핸들러
+    const bindZonesToggle = (el) => {
+      if (!el) return;
+      el.addEventListener('click', () => this.setZoneColorsSetting(!this.userSettings.showZoneColors));
+    };
+    const bindWideToggle = (el) => {
+      if (!el) return;
+      el.addEventListener('click', () => {
+        if (this.currentMode === 'practice_code') {
+          this.setCodeLabWideMode(!this.codeLab.keyboardHidden, { skipFocus: this.isStudioMenuOpen() });
+        } else {
+          this.setGeneralKbdHidden(!this.userSettings.generalKbdHidden);
+        }
+      });
+    };
+    const bindHeatmapToggle = (el) => {
+      if (!el) return;
+      el.addEventListener('click', () => this.setHeatmapEnabled(!this.userSettings.heatmapEnabled));
+    };
+    const bindLangToggle = (el) => {
+      if (!el) return;
+      el.addEventListener('click', () => {
+        if (this.currentMode === 'practice_code') {
+          const next = (this.userSettings.lang === 'ko') ? 'en' : 'ko';
+          this.userSettings.lang = next;
+          this._nonCodeLang = next;
+          this.saveUserSettings();
+          this.syncSettingsUI();
+          return;
+        }
+        const nextLang = this.lang === 'ko' ? 'en' : 'ko';
+        this.setLanguage(nextLang);
+      });
+    };
+
+    bindZonesToggle(this.elPopTileZones);
+    bindZonesToggle(this.elDockTileZones);
+    bindWideToggle(this.elPopTileWide);
+    bindWideToggle(this.elDockTileWide);
+    bindHeatmapToggle(this.elPopTileHeatmap);
+    bindHeatmapToggle(this.elDockTileHeatmap);
+    bindLangToggle(this.elPopTileLang);
+    bindLangToggle(this.elDockTileLang);
+
+    // 손 투명도 슬라이더 (팝오버 & 메뉴 퀵 독)
+    [this.elPopOpacitySlider, this.elDockOpacitySlider].forEach(sl => {
+      if (!sl) return;
+      sl.addEventListener('input', (e) => {
+        this.setHandOpacitySetting(parseFloat(e.target.value));
       });
     });
 
-    // 손 투명도 슬라이더
-    const opacitySlider = document.getElementById('hand-opacity-slider');
-    const opacityValue = document.getElementById('hand-opacity-value');
-    if (opacitySlider) {
-      opacitySlider.addEventListener('input', (e) => {
-        const val = parseFloat(e.target.value);
-        opacityValue.textContent = `${Math.round(val * 100)}%`;
-        this.renderer.setHandOpacity(val);
+    // 타건음 프로파일 5종 칩 (팝오버 & 메뉴 퀵 독)
+    [this.elPopSoundBtns, this.elDockSoundBtns].forEach(group => {
+      if (!group) return;
+      group.forEach(btn => {
+        btn.addEventListener('click', () => {
+          this.setSoundProfileSetting(btn.getAttribute('data-sound'), { preview: true });
+        });
+      });
+    });
+
+    // 서브 옵션 칩 위임 (팝오버 + 메뉴 내부 순발력/타자 패널)
+    [this.elSubFilterButtons, this.elMenuReflexSubfilters, this.elMenuTypingSubfilters].forEach(container => {
+      if (!container) return;
+      container.addEventListener('click', (e) => {
+        const btn = e.target.closest('.sub-filter-btn');
+        if (!btn) return;
+        this.setSubOption(btn.getAttribute('data-filter'));
+      });
+    });
+
+    // 팝오버 푸터 CTA
+    if (this.elPopOpenHubBtn) {
+      this.elPopOpenHubBtn.addEventListener('click', () => {
+        this.openStudioMenu('settings_keyboard');
       });
     }
 
-    // 운지법 구역 컬러 토글
-    const zoneToggle = document.getElementById('toggle-zone-colors');
-    if (zoneToggle) {
-      zoneToggle.addEventListener('change', (e) => {
-        this.renderer.setShowZoneColors(e.target.checked);
+    if (this.elPopExplainBtn) {
+      this.elPopExplainBtn.addEventListener('click', () => {
+        this.closeSettingsPopover();
+        this.openCodeLabModal();
       });
     }
 
-    // 사운드 토글
-    const soundSelect = document.getElementById('sound-profile-select');
-    if (soundSelect) {
-      soundSelect.addEventListener('change', (e) => {
-        const val = e.target.value;
-        if (val === 'mute') {
-          window.soundEngine.enabled = false;
-        } else {
-          window.soundEngine.enabled = true;
-          window.soundEngine.profile = val;
-          window.soundEngine.playKey(true);
+    if (this.elPopResetStatsBtn) {
+      this.elPopResetStatsBtn.addEventListener('click', () => {
+        this.resetStats();
+      });
+    }
+
+    // 퀵 독 푸터 액션 (안 C)
+    if (this.elDockExplainBtn) {
+      this.elDockExplainBtn.addEventListener('click', () => {
+        this.closeStudioMenu();
+        if (this.currentMode !== 'practice_code') this.switchMode('practice_code');
+        this.openCodeLabModal();
+      });
+    }
+    if (this.elDockOpenFullSettingsBtn) {
+      this.elDockOpenFullSettingsBtn.addEventListener('click', () => {
+        this.switchStudioMenuTab('settings_keyboard');
+      });
+    }
+    if (this.elDockResetStatsBtn) {
+      this.elDockResetStatsBtn.addEventListener('click', () => {
+        this.resetStats();
+      });
+    }
+
+    // 통합 메뉴 모달 이벤트 (안 B+C)
+    if (this.elMenuCloseBtn) {
+      this.elMenuCloseBtn.addEventListener('click', () => this.closeStudioMenu());
+    }
+    if (this.elMenuConfirmBtn) {
+      this.elMenuConfirmBtn.addEventListener('click', () => this.closeStudioMenu());
+    }
+    if (this.elStudioMenuOverlay) {
+      this.elStudioMenuOverlay.addEventListener('click', (e) => {
+        if (e.target === this.elStudioMenuOverlay) this.closeStudioMenu();
+      });
+    }
+
+    if (this.elMenuRailBtns) {
+      this.elMenuRailBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          this.switchStudioMenuTab(btn.getAttribute('data-menutab'));
+        });
+      });
+    }
+
+    if (this.elMenuSearchInput) {
+      this.elMenuSearchInput.addEventListener('input', (e) => {
+        this.renderMenuSearchResults(e.target.value);
+      });
+      this.elMenuSearchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && this.elMenuSearchResults && this.elMenuSearchResults.style.display !== 'none') {
+          e.preventDefault();
+          const topHit = this.elMenuSearchResults.querySelector('.menu-search-hit');
+          if (topHit) topHit.click();
         }
+      });
+    }
+
+    if (this.elMenuSearchClearBtn) {
+      this.elMenuSearchClearBtn.addEventListener('click', () => {
+        if (this.elMenuSearchInput) {
+          this.elMenuSearchInput.value = '';
+          this.renderMenuSearchResults('');
+          this.elMenuSearchInput.focus();
+        }
+      });
+    }
+
+    [this.elHubLangKo, this.elHubLangEn].forEach(btn => {
+      if (!btn) return;
+      btn.addEventListener('click', () => {
+        const targetLang = btn.getAttribute('data-lang');
+        if (this.currentMode === 'practice_code') {
+          this.userSettings.lang = targetLang;
+          this._nonCodeLang = targetLang;
+          this.saveUserSettings();
+          this.syncSettingsUI();
+        } else {
+          this.setLanguage(targetLang);
+        }
+      });
+    });
+
+    if (this.elHubSubfilterSelect) {
+      this.elHubSubfilterSelect.addEventListener('change', (e) => {
+        this.setSubOption(e.target.value);
+      });
+    }
+
+    if (this.elHubOpacitySlider) {
+      this.elHubOpacitySlider.addEventListener('input', (e) => {
+        this.setHandOpacitySetting(parseFloat(e.target.value));
+      });
+    }
+
+    if (this.elHubToggleZones) {
+      this.elHubToggleZones.addEventListener('change', (e) => {
+        this.setZoneColorsSetting(e.target.checked);
+      });
+    }
+
+    if (this.elHubToggleHeatmap) {
+      this.elHubToggleHeatmap.addEventListener('change', (e) => {
+        this.setHeatmapEnabled(e.target.checked);
+      });
+    }
+
+    if (this.elHubSoundCards) {
+      this.elHubSoundCards.forEach(card => {
+        card.addEventListener('click', () => {
+          this.setSoundProfileSetting(card.getAttribute('data-sound'), { preview: true });
+        });
+      });
+    }
+
+    if (this.elHubWideOff) {
+      this.elHubWideOff.addEventListener('click', () => {
+        this.setCodeLabWideMode(false, { skipFocus: true });
+      });
+    }
+    if (this.elHubWideOn) {
+      this.elHubWideOn.addEventListener('click', () => {
+        this.setCodeLabWideMode(true, { skipFocus: true });
+      });
+    }
+
+    if (this.elHubOpenExplainBtn) {
+      this.elHubOpenExplainBtn.addEventListener('click', () => {
+        this.closeSettingsHub();
+        if (this.currentMode !== 'practice_code') {
+          this.switchMode('practice_code');
+        }
+        this.openCodeLabModal();
+      });
+    }
+
+    if (this.elHubResetCodelabBtn) {
+      this.elHubResetCodelabBtn.addEventListener('click', () => {
+        this.resetCodeLabProgress();
+      });
+    }
+
+    if (this.elHubResetStatsBtn) {
+      this.elHubResetStatsBtn.addEventListener('click', () => {
+        this.resetStats();
+      });
+    }
+
+    if (this.elHubResetHwBtn) {
+      this.elHubResetHwBtn.addEventListener('click', () => {
+        this.initHwMetrics();
+        this.updateHwDashboardUI();
+        if (this.elHwLogStream) {
+          this.elHwLogStream.innerHTML = `<span class="hw-log-placeholder">하드웨어 측정 기록이 초기화되었습니다. 아무 키나 눌러 측정을 시작하세요...</span>`;
+        }
+      });
+    }
+
+    if (this.elHubRestoreDefaultsBtn) {
+      this.elHubRestoreDefaultsBtn.addEventListener('click', () => {
+        this.restoreDefaultSettings();
       });
     }
 
@@ -475,15 +841,6 @@ class TypingReflexApp {
       });
     }
 
-    if (this.elCodeSettingsToggleBtn) {
-      this.elCodeSettingsToggleBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.codeLab.settingsOpen = !this.codeLab.settingsOpen;
-        document.body.classList.toggle('codelab-settings-open', this.codeLab.settingsOpen);
-        this.elCodeSettingsToggleBtn.classList.toggle('active', this.codeLab.settingsOpen);
-      });
-    }
-
     if (this.elCodeExplanationContainer) {
       this._hoveredExplainLine = null;
       this.elCodeExplanationContainer.addEventListener('mouseover', (e) => {
@@ -510,7 +867,7 @@ class TypingReflexApp {
 
     if (this.elCodeSandboxTextarea) {
       this.elCodeSandboxTextarea.addEventListener('keydown', (e) => {
-        if (this.currentMode !== 'practice_code' || !this.isEditableCodeMode() || this.isCodeLabModalOpen()) return;
+        if (this.currentMode !== 'practice_code' || !this.isEditableCodeMode() || this.isAnyModalBlockingTyping()) return;
         if (e.key === 'Tab') {
           e.preventDefault();
           const ta = this.elCodeSandboxTextarea;
@@ -565,14 +922,12 @@ class TypingReflexApp {
       });
     }
 
-    [this.elCodeKbdToggleBtn, this.elCodeWideToggleBtn, this.elCodeStageWideBtn].forEach(btn => {
-      if (btn) {
-        btn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          this.setCodeLabWideMode(!this.codeLab.keyboardHidden);
-        });
-      }
-    });
+    if (this.elCodeWideToggleBtn) {
+      this.elCodeWideToggleBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.setCodeLabWideMode(!this.codeLab.keyboardHidden);
+      });
+    }
 
     if (this.elCodeKbdDockBtn) {
       this.elCodeKbdDockBtn.addEventListener('click', (e) => {
@@ -597,21 +952,7 @@ class TypingReflexApp {
       });
     }
 
-    // 상단 💡 상세 해설 버튼 클릭 (일반 모드에선 해설 탭 <-> F1 모달, 넓게 보기에선 해설 스크롤 <-> F1 모달)
-    if (this.elCodeExplainToggleBtn) {
-      this.elCodeExplainToggleBtn.addEventListener('click', () => {
-        if (this.codeLab.activeDescTab !== 'explanation') {
-          this.switchCodeLabDescTab('explanation');
-        } else {
-          this.openCodeLabModal();
-        }
-      });
-    }
-
-    // 모달 열기 버튼 (🔍 아이콘 및 푸터 버튼)
-    if (this.elCodeCardModalBtn) {
-      this.elCodeCardModalBtn.addEventListener('click', () => this.openCodeLabModal());
-    }
+    // 전체 상세 해설 모달 열기 버튼
     if (this.elCodeOpenModalBtn) {
       this.elCodeOpenModalBtn.addEventListener('click', () => this.openCodeLabModal());
     }
@@ -631,20 +972,20 @@ class TypingReflexApp {
 
     // CodeLab 전역 단축키 (F1: 해설 모달, F2: 빈칸 힌트, ESC: 닫기, Ctrl+Enter: 실행)
     window.addEventListener('keydown', (e) => {
-      if (this.currentMode !== 'practice_code') return;
+      if (this.currentMode !== 'practice_code' || this.isSettingsHubOpen()) return;
 
       if (e.key === 'F1') {
         e.preventDefault();
         if (this.isCodeLabModalOpen()) this.closeCodeLabModal();
         else this.openCodeLabModal();
-      } else if (e.key === 'F2' && this.codeLab.typeMode === 'skeleton') {
+      } else if (e.key === 'F2' && this.codeLab.typeMode === 'skeleton' && !this.isAnyModalBlockingTyping()) {
         e.preventDefault();
         this.toggleCodeLabSkeletonHint();
       } else if (e.key === 'Escape') {
         if (this.isCodeLabModalOpen()) {
           this.closeCodeLabModal();
         }
-      } else if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && !this.isCodeLabModalOpen()) {
+      } else if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && !this.isAnyModalBlockingTyping()) {
         e.preventDefault();
         this.executeCodeLabTests({ fromUserAction: true });
       }
@@ -652,7 +993,7 @@ class TypingReflexApp {
 
     if (this.elCodeHiddenInput) {
       this.elCodeHiddenInput.addEventListener('keydown', (e) => {
-        if (this.currentMode !== 'practice_code' || this.isCodeLabModalOpen()) return;
+        if (this.currentMode !== 'practice_code' || this.isAnyModalBlockingTyping()) return;
         if (e.ctrlKey || e.metaKey || e.altKey) return;
 
         if (e.key === 'Tab') {
@@ -675,7 +1016,7 @@ class TypingReflexApp {
       });
 
       this.elCodeHiddenInput.addEventListener('compositionend', (e) => {
-        if (this.currentMode !== 'practice_code' || this.isCodeLabModalOpen()) return;
+        if (this.currentMode !== 'practice_code' || this.isAnyModalBlockingTyping()) return;
         const val = e.target.value;
         e.target.value = '';
         if (!val) return;
@@ -683,7 +1024,7 @@ class TypingReflexApp {
       });
 
       this.elCodeHiddenInput.addEventListener('input', (e) => {
-        if (this.currentMode !== 'practice_code' || this.isCodeLabModalOpen()) {
+        if (this.currentMode !== 'practice_code' || this.isAnyModalBlockingTyping()) {
           e.target.value = '';
           return;
         }
@@ -695,20 +1036,29 @@ class TypingReflexApp {
       });
     }
 
-    // 히트맵 토글 버튼
-    const heatmapBtn = document.getElementById('btn-toggle-heatmap');
-    if (heatmapBtn) {
-      heatmapBtn.addEventListener('click', () => {
-        const active = this.renderer.renderHeatmap(this.stats.keys);
-        heatmapBtn.classList.toggle('active', active);
-        heatmapBtn.textContent = active ? '🔥 히트맵 끄기' : '🗺️ 키보드 반응속도 히트맵';
+    // 상단 접이식·크기 조절형 통계 패널 컨트롤
+    if (this.elTelemetryToggleBtn) {
+      this.elTelemetryToggleBtn.addEventListener('click', () => {
+        this.setTelemetryOpen(true);
       });
     }
-
-    // 통계 초기화 버튼
-    const resetStatsBtn = document.getElementById('btn-reset-stats');
-    if (resetStatsBtn) {
-      resetStatsBtn.addEventListener('click', () => {
+    if (this.elTelemetryCollapseBtn) {
+      this.elTelemetryCollapseBtn.addEventListener('click', () => {
+        this.setTelemetryOpen(false);
+      });
+    }
+    if (this.elTelemetryResetSizeBtn) {
+      this.elTelemetryResetSizeBtn.addEventListener('click', () => {
+        this.resetTelemetrySize();
+      });
+    }
+    if (this.elTelemetryHeatmapBtn) {
+      this.elTelemetryHeatmapBtn.addEventListener('click', () => {
+        this.setHeatmapEnabled(!this.userSettings.heatmapEnabled);
+      });
+    }
+    if (this.elTelemetryResetStatsBtn) {
+      this.elTelemetryResetStatsBtn.addEventListener('click', () => {
         this.resetStats();
       });
     }
@@ -744,11 +1094,16 @@ class TypingReflexApp {
     });
 
     // 타자 연습(낱말/문장) 입력창 이벤트
-    this.typingInput.addEventListener('input', () => this.handleTypingInput());
+    this.typingInput.addEventListener('input', () => {
+      if (this.isAnyModalBlockingTyping()) return;
+      this.handleTypingInput();
+    });
     this.typingInput.addEventListener('compositionupdate', () => {
+      if (this.isAnyModalBlockingTyping()) return;
       setTimeout(() => this.updateNextStrokeGuide(), 0);
     });
     this.typingInput.addEventListener('keydown', (e) => {
+      if (this.isAnyModalBlockingTyping()) return;
       if (e.key === 'Enter') {
         e.preventDefault();
         this.checkSentenceSubmit();
@@ -951,22 +1306,24 @@ class TypingReflexApp {
     this.lang = lang;
     if (this.currentMode !== 'practice_code') {
       this._nonCodeLang = lang;
+      this.userSettings.lang = lang;
+      this.saveUserSettings();
     }
     this.targetText = '';
     this.nextTargetText = '';
     this._nextLitItem = null;
     this._nextSnippetItem = null;
-    document.querySelectorAll('.lang-switch-btn').forEach(b => {
-      b.classList.toggle('active', b.getAttribute('data-lang') === lang);
-    });
     this.renderer.setLanguage(lang);
     this.renderSubFilterButtons();
+    this.syncSettingsUI();
+    this.updateStudioBreadcrumb();
     this.restartCurrentMode();
   }
 
   switchMode(mode) {
     const prevMode = this.currentMode;
     this.currentMode = mode;
+    this.closeSettingsPopover();
     this.clearTimers();
     this.targetText = '';
     this.nextTargetText = '';
@@ -974,21 +1331,15 @@ class TypingReflexApp {
     this._nextSnippetItem = null;
 
     if (mode === 'practice_code' && prevMode !== 'practice_code') {
-      this._nonCodeLang = this.lang;
+      this._nonCodeLang = this.userSettings ? this.userSettings.lang : this.lang;
       if (this.lang !== 'en') {
         this.lang = 'en';
-        document.querySelectorAll('.lang-switch-btn').forEach(b => {
-          b.classList.toggle('active', b.getAttribute('data-lang') === 'en');
-        });
         this.renderer.setLanguage('en');
       }
     } else if (mode !== 'practice_code' && prevMode === 'practice_code') {
-      const restored = this._nonCodeLang || 'ko';
+      const restored = (this.userSettings && this.userSettings.lang) || this._nonCodeLang || 'ko';
       if (this.lang !== restored) {
         this.lang = restored;
-        document.querySelectorAll('.lang-switch-btn').forEach(b => {
-          b.classList.toggle('active', b.getAttribute('data-lang') === restored);
-        });
         this.renderer.setLanguage(restored);
       }
     }
@@ -996,9 +1347,13 @@ class TypingReflexApp {
     document.body.classList.toggle('is-codelab-active', mode === 'practice_code');
     if (mode !== 'practice_code') {
       document.body.classList.remove('codelab-kbd-hidden', 'codelab-settings-open');
+      document.body.classList.toggle('general-kbd-hidden', Boolean(this.userSettings && this.userSettings.generalKbdHidden));
     } else {
-      document.body.classList.toggle('codelab-settings-open', Boolean(this.codeLab.settingsOpen));
-      this.setCodeLabWideMode(Boolean(this.codeLab.keyboardHidden), { skipFocus: true });
+      document.body.classList.remove('general-kbd-hidden');
+      this.setCodeLabWideMode(
+        Boolean(this.userSettings ? this.userSettings.codelabWideDefault : this.codeLab.keyboardHidden),
+        { skipFocus: true, skipSave: true }
+      );
     }
 
     document.querySelectorAll('.mode-tab-btn').forEach(b => {
@@ -1006,23 +1361,30 @@ class TypingReflexApp {
     });
 
     this.renderSubFilterButtons();
+    this.syncSettingsUI();
     this.restartCurrentMode();
+    this.updateStudioBreadcrumb();
   }
 
   renderSubFilterButtons() {
-    if (!this.elSubFilterBar || !this.elSubFilterButtons) return;
+    if (!this.elSubFilterButtons && !this.elHubSubfilterSelect) return;
 
     if (this.currentMode === 'hw_diagnostic' || this.currentMode === 'practice_code') {
-      this.elSubFilterBar.style.display = 'none';
+      if (this.elPopSubfilterSection) this.elPopSubfilterSection.style.display = 'none';
+      if (this.elHubSubfilterRow) this.elHubSubfilterRow.style.display = 'none';
+      if (this.elMenuReflexSubfiltersWrap && this.currentMode === 'hw_diagnostic') {
+        this.elMenuReflexSubfiltersWrap.style.display = 'none';
+      }
       return;
     }
 
-    this.elSubFilterBar.style.display = 'flex';
-    let label = '출제 범위:';
+    if (this.elPopSubfilterSection) this.elPopSubfilterSection.style.display = 'flex';
+    if (this.elHubSubfilterRow) this.elHubSubfilterRow.style.display = 'flex';
+    let label = '출제 범위';
     let buttons = [];
 
     if (this.currentMode === 'reflex_single' || this.currentMode === 'reflex_rush' || this.currentMode === 'practice_position') {
-      label = '출제 범위:';
+      label = '출제 범위';
       buttons = [
         { filter: 'all', text: '전체 자판' },
         { filter: 'home', text: '기본 자리 (홈 로우)' },
@@ -1034,9 +1396,9 @@ class TypingReflexApp {
         this.subOption = 'all';
       }
     } else if (this.currentMode === 'practice_words') {
-      label = this.lang === 'ko' ? '단어 테마:' : 'Word Theme:';
+      label = this.lang === 'ko' ? '단어 테마' : 'Word Theme';
       buttons = [
-        { filter: 'dev', text: this.lang === 'ko' ? '💻 개발자 필수 영단어' : '💻 Developer Words' },
+        { filter: 'dev', text: this.lang === 'ko' ? '개발자 필수 영단어' : 'Developer Words' },
         { filter: 'all', text: this.lang === 'ko' ? '전체 혼합' : 'All Mixed' },
         { filter: 'general', text: this.lang === 'ko' ? '일상 빈출 영단어' : 'General Words' }
       ];
@@ -1044,17 +1406,17 @@ class TypingReflexApp {
         this.subOption = 'dev';
       }
     } else if (this.currentMode === 'practice_sentences') {
-      label = this.lang === 'ko' ? '한국 문학 장르:' : 'Literature Genre:';
+      label = this.lang === 'ko' ? '한국 문학 장르' : 'Literature Genre';
       buttons = this.lang === 'ko' ? [
-        { filter: 'all', text: '📖 전체 명작 구절' },
-        { filter: 'novel', text: '📚 소설 / 단편 (이효석·이상·황순원)' },
-        { filter: 'poem', text: '🖋️ 서정시 (윤동주·김소월·백석)' },
-        { filter: 'essay', text: '🌿 명수필 / 고전 (피천득·법정)' }
+        { filter: 'all', text: '전체 명작 구절' },
+        { filter: 'novel', text: '소설 / 단편 (이효석·이상·황순원)' },
+        { filter: 'poem', text: '서정시 (윤동주·김소월·백석)' },
+        { filter: 'essay', text: '명수필 / 고전 (피천득·법정)' }
       ] : [
-        { filter: 'all', text: '📖 All Literature' },
-        { filter: 'novel', text: '📚 Classic Novels (Gatsby, 1984)' },
-        { filter: 'poem', text: '🖋️ Poetry (Frost, Dickinson)' },
-        { filter: 'essay', text: '🌿 Drama & Essays (Shakespeare)' }
+        { filter: 'all', text: 'All Literature' },
+        { filter: 'novel', text: 'Classic Novels (Gatsby, 1984)' },
+        { filter: 'poem', text: 'Poetry (Frost, Dickinson)' },
+        { filter: 'essay', text: 'Drama & Essays (Shakespeare)' }
       ];
       if (!['all', 'novel', 'poem', 'essay'].includes(this.subOption)) {
         this.subOption = 'all';
@@ -1062,14 +1424,43 @@ class TypingReflexApp {
     }
 
     if (this.elSubFilterLabel) this.elSubFilterLabel.textContent = label;
-    this.elSubFilterButtons.innerHTML = '';
-    buttons.forEach(b => {
-      const btn = document.createElement('button');
-      btn.className = 'sub-filter-btn' + (b.filter === this.subOption ? ' active' : '');
-      btn.setAttribute('data-filter', b.filter);
-      btn.textContent = b.text;
-      this.elSubFilterButtons.appendChild(btn);
-    });
+    if (this.elHubSubfilterTitle) this.elHubSubfilterTitle.textContent = label;
+
+    const fillChips = (container) => {
+      if (!container) return;
+      container.innerHTML = '';
+      buttons.forEach(b => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'sub-filter-btn' + (b.filter === this.subOption ? ' active' : '');
+        btn.setAttribute('data-filter', b.filter);
+        btn.textContent = b.text;
+        container.appendChild(btn);
+      });
+    };
+
+    fillChips(this.elSubFilterButtons);
+
+    if (this.currentMode === 'reflex_single' || this.currentMode === 'reflex_rush') {
+      if (this.elMenuReflexSubfiltersWrap) this.elMenuReflexSubfiltersWrap.style.display = 'flex';
+      fillChips(this.elMenuReflexSubfilters);
+    } else if (['practice_position', 'practice_words', 'practice_sentences'].includes(this.currentMode)) {
+      if (this.elMenuTypingSubfiltersWrap) this.elMenuTypingSubfiltersWrap.style.display = 'flex';
+      if (this.elMenuTypingSubfilterLabel) this.elMenuTypingSubfilterLabel.textContent = label;
+      fillChips(this.elMenuTypingSubfilters);
+    }
+
+    if (this.elHubSubfilterSelect) {
+      this.elHubSubfilterSelect.innerHTML = '';
+      buttons.forEach(b => {
+        const opt = document.createElement('option');
+        opt.value = b.filter;
+        opt.textContent = b.text;
+        this.elHubSubfilterSelect.appendChild(opt);
+      });
+      this.elHubSubfilterSelect.value = this.subOption;
+    }
+    this.updateStudioBreadcrumb();
   }
 
   restartCurrentMode() {
@@ -1571,6 +1962,7 @@ class TypingReflexApp {
   }
 
   handleGlobalKeyDown(e) {
+    if (this.isAnyModalBlockingTyping()) return;
     if (e.ctrlKey || e.altKey || e.metaKey) return;
     if (e.repeat) return;
 
@@ -1836,17 +2228,19 @@ class TypingReflexApp {
   }
 
   updateFingerBadge(fingerId, keyLabel = '', needShift = false) {
-    if (!this.elFingerGuideBadge) return;
+    let html = '';
     if (!fingerId || !window.FINGER_INFO[fingerId]) {
-      this.elFingerGuideBadge.innerHTML = `<span class="badge-dot" style="background:#f97316"></span>양손 손가락을 홈 자리(ㅁㄴㅇㄹ / ㅓㅏㅣ)에 올려두세요`;
-      return;
+      html = `<span class="badge-dot" style="background:#f97316"></span>양손 손가락을 홈 자리(ㅁㄴㅇㄹ / ㅓㅏㅣ)에 올려두세요`;
+    } else {
+      const fInfo = window.FINGER_INFO[fingerId];
+      const shiftText = needShift ? ' + 반대손 Shift' : '';
+      html = `
+        <span class="badge-dot" style="background:${fInfo.color}"></span>
+        담당 손가락: <strong>${fInfo.name}</strong>${shiftText} → <span class="badge-key-highlight">${keyLabel}</span>
+      `;
     }
-    const fInfo = window.FINGER_INFO[fingerId];
-    const shiftText = needShift ? ' + 반대손 Shift' : '';
-    this.elFingerGuideBadge.innerHTML = `
-      <span class="badge-dot" style="background:${fInfo.color}"></span>
-      담당 손가락: <strong>${fInfo.name}</strong>${shiftText} → <span class="badge-key-highlight">${keyLabel}</span>
-    `;
+    if (this.elFingerGuideBadge) this.elFingerGuideBadge.innerHTML = html;
+    if (this.elCodeFingerBadge) this.elCodeFingerBadge.innerHTML = html;
   }
 
   /**
@@ -2069,37 +2463,80 @@ class TypingReflexApp {
     if (!container) return;
     container.innerHTML = '';
 
-    const fingerOrder = [
-      'L_PINKY', 'L_RING', 'L_MIDDLE', 'L_INDEX', 'L_THUMB',
-      'R_THUMB', 'R_INDEX', 'R_MIDDLE', 'R_RING', 'R_PINKY'
+    const handsSpec = [
+      { title: '왼손 5지', fingers: ['L_PINKY', 'L_RING', 'L_MIDDLE', 'L_INDEX', 'L_THUMB'] },
+      { title: '오른손 5지', fingers: ['R_THUMB', 'R_INDEX', 'R_MIDDLE', 'R_RING', 'R_PINKY'] }
     ];
 
-    fingerOrder.forEach(fId => {
-      const info = window.FINGER_INFO[fId];
-      const st = this.stats.fingers[fId] || { count: 0, totalMs: 0, misses: 0 };
-      const avgMs = st.count > 0 ? Math.round(st.totalMs / st.count) : null;
-      const totalAttempts = st.count + st.misses;
-      const acc = totalAttempts > 0 ? Math.round((st.count / totalAttempts) * 100) : 100;
+    let totalHitsAll = 0;
+    let recordedCount = 0;
+    let slowest = null;
 
-      const fillPercent = avgMs
-        ? Math.max(15, Math.min(100, Math.round(((620 - avgMs) / 420) * 100)))
-        : 8;
+    const metricsById = {};
+    handsSpec.forEach(group => {
+      group.fingers.forEach(fId => {
+        const info = window.FINGER_INFO[fId];
+        const st = this.stats.fingers[fId] || { count: 0, totalMs: 0, misses: 0 };
+        const avgMs = st.count > 0 ? Math.round(st.totalMs / st.count) : null;
+        const totalAttempts = st.count + st.misses;
+        const acc = totalAttempts > 0 ? Math.round((st.count / totalAttempts) * 100) : 100;
+        const fillPercent = avgMs !== null
+          ? Math.max(15, Math.min(100, Math.round(((620 - avgMs) / 420) * 100)))
+          : 8;
 
-      const card = document.createElement('div');
-      card.className = 'finger-stat-card';
-      card.innerHTML = `
-        <div class="finger-stat-header">
-          <span class="finger-color-dot" style="background:${info.color}"></span>
-          <span class="finger-short-name">${info.short}</span>
-        </div>
-        <div class="finger-bar-wrap">
-          <div class="finger-bar-fill" style="height:${fillPercent}%; background:${info.color}"></div>
-        </div>
-        <div class="finger-ms-val">${avgMs !== null ? `${avgMs}ms` : '--'}</div>
-        <div class="finger-acc-val">정확도 ${acc}% (${st.count}회)</div>
-      `;
-      container.appendChild(card);
+        totalHitsAll += st.count;
+        if (avgMs !== null) {
+          recordedCount++;
+          if (!slowest || avgMs > slowest.avgMs) {
+            slowest = { id: fId, short: info.short, avgMs, acc, count: st.count };
+          }
+        }
+        metricsById[fId] = { info, st, avgMs, acc, fillPercent };
+      });
     });
+
+    const slowId = (slowest && (recordedCount >= 2 || slowest.avgMs >= 320)) ? slowest.id : null;
+
+    handsSpec.forEach(group => {
+      const col = document.createElement('div');
+      col.className = 'telemetry-hand-col';
+
+      const titleEl = document.createElement('div');
+      titleEl.className = 'telemetry-hand-title';
+      titleEl.textContent = group.title;
+      col.appendChild(titleEl);
+
+      group.fingers.forEach(fId => {
+        const { info, st, avgMs, acc, fillPercent } = metricsById[fId];
+        const row = document.createElement('div');
+        row.className = 'telemetry-finger-row' + (fId === slowId ? ' is-slow' : '');
+        row.title = `${info.name}: ${avgMs !== null ? `${avgMs}ms` : '기록 없음'} · 정확도 ${acc}% (${st.count}타)`;
+        row.innerHTML = `
+          <span class="tf-name">
+            <span class="tf-dot" style="background:${info.color}"></span>
+            <span>${info.short}</span>
+          </span>
+          <div class="tf-track">
+            <div class="tf-fill" style="width:${fillPercent}%; background:${info.color}"></div>
+          </div>
+          <span class="tf-ms">${avgMs !== null ? `${avgMs}ms` : '--'}</span>
+          <span class="tf-acc">${acc}%</span>
+        `;
+        col.appendChild(row);
+      });
+
+      container.appendChild(col);
+    });
+
+    if (this.elTelemetryWeakTag) {
+      if (slowest) {
+        this.elTelemetryWeakTag.textContent = `보완 포인트: ${slowest.short} ${slowest.avgMs}ms (${slowest.acc}%) · 누적 ${totalHitsAll}타`;
+        this.elTelemetryWeakTag.classList.toggle('is-warn', slowest.avgMs >= 280);
+      } else {
+        this.elTelemetryWeakTag.textContent = '측정 대기 중 · Ctrl+I로 접기/펼치기';
+        this.elTelemetryWeakTag.classList.remove('is-warn');
+      }
+    }
   }
 
   updateWeakSymbolsUI() {
@@ -2141,20 +2578,899 @@ class TypingReflexApp {
     this.elCodePyodideStatus.className = 'codelab-pyodide-pill';
     if (status === 'ready') {
       this.elCodePyodideStatus.classList.add('state-ready');
-      this.elCodePyodideStatus.textContent = '🐍 Pyodide 준비됨';
+      this.elCodePyodideStatus.textContent = 'Pyodide 준비됨';
       this.elCodePyodideStatus.title = 'Python WebAssembly 런타임이 활성화되어 즉시 실행 가능합니다';
     } else if (status === 'loading') {
       this.elCodePyodideStatus.classList.add('state-loading');
-      this.elCodePyodideStatus.textContent = '🐍 Pyodide 로딩...';
+      this.elCodePyodideStatus.textContent = 'Pyodide 로딩...';
       this.elCodePyodideStatus.title = 'WebAssembly Python 런타임을 초기화하는 중입니다';
     } else if (status === 'error') {
       this.elCodePyodideStatus.classList.add('state-error');
-      this.elCodePyodideStatus.textContent = '⚠️ Pyodide 오프라인 (재시도)';
+      this.elCodePyodideStatus.textContent = 'Pyodide 오프라인 (재시도)';
       this.elCodePyodideStatus.title = '네트워크/CDN 연결 실패 — 클릭하여 다시 로드';
     } else {
       this.elCodePyodideStatus.classList.add('state-idle');
-      this.elCodePyodideStatus.textContent = '🐍 Pyodide 대기 (클릭 초기화)';
+      this.elCodePyodideStatus.textContent = 'Pyodide 대기 (클릭 초기화)';
       this.elCodePyodideStatus.title = 'Python 첫 실행 시 또는 클릭 시 WebAssembly 런타임을 초기화합니다';
+    }
+  }
+
+  // =========================================================================
+  // 4.5. 통합 설정 시스템 (안 B 빠른 제어센터 팝오버 + 안 D 설정 허브 모달)
+  // =========================================================================
+
+  getDefaultUserSettings() {
+    return {
+      lang: 'ko',
+      showZoneColors: true,
+      handOpacity: 0.72,
+      soundProfile: 'thock',
+      heatmapEnabled: false,
+      generalKbdHidden: false,
+      codelabWideDefault: false,
+      telemetryOpen: false,
+      telemetryHeight: null,
+      telemetryWidth: null
+    };
+  }
+
+  loadUserSettings() {
+    const defaults = this.getDefaultUserSettings();
+    try {
+      const raw = localStorage.getItem('keyreflex_user_settings_v1');
+      if (!raw) return defaults;
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object') return defaults;
+      const validSounds = ['thock', 'tactile', 'linear', 'clicky', 'mute'];
+      const opacity = Number(parsed.handOpacity);
+      const rawTelH = parsed.telemetryHeight;
+      const parsedTelH = (rawTelH !== null && rawTelH !== undefined && rawTelH !== '')
+        ? Number(rawTelH)
+        : null;
+      const rawTelW = parsed.telemetryWidth;
+      const parsedTelW = (rawTelW !== null && rawTelW !== undefined && rawTelW !== '')
+        ? Number(rawTelW)
+        : null;
+      return {
+        lang: parsed.lang === 'en' ? 'en' : 'ko',
+        showZoneColors: parsed.showZoneColors !== undefined ? Boolean(parsed.showZoneColors) : defaults.showZoneColors,
+        handOpacity: Number.isFinite(opacity) ? Math.round(Math.min(0.95, Math.max(0.15, opacity)) * 100) / 100 : defaults.handOpacity,
+        soundProfile: validSounds.includes(parsed.soundProfile) ? parsed.soundProfile : defaults.soundProfile,
+        heatmapEnabled: Boolean(parsed.heatmapEnabled),
+        generalKbdHidden: Boolean(parsed.generalKbdHidden),
+        codelabWideDefault: Boolean(parsed.codelabWideDefault),
+        telemetryOpen: Boolean(parsed.telemetryOpen),
+        telemetryHeight: (parsedTelH !== null && Number.isFinite(parsedTelH))
+          ? Math.round(Math.min(420, Math.max(146, parsedTelH)))
+          : null,
+        telemetryWidth: (parsedTelW !== null && Number.isFinite(parsedTelW))
+          ? Math.round(Math.min(1360, Math.max(700, parsedTelW)))
+          : null
+      };
+    } catch (_) {
+      return defaults;
+    }
+  }
+
+  saveUserSettings() {
+    try {
+      localStorage.setItem('keyreflex_user_settings_v1', JSON.stringify(this.userSettings));
+    } catch (_) {
+      // ignore storage errors
+    }
+  }
+
+  applyUserSettings() {
+    const s = this.userSettings || this.getDefaultUserSettings();
+    this._nonCodeLang = s.lang;
+    if (this.currentMode !== 'practice_code') {
+      this.lang = s.lang;
+      if (this.renderer) this.renderer.setLanguage(s.lang);
+    }
+    if (this.renderer) {
+      this.renderer.setShowZoneColors(Boolean(s.showZoneColors));
+      this.renderer.setHandOpacity(Number(s.handOpacity));
+    }
+    this._applySoundEngine(s.soundProfile, false);
+    this.setHeatmapEnabled(Boolean(s.heatmapEnabled), { skipSave: true, skipSync: true });
+    document.body.classList.toggle('general-kbd-hidden', Boolean(s.generalKbdHidden) && this.currentMode !== 'practice_code');
+    this.codeLab.keyboardHidden = Boolean(s.codelabWideDefault);
+    if (this.currentMode === 'practice_code') {
+      this.setCodeLabWideMode(this.codeLab.keyboardHidden, { skipFocus: true, skipSave: true });
+    }
+    this.setTelemetryOpen(Boolean(s.telemetryOpen), { skipSave: true });
+    this.applyTelemetrySize();
+  }
+
+  isTelemetryOpen() {
+    return Boolean(this.userSettings && this.userSettings.telemetryOpen);
+  }
+
+  setTelemetryOpen(open, { skipSave = false } = {}) {
+    const isOpen = Boolean(open);
+    if (this.userSettings) {
+      this.userSettings.telemetryOpen = isOpen;
+    }
+    if (this.elTelemetryDockWrap) {
+      this.elTelemetryDockWrap.classList.toggle('is-open', isOpen);
+    }
+    if (this.elTelemetrySheet) {
+      this.elTelemetrySheet.style.display = isOpen ? 'flex' : 'none';
+    }
+    if (this.elTelemetryToggleBtn) {
+      this.elTelemetryToggleBtn.setAttribute('aria-expanded', String(isOpen));
+    }
+    if (isOpen) {
+      this.applyTelemetrySize();
+    }
+    if (!skipSave) {
+      this.saveUserSettings();
+    }
+  }
+
+  toggleTelemetryPanel() {
+    this.setTelemetryOpen(!this.isTelemetryOpen());
+  }
+
+  applyTelemetrySize() {
+    const sheet = this.elTelemetrySheet;
+    if (!sheet || !this.userSettings) return;
+
+    const h = this.userSettings.telemetryHeight;
+    const w = this.userSettings.telemetryWidth;
+
+    if (typeof h === 'number' && Number.isFinite(h)) {
+      const clampedH = Math.round(Math.min(420, Math.max(146, h)));
+      const scale = Math.min(1.28, Math.max(0.84, clampedH / 196));
+      sheet.style.height = `${clampedH}px`;
+      sheet.style.setProperty('--tel-scale', scale.toFixed(2));
+      sheet.classList.toggle('is-compact-h', clampedH < 172);
+      sheet.classList.toggle('is-tall-h', clampedH >= 250);
+    } else {
+      sheet.style.height = '';
+      sheet.style.setProperty('--tel-scale', '1');
+      sheet.classList.remove('is-compact-h', 'is-tall-h');
+    }
+
+    let appliedW = null;
+    if (typeof w === 'number' && Number.isFinite(w)) {
+      const maxAvailW = Math.min(1360, Math.max(700, window.innerWidth - 36));
+      appliedW = Math.round(Math.min(maxAvailW, Math.max(700, w)));
+      sheet.style.width = `${appliedW}px`;
+      sheet.classList.toggle('is-narrow-w', appliedW < 860);
+    } else {
+      sheet.style.width = '';
+      sheet.classList.remove('is-narrow-w');
+    }
+
+    const isCustom = (typeof h === 'number' && Number.isFinite(h)) || appliedW !== null;
+    if (this.elTelemetryResetSizeBtn) {
+      this.elTelemetryResetSizeBtn.style.display = isCustom ? 'inline-flex' : 'none';
+    }
+    if (this.elTelemetrySizeBadge) {
+      if (isCustom) {
+        const wTxt = appliedW !== null ? `${appliedW}` : '기본폭';
+        const hTxt = (typeof h === 'number' && Number.isFinite(h)) ? `${Math.round(h)}` : '자동';
+        this.elTelemetrySizeBadge.textContent = `${wTxt} × ${hTxt}`;
+        this.elTelemetrySizeBadge.style.display = 'inline-flex';
+      } else {
+        this.elTelemetrySizeBadge.textContent = '';
+        this.elTelemetrySizeBadge.style.display = 'none';
+      }
+    }
+  }
+
+  resetTelemetrySize() {
+    if (!this.userSettings) return;
+    this.userSettings.telemetryHeight = null;
+    this.userSettings.telemetryWidth = null;
+    this.applyTelemetrySize();
+    this.saveUserSettings();
+  }
+
+  initTelemetryResizer() {
+    const sheet = this.elTelemetrySheet;
+    if (!sheet) return;
+
+    let activeAxis = null;
+    let startX = 0;
+    let startY = 0;
+    let startWidth = 0;
+    let startHeight = 0;
+
+    const cursorMap = {
+      y: 'ns-resize',
+      x: 'ew-resize',
+      xy: 'nwse-resize'
+    };
+
+    const startResize = (axis, e) => {
+      if (!this.isTelemetryOpen()) return;
+      if (e.button !== undefined && e.button !== 0) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const rect = sheet.getBoundingClientRect();
+      activeAxis = axis;
+      startX = e.clientX;
+      startY = e.clientY;
+      startWidth = rect.width;
+      startHeight = rect.height;
+      sheet.classList.add('is-resizing');
+      document.body.style.userSelect = 'none';
+      document.body.style.cursor = cursorMap[axis] || '';
+      if (e.currentTarget && e.currentTarget.setPointerCapture && e.pointerId !== undefined) {
+        try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) { /* ignore */ }
+      }
+    };
+
+    const onMove = (e) => {
+      if (!activeAxis) return;
+      if (activeAxis === 'y' || activeAxis === 'xy') {
+        const dy = e.clientY - startY;
+        const nextH = Math.round(Math.min(420, Math.max(146, startHeight + dy)));
+        this.userSettings.telemetryHeight = nextH;
+      }
+      if (activeAxis === 'x' || activeAxis === 'xy') {
+        const dx = e.clientX - startX;
+        const maxAvailW = Math.min(1360, Math.max(700, window.innerWidth - 36));
+        const nextW = Math.round(Math.min(maxAvailW, Math.max(700, startWidth + dx * 2)));
+        this.userSettings.telemetryWidth = nextW;
+      }
+      this.applyTelemetrySize();
+    };
+
+    const endResize = () => {
+      if (!activeAxis) return;
+      activeAxis = null;
+      sheet.classList.remove('is-resizing');
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+      this.saveUserSettings();
+    };
+
+    [
+      [this.elTelemetryResizeY, 'y'],
+      [this.elTelemetryResizeX, 'x'],
+      [this.elTelemetryResizeCorner, 'xy']
+    ].forEach(([handle, axis]) => {
+      if (!handle) return;
+      handle.addEventListener('pointerdown', (e) => startResize(axis, e));
+      handle.addEventListener('dblclick', (e) => {
+        e.stopPropagation();
+        this.resetTelemetrySize();
+      });
+    });
+
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', endResize);
+    window.addEventListener('pointercancel', endResize);
+    window.addEventListener('resize', () => {
+      if (this.isTelemetryOpen()) {
+        this.applyTelemetrySize();
+      }
+    });
+  }
+
+  _applySoundEngine(profile, playPreview = false) {
+    if (!window.soundEngine) return;
+    if (profile === 'mute') {
+      window.soundEngine.enabled = false;
+    } else {
+      window.soundEngine.enabled = true;
+      window.soundEngine.profile = profile;
+      if (playPreview) window.soundEngine.playKey(true);
+    }
+  }
+
+  setHandOpacitySetting(val, { skipSave = false } = {}) {
+    const clamped = Math.round(Math.min(0.95, Math.max(0.15, Number(val) || 0.72)) * 100) / 100;
+    this.userSettings.handOpacity = clamped;
+    if (this.renderer) this.renderer.setHandOpacity(clamped);
+    if (!skipSave) this.saveUserSettings();
+    this.syncSettingsUI();
+  }
+
+  setZoneColorsSetting(enabled, { skipSave = false } = {}) {
+    this.userSettings.showZoneColors = Boolean(enabled);
+    if (this.renderer) this.renderer.setShowZoneColors(this.userSettings.showZoneColors);
+    if (!skipSave) this.saveUserSettings();
+    this.syncSettingsUI();
+  }
+
+  setSoundProfileSetting(profile, { preview = true, skipSave = false } = {}) {
+    const valid = ['thock', 'tactile', 'linear', 'clicky', 'mute'].includes(profile) ? profile : 'thock';
+    this.userSettings.soundProfile = valid;
+    this._applySoundEngine(valid, preview);
+    if (!skipSave) this.saveUserSettings();
+    this.syncSettingsUI();
+  }
+
+  setHeatmapEnabled(enabled, { skipSave = false, skipSync = false } = {}) {
+    const target = Boolean(enabled);
+    this.userSettings.heatmapEnabled = target;
+    if (this.renderer && Boolean(this.renderer.heatmapMode) !== target) {
+      this.renderer.renderHeatmap(this.stats.keys);
+    }
+    if (!skipSave) this.saveUserSettings();
+    if (!skipSync) this.syncSettingsUI();
+  }
+
+  setGeneralKbdHidden(hidden, { skipSave = false } = {}) {
+    this.userSettings.generalKbdHidden = Boolean(hidden);
+    document.body.classList.toggle('general-kbd-hidden', this.userSettings.generalKbdHidden && this.currentMode !== 'practice_code');
+    if (!skipSave) this.saveUserSettings();
+    this.syncSettingsUI();
+  }
+
+  setSubOption(filterVal, { restart = true } = {}) {
+    if (!filterVal) return;
+    this.subOption = filterVal;
+    [this.elSubFilterButtons, this.elMenuReflexSubfilters, this.elMenuTypingSubfilters].forEach(container => {
+      if (!container) return;
+      container.querySelectorAll('.sub-filter-btn').forEach(b => {
+        b.classList.toggle('active', b.getAttribute('data-filter') === filterVal);
+      });
+    });
+    if (this.elHubSubfilterSelect) {
+      this.elHubSubfilterSelect.value = filterVal;
+    }
+    this.syncSettingsUI();
+    this.updateStudioBreadcrumb();
+    if (restart) this.restartCurrentMode();
+  }
+
+  restoreDefaultSettings() {
+    this.userSettings = this.getDefaultUserSettings();
+    this.saveUserSettings();
+    this.applyUserSettings();
+    if (this.currentMode !== 'practice_code') {
+      this.setLanguage(this.userSettings.lang);
+    } else {
+      this.setCodeLabWideMode(false, { skipFocus: true, skipSave: true });
+      this.syncSettingsUI();
+    }
+  }
+
+  resetCodeLabProgress() {
+    this.codeLab.solvedLessons.clear();
+    try {
+      localStorage.removeItem('typing_reflex_codelab_solved_v1');
+    } catch (_) {
+      // ignore storage errors
+    }
+    if (typeof this.populateCodeLabProblems === 'function') {
+      this.populateCodeLabProblems();
+    }
+    if (typeof this.updateCodeLabProgressUI === 'function') {
+      this.updateCodeLabProgressUI();
+    }
+    this.syncSettingsUI();
+  }
+
+  isSettingsPopoverOpen() {
+    return Boolean(
+      this.elSettingsPopover &&
+      this.elSettingsPopover.style.display &&
+      this.elSettingsPopover.style.display !== 'none'
+    );
+  }
+
+  openSettingsPopover() {
+    if (!this.elSettingsPopover) return;
+    this.syncSettingsUI();
+    this.elSettingsPopover.style.display = 'flex';
+    if (this.elSettingsBtn) {
+      this.elSettingsBtn.classList.add('active');
+      this.elSettingsBtn.setAttribute('aria-expanded', 'true');
+    }
+  }
+
+  closeSettingsPopover() {
+    if (!this.elSettingsPopover) return;
+    this.elSettingsPopover.style.display = 'none';
+    if (this.elSettingsBtn) {
+      this.elSettingsBtn.classList.remove('active');
+      this.elSettingsBtn.setAttribute('aria-expanded', 'false');
+    }
+  }
+
+  toggleSettingsPopover() {
+    if (this.isSettingsPopoverOpen()) this.closeSettingsPopover();
+    else this.openSettingsPopover();
+  }
+
+  getDefaultMenuTabForMode() {
+    if (this.currentMode === 'practice_code') return 'codelab';
+    if (['practice_position', 'practice_words', 'practice_sentences'].includes(this.currentMode)) return 'typing';
+    return 'reflex';
+  }
+
+  isStudioMenuOpen() {
+    return Boolean(
+      this.elStudioMenuOverlay &&
+      this.elStudioMenuOverlay.style.display &&
+      this.elStudioMenuOverlay.style.display !== 'none'
+    );
+  }
+
+  openStudioMenu(tabName = null, { focusSearch = false } = {}) {
+    if (!this.elStudioMenuOverlay) return;
+    this.closeSettingsPopover();
+    const targetTab = tabName || this.getDefaultMenuTabForMode();
+    if (this.elMenuSearchInput) {
+      this.elMenuSearchInput.value = '';
+      this.renderMenuSearchResults('');
+    }
+    this.switchStudioMenuTab(targetTab);
+    this.renderSubFilterButtons();
+    this.renderMenuCodeLabCourseGrid();
+    this.syncSettingsUI();
+    this.elStudioMenuOverlay.style.display = 'flex';
+    if (this.elStudioMenuBtn) this.elStudioMenuBtn.classList.add('active');
+    if (focusSearch && this.elMenuSearchInput) {
+      setTimeout(() => this.elMenuSearchInput.focus(), 40);
+    }
+  }
+
+  closeStudioMenu() {
+    if (this.elStudioMenuOverlay) {
+      this.elStudioMenuOverlay.style.display = 'none';
+    }
+    if (this.elStudioMenuBtn) this.elStudioMenuBtn.classList.remove('active');
+    if (this.elMenuSearchInput) {
+      this.elMenuSearchInput.value = '';
+      this.renderMenuSearchResults('');
+    }
+    if (this.currentMode === 'practice_code' && !this.isCodeLabModalOpen()) {
+      if (this.isEditableCodeMode() && this.elCodeSandboxTextarea) {
+        setTimeout(() => this.elCodeSandboxTextarea.focus(), 60);
+      } else if (this.elCodeHiddenInput) {
+        setTimeout(() => this.elCodeHiddenInput.focus(), 60);
+      }
+    }
+  }
+
+  switchStudioMenuTab(tabName) {
+    const validTabs = ['reflex', 'typing', 'codelab', 'settings_keyboard', 'settings_sound', 'settings_data'];
+    const valid = validTabs.includes(tabName) ? tabName : 'codelab';
+    const isSettings = valid.startsWith('settings_');
+
+    if (this.elMenuSearchResults && this.elMenuSearchResults.style.display !== 'none') {
+      if (this.elMenuSearchInput) this.elMenuSearchInput.value = '';
+      this.elMenuSearchResults.style.display = 'none';
+    }
+    if (this.elMenuSearchClearBtn) this.elMenuSearchClearBtn.style.display = 'none';
+
+    if (this.elStudioMenuBody) {
+      this.elStudioMenuBody.classList.toggle('is-settings-view', isSettings);
+    }
+    if (this.elMenuRailBtns) {
+      this.elMenuRailBtns.forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-menutab') === valid);
+      });
+    }
+    if (this.elMenuPanes) {
+      this.elMenuPanes.forEach(pane => {
+        pane.classList.toggle('active', pane.id === `menu-pane-${valid}`);
+      });
+    }
+    if (valid === 'codelab') {
+      this.renderMenuCodeLabCourseGrid();
+    } else if (valid === 'reflex' || valid === 'typing') {
+      this.renderSubFilterButtons();
+    }
+  }
+
+  isSettingsHubOpen() {
+    return this.isStudioMenuOpen();
+  }
+
+  openSettingsHub(tabName = 'keyboard') {
+    const map = {
+      keyboard: 'settings_keyboard',
+      sound: 'settings_sound',
+      codelab: 'settings_keyboard',
+      data: 'settings_data'
+    };
+    this.openStudioMenu(map[tabName] || 'settings_keyboard', { focusSearch: false });
+  }
+
+  closeSettingsHub() {
+    this.closeStudioMenu();
+  }
+
+  isAnyModalBlockingTyping() {
+    return this.isCodeLabModalOpen() || this.isStudioMenuOpen();
+  }
+
+  updateStudioBreadcrumb() {
+    if (!this.elStudioBreadcrumbBtn) return;
+    const modeNames = {
+      reflex_single: '순발력 (5회)',
+      reflex_rush: '30초 리플렉스',
+      hw_diagnostic: 'HW 진단',
+      practice_position: '자리 연습',
+      practice_words: '낱말 연습',
+      practice_sentences: '짧은 글 연습',
+      practice_code: '코드 연습'
+    };
+
+    if (this.currentMode === 'practice_code') {
+      const lesson = this.codeLab.currentLesson || ((window.CODE_CURRICULUM && window.CODE_CURRICULUM[this.codeLab.lang]) || [])[this.codeLab.lessonIndex];
+      const langMap = { javascript: 'JS', python: 'Python', c: 'C', spec: '스펙·설계' };
+      const typeMap = { flow: 'Flow', skeleton: 'Skeleton', sandbox: 'Sandbox', audit: 'AI 리뷰' };
+      const langLabel = langMap[this.codeLab.lang] || this.codeLab.lang;
+      const typeLabel = typeMap[this.codeLab.typeMode] || 'Flow';
+      if (lesson) {
+        const tMeta = this.getTrackMeta(this.getLessonTrack(lesson));
+        const dMeta = this.getDifficultyMeta(this.getLessonDifficulty(lesson));
+        this.elStudioBreadcrumbBtn.textContent = `코드 연습 › ${langLabel} · ${tMeta.shortLabel} · ${dMeta.label} · ${lesson.title} · ${typeLabel}`;
+      } else {
+        this.elStudioBreadcrumbBtn.textContent = `코드 연습 › ${langLabel} · ${typeLabel}`;
+      }
+      return;
+    }
+
+    if (this.currentMode === 'hw_diagnostic') {
+      this.elStudioBreadcrumbBtn.textContent = 'HW 진단 · 실시간 스위치 계측';
+      return;
+    }
+
+    const subLabelMap = {
+      all: this.currentMode === 'practice_sentences' ? (this.lang === 'ko' ? '전체 명작 구절' : 'All Literature') : (this.currentMode === 'practice_words' ? '전체 혼합' : '전체 자판'),
+      home: '기본 자리',
+      top: '윗자리',
+      bottom: '아랫자리',
+      weak: '소지·약지 집중',
+      dev: this.lang === 'ko' ? '개발자 영단어' : 'Developer Words',
+      general: this.lang === 'ko' ? '일상 영단어' : 'General Words',
+      novel: this.lang === 'ko' ? '소설 / 단편' : 'Classic Novels',
+      poem: this.lang === 'ko' ? '서정시' : 'Poetry',
+      essay: this.lang === 'ko' ? '명수필 / 고전' : 'Drama & Essays'
+    };
+    const langTag = this.lang === 'ko' ? '한글' : 'EN';
+    const subTag = subLabelMap[this.subOption] || this.subOption;
+    this.elStudioBreadcrumbBtn.textContent = `${modeNames[this.currentMode] || '연습'} · ${subTag} · ${langTag}`;
+  }
+
+  renderMenuCodeLabCourseGrid() {
+    if (!this.elMenuCodeLabCourseGrid || !window.CODE_CURRICULUM) return;
+    const filtered = this.getFilteredCodeLabLessons(this.codeLab.lang, this.codeLab.difficulty, this.codeLab.track);
+    const solvedSet = this.codeLab.solvedLessons || new Set();
+    const langNames = { javascript: 'JavaScript', python: 'Python', c: 'C99', spec: '스펙·설계' };
+
+    let allTotal = 0;
+    let allSolved = 0;
+    Object.values(window.CODE_CURRICULUM).forEach(list => {
+      if (!Array.isArray(list)) return;
+      list.forEach(l => {
+        allTotal++;
+        if (solvedSet.has(l.id)) allSolved++;
+      });
+    });
+    if (this.elMenuCodeLabProgress) {
+      this.elMenuCodeLabProgress.textContent = `완료 ${allSolved} / ${allTotal}`;
+    }
+
+    this.elMenuCodeLabCourseGrid.innerHTML = '';
+    if (filtered.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'menu-search-empty';
+      empty.style.gridColumn = '1 / -1';
+      empty.textContent = '선택한 필터 조건에 맞는 코스가 없습니다.';
+      this.elMenuCodeLabCourseGrid.appendChild(empty);
+      return;
+    }
+
+    filtered.forEach(({ lesson, originalIndex }) => {
+      const isCurrent = originalIndex === this.codeLab.lessonIndex;
+      const isSolved = solvedSet.has(lesson.id);
+      const tMeta = this.getTrackMeta(this.getLessonTrack(lesson));
+      const dMeta = this.getDifficultyMeta(this.getLessonDifficulty(lesson));
+
+      const card = document.createElement('button');
+      card.type = 'button';
+      card.className = 'menu-course-card' + (isCurrent ? ' is-current' : '') + (isSolved ? ' is-solved' : '');
+      card.setAttribute('data-lesson-idx', String(originalIndex));
+      card.innerHTML = `
+        <div class="mcc-top">
+          <span class="mcc-track">[${this.escapeHtml(tMeta.shortLabel)} · T${lesson.tier}]</span>
+          ${isCurrent ? '<span class="mcc-badge-current">선택됨</span>' : (isSolved ? '<span class="mcc-badge-solved">완료</span>' : '')}
+        </div>
+        <div class="mcc-title">${this.escapeHtml(lesson.title)}</div>
+        <div class="mcc-meta">
+          <span>${this.escapeHtml(dMeta.label)} · ${this.escapeHtml((lesson.complexity && lesson.complexity.time) || 'O(1)')}</span>
+          <span>${this.escapeHtml(langNames[this.codeLab.lang] || this.codeLab.lang)}</span>
+        </div>
+      `;
+      card.addEventListener('click', () => {
+        this.codeLab.lessonIndex = originalIndex;
+        if (this.elCodeProblemSelect) this.elCodeProblemSelect.value = String(originalIndex);
+        if (this.currentMode !== 'practice_code') {
+          this.switchMode('practice_code');
+        } else {
+          this.loadCodeLabLesson(this.codeLab.lang, originalIndex);
+        }
+        this.closeStudioMenu();
+      });
+      this.elMenuCodeLabCourseGrid.appendChild(card);
+    });
+  }
+
+  renderMenuSearchResults(rawQuery) {
+    if (!this.elMenuSearchResults) return;
+    const query = (rawQuery || '').trim().toLowerCase();
+    if (this.elMenuSearchClearBtn) {
+      this.elMenuSearchClearBtn.style.display = query ? 'inline-flex' : 'none';
+    }
+
+    if (!query) {
+      this.elMenuSearchResults.style.display = 'none';
+      this.elMenuSearchResults.innerHTML = '';
+      if (this.elMenuPanes && this.elMenuRailBtns) {
+        const activeBtn = Array.from(this.elMenuRailBtns).find(b => b.classList.contains('active'));
+        const activeTab = activeBtn ? activeBtn.getAttribute('data-menutab') : 'codelab';
+        this.elMenuPanes.forEach(p => p.classList.toggle('active', p.id === `menu-pane-${activeTab}`));
+        if (this.elStudioMenuBody) {
+          this.elStudioMenuBody.classList.toggle('is-settings-view', activeTab.startsWith('settings_'));
+        }
+      }
+      return;
+    }
+
+    if (this.elStudioMenuBody) this.elStudioMenuBody.classList.remove('is-settings-view');
+    if (this.elMenuPanes) this.elMenuPanes.forEach(p => p.classList.remove('active'));
+    this.elMenuSearchResults.style.display = 'flex';
+    this.elMenuSearchResults.innerHTML = '';
+
+    const hits = [];
+
+    // 1. 연습 모드 검색
+    const modeDefs = [
+      { mode: 'reflex_single', title: '순발력 (5회)', desc: '무작위 키 반응속도 5회 평균 측정', keys: '순발력 반응속도 reflex 단일' },
+      { mode: 'reflex_rush', title: '30초 리플렉스', desc: '30초 제한 시간 내 연속 반응속도 도전', keys: '30초 리플렉스 rush 반응속도' },
+      { mode: 'hw_diagnostic', title: 'HW 진단', desc: '스위치 눌림 시간 · 폴링레이트 · 채터링 · NKRO 측정', keys: 'hw 하드웨어 진단 nkro 채터링 폴링' },
+      { mode: 'practice_position', title: '자리 연습', desc: '한/영 기본 자리 및 키 위치 집중 반복', keys: '자리 자모 position 기초' },
+      { mode: 'practice_words', title: '낱말 연습', desc: '개발자 필수 영단어 및 일상 단어', keys: '낱말 단어 words 개발자' },
+      { mode: 'practice_sentences', title: '짧은 글 연습', desc: '한국 문학 구절 및 영미 고전 문장', keys: '짧은 글 문장 문학 소설 시' },
+      { mode: 'practice_code', title: '코드 연습 (CodeLab)', desc: '47개 알고리즘·AI·아키텍처·스펙 실시간 코딩', keys: '코드 연습 codelab 알고리즘 ai' }
+    ];
+    modeDefs.forEach(m => {
+      if (`${m.title} ${m.desc} ${m.keys}`.toLowerCase().includes(query)) {
+        hits.push({
+          kind: '연습 모드',
+          title: m.title,
+          sub: m.desc,
+          run: () => {
+            this.switchMode(m.mode);
+            this.closeStudioMenu();
+          }
+        });
+      }
+    });
+
+    // 2. CodeLab 커리큘럼 47개 전체 검색
+    if (window.CODE_CURRICULUM) {
+      const langNames = { javascript: 'JS', python: 'Python', c: 'C', spec: '스펙·설계' };
+      Object.entries(window.CODE_CURRICULUM).forEach(([lang, list]) => {
+        if (!Array.isArray(list)) return;
+        list.forEach((lesson, idx) => {
+          const tMeta = this.getTrackMeta(this.getLessonTrack(lesson));
+          const dMeta = this.getDifficultyMeta(this.getLessonDifficulty(lesson));
+          const hay = `${lesson.title} ${lesson.description || ''} ${tMeta.label} ${dMeta.label} ${langNames[lang] || lang}`.toLowerCase();
+          if (hay.includes(query)) {
+            hits.push({
+              kind: `${langNames[lang] || lang} 코스`,
+              title: `[${tMeta.shortLabel}·T${lesson.tier}] ${lesson.title}`,
+              sub: `${dMeta.label} · ${tMeta.label} · ${lesson.description || ''}`,
+              run: () => {
+                this.codeLab.lang = lang;
+                this.codeLab.track = 'all';
+                this.codeLab.difficulty = 'all';
+                this.codeLab.lessonIndex = idx;
+                this.saveCodeLabTrack();
+                this.saveCodeLabDifficulty();
+                this.syncCodeLabLangButtons();
+                this.syncCodeLabTrackSelect();
+                this.syncCodeLabDifficultyButtons();
+                this.populateCodeLabProblems();
+                this.updateCodeLabProgressUI();
+                if (this.currentMode !== 'practice_code') {
+                  this.switchMode('practice_code');
+                } else {
+                  this.loadCodeLabLesson(lang, idx);
+                }
+                this.closeStudioMenu();
+              }
+            });
+          }
+        });
+      });
+    }
+
+    // 3. 스튜디오 설정 빠른 실행 검색
+    const settingActions = [
+      { title: '상단 실시간 통계 패널 접기/펼치기', sub: '반응속도 · HW 지연 · 10지 밸런스 시트 토글 (Ctrl+I)', keys: '통계 패널 리포트 손가락 밸런스 telemetry ctrl+i', run: () => this.toggleTelemetryPanel() },
+      { title: '손가락 구역 색상 토글', sub: '열손가락 키캡 컬러 힌트 켜기/끄기', keys: '손가락 구역 색상 컬러 zone', run: () => this.setZoneColorsSetting(!this.userSettings.showZoneColors) },
+      { title: '속도 히트맵 오버레이 토글', sub: '키캡 위 평균 반응속도 및 오타율 시각화', keys: '히트맵 heatmap 속도', run: () => this.setHeatmapEnabled(!this.userSettings.heatmapEnabled) },
+      { title: '넓게 보기 / 가상 키보드 토글', sub: 'CodeLab 풀높이 집중 뷰 또는 키보드 표시 전환', keys: '넓게 보기 가상 키보드 wide', run: () => { if (this.currentMode === 'practice_code') this.setCodeLabWideMode(!this.codeLab.keyboardHidden, { skipFocus: true }); else this.setGeneralKbdHidden(!this.userSettings.generalKbdHidden); } },
+      { title: '타건음: 도각도각 (무접점 Thock)', sub: '토프레 무접점 키보드 사운드 적용', keys: '타건음 사운드 도각 thock', run: () => this.setSoundProfileSetting('thock', { preview: true }) },
+      { title: '타건음: 사각사각 (갈축 Tactile)', sub: '갈축 택타일 스위치 타건음 적용', keys: '타건음 사운드 갈축 tactile', run: () => this.setSoundProfileSetting('tactile', { preview: true }) },
+      { title: '타건음: 서걱서걱 (적축 Linear)', sub: '리니어 스위치 타건음 적용', keys: '타건음 사운드 적축 linear', run: () => this.setSoundProfileSetting('linear', { preview: true }) },
+      { title: '타건음: 찰칵찰칵 (청축 Clicky)', sub: '청축 클릭키 스위치 타건음 적용', keys: '타건음 사운드 청축 clicky', run: () => this.setSoundProfileSetting('clicky', { preview: true }) },
+      { title: '타건음: 음소거 (Mute)', sub: '모든 키보드 효과음 끄기', keys: '타건음 사운드 음소거 무음 mute', run: () => this.setSoundProfileSetting('mute', { preview: false }) },
+      { title: '상세 환경 설정 열기', sub: '투명도 · 자판 · 통계 초기화 설정 탭으로 이동', keys: '설정 투명도 자판 초기화 통계', run: () => this.switchStudioMenuTab('settings_keyboard') }
+    ];
+    settingActions.forEach(s => {
+      if (`${s.title} ${s.sub} ${s.keys}`.toLowerCase().includes(query)) {
+        hits.push({
+          kind: '설정',
+          title: s.title,
+          sub: s.sub,
+          run: () => {
+            s.run();
+            if (s.kind !== 'keep') this.renderMenuSearchResults(this.elMenuSearchInput ? this.elMenuSearchInput.value : '');
+          }
+        });
+      }
+    });
+
+    if (hits.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'menu-search-empty';
+      empty.textContent = `"${rawQuery}" 에 해당하는 모드, 코스, 설정을 찾지 못했습니다.`;
+      this.elMenuSearchResults.appendChild(empty);
+      return;
+    }
+
+    const head = document.createElement('div');
+    head.className = 'menu-search-section-label';
+    head.textContent = `검색 결과 ${hits.length}건 (Enter 키로 첫 번째 항목 바로 실행)`;
+    this.elMenuSearchResults.appendChild(head);
+
+    hits.slice(0, 14).forEach((hit, idx) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'menu-search-hit' + (idx === 0 ? ' is-top-hit' : '');
+      btn.innerHTML = `
+        <div class="msh-main">
+          <span class="msh-title">${this.escapeHtml(hit.title)}</span>
+          <span class="msh-sub">${this.escapeHtml(hit.sub)}</span>
+        </div>
+        <span class="msh-kind">${this.escapeHtml(hit.kind)}</span>
+      `;
+      btn.addEventListener('click', hit.run);
+      this.elMenuSearchResults.appendChild(btn);
+    });
+  }
+
+  syncSettingsUI() {
+    const s = this.userSettings || this.getDefaultUserSettings();
+    const isCodeLab = this.currentMode === 'practice_code';
+    const zonesOn = Boolean(s.showZoneColors);
+    const heatmapOn = Boolean(s.heatmapEnabled);
+    const opacityVal = Number(s.handOpacity);
+    const opacityPct = Math.round(opacityVal * 100);
+    const soundProf = s.soundProfile || 'thock';
+    const codelabWide = Boolean(this.codeLab.keyboardHidden);
+    const generalHidden = Boolean(s.generalKbdHidden);
+    const effectiveLang = isCodeLab ? (s.lang || this._nonCodeLang || 'ko') : this.lang;
+    const soundShortMap = {
+      thock: '도각',
+      tactile: '갈축',
+      linear: '적축',
+      clicky: '청축',
+      mute: '무음'
+    };
+
+    const syncQuickTileSet = (zonesTile, zonesSub, wideTile, wideTitle, wideSub, heatTile, heatSub, langTile, langSub) => {
+      if (zonesTile) {
+        zonesTile.classList.toggle('is-active-teal', zonesOn);
+        zonesTile.setAttribute('aria-pressed', String(zonesOn));
+      }
+      if (zonesSub) zonesSub.textContent = zonesOn ? '켜짐 · 구역 컬러' : '꺼짐';
+
+      if (wideTile) {
+        if (isCodeLab) {
+          wideTile.classList.toggle('is-active-teal', codelabWide);
+          wideTile.setAttribute('aria-pressed', String(codelabWide));
+          if (wideTitle) wideTitle.textContent = '넓게 보기';
+          if (wideSub) wideSub.textContent = codelabWide ? '2.1× 집중 모드 ON' : '기본 (키보드 표시)';
+        } else {
+          wideTile.classList.toggle('is-active-teal', !generalHidden);
+          wideTile.setAttribute('aria-pressed', String(!generalHidden));
+          if (wideTitle) wideTitle.textContent = '가상 키보드';
+          if (wideSub) wideSub.textContent = generalHidden ? '숨김 (집중)' : '표시 중';
+        }
+      }
+
+      if (heatTile) {
+        heatTile.classList.toggle('is-active-orange', heatmapOn);
+        heatTile.setAttribute('aria-pressed', String(heatmapOn));
+      }
+      if (heatSub) heatSub.textContent = heatmapOn ? '켜짐 · 키캡 오버레이' : '꺼짐';
+
+      if (langTile) {
+        langTile.classList.toggle('is-active-orange', !isCodeLab);
+        langTile.classList.toggle('is-muted-note', isCodeLab);
+      }
+      if (langSub) {
+        if (isCodeLab) {
+          langSub.textContent = `EN 고정 (일반: ${effectiveLang === 'ko' ? '한글' : 'EN'})`;
+        } else {
+          langSub.textContent = effectiveLang === 'ko' ? '한글 두벌식' : '영문 QWERTY';
+        }
+      }
+    };
+
+    // 1) 상단 우측 빠른 설정 팝오버 동기화
+    syncQuickTileSet(
+      this.elPopTileZones, this.elPopTileZonesSub,
+      this.elPopTileWide, this.elPopTileWideTitle, this.elPopTileWideSub,
+      this.elPopTileHeatmap, this.elPopTileHeatmapSub,
+      this.elPopTileLang, this.elPopTileLangSub
+    );
+
+    // 2) 통합 메뉴 우측 퀵 설정 독 (안 C) 동기화
+    syncQuickTileSet(
+      this.elDockTileZones, this.elDockTileZonesSub,
+      this.elDockTileWide, this.elDockTileWideTitle, this.elDockTileWideSub,
+      this.elDockTileHeatmap, this.elDockTileHeatmapSub,
+      this.elDockTileLang, this.elDockTileLangSub
+    );
+
+    // 3) 투명도 슬라이더 3곳 동기화
+    [
+      [this.elPopOpacitySlider, this.elPopOpacityVal],
+      [this.elDockOpacitySlider, this.elDockOpacityVal],
+      [this.elHubOpacitySlider, this.elHubOpacityVal]
+    ].forEach(([sl, labelEl]) => {
+      if (sl) sl.value = String(opacityVal);
+      if (labelEl) labelEl.textContent = `${opacityPct}%`;
+    });
+
+    // 4) 타건음 버튼/카드 동기화
+    [this.elPopSoundBtns, this.elDockSoundBtns, this.elHubSoundCards].forEach(group => {
+      if (!group) return;
+      group.forEach(el => {
+        el.classList.toggle('active', el.getAttribute('data-sound') === soundProf);
+      });
+    });
+
+    if (this.elPopExplainBtn) this.elPopExplainBtn.style.display = isCodeLab ? 'inline-flex' : 'none';
+    if (this.elDockExplainBtn) this.elDockExplainBtn.style.display = isCodeLab ? 'inline-flex' : 'none';
+
+    if (this.elSettingsSummary) {
+      const langBadge = isCodeLab ? 'EN 고정' : (effectiveLang === 'ko' ? '한글' : 'EN');
+      this.elSettingsSummary.textContent = `${langBadge} · ${soundShortMap[soundProf] || '도각'} · ${opacityPct}%${heatmapOn ? ' · 히트맵' : ''}`;
+    }
+
+    if (this.elTelemetryHeatmapBtn) {
+      this.elTelemetryHeatmapBtn.classList.toggle('active', heatmapOn);
+      this.elTelemetryHeatmapBtn.setAttribute('aria-pressed', String(heatmapOn));
+    }
+
+    if (this.elHubLangKo) this.elHubLangKo.classList.toggle('active', effectiveLang === 'ko');
+    if (this.elHubLangEn) this.elHubLangEn.classList.toggle('active', effectiveLang === 'en');
+    if (this.elHubToggleZones) this.elHubToggleZones.checked = zonesOn;
+    if (this.elHubToggleHeatmap) this.elHubToggleHeatmap.checked = heatmapOn;
+    if (this.elHubWideOff) this.elHubWideOff.classList.toggle('active', !codelabWide);
+    if (this.elHubWideOn) this.elHubWideOn.classList.toggle('active', codelabWide);
+
+    if ((this.elHubProgressText || this.elMenuCodeLabProgress) && window.CODE_CURRICULUM) {
+      const lists = Object.values(window.CODE_CURRICULUM);
+      let total = 0;
+      let solved = 0;
+      const solvedSet = this.codeLab.solvedLessons || new Set();
+      lists.forEach(list => {
+        if (!Array.isArray(list)) return;
+        list.forEach(lesson => {
+          total++;
+          if (solvedSet.has(lesson.id)) solved++;
+        });
+      });
+      if (this.elHubProgressText) this.elHubProgressText.textContent = `현재 완료한 레슨: ${solved} / ${total}`;
+      if (this.elMenuCodeLabProgress) this.elMenuCodeLabProgress.textContent = `완료 ${solved} / ${total}`;
     }
   }
 
@@ -2231,13 +3547,13 @@ class TypingReflexApp {
 
   getTrackMeta(track) {
     const map = {
-      all: { key: 'all', label: '전체 트랙', shortLabel: '전체', icon: '📚' },
-      algorithm: { key: 'algorithm', label: '알고리즘', shortLabel: '알고리즘', icon: '📐' },
-      architecture: { key: 'architecture', label: '설계·아키텍처', shortLabel: '설계', icon: '🏗️' },
-      refactoring: { key: 'refactoring', label: '리팩터링', shortLabel: '리팩터링', icon: '🔄' },
-      ai: { key: 'ai', label: 'AI·RAG 인프라', shortLabel: 'AI·RAG', icon: '🤖' },
-      system_design: { key: 'system_design', label: '시스템 설계·ADR', shortLabel: '시스템', icon: '⚖️' },
-      spec: { key: 'spec', label: '스펙·다이어그램', shortLabel: '스펙', icon: '📜' }
+      all: { key: 'all', label: '전체 트랙', shortLabel: '전체', icon: '' },
+      algorithm: { key: 'algorithm', label: '알고리즘', shortLabel: '알고리즘', icon: '' },
+      architecture: { key: 'architecture', label: '설계·아키텍처', shortLabel: '설계', icon: '' },
+      refactoring: { key: 'refactoring', label: '리팩터링', shortLabel: '리팩터링', icon: '' },
+      ai: { key: 'ai', label: 'AI·RAG 인프라', shortLabel: 'AI·RAG', icon: '' },
+      system_design: { key: 'system_design', label: '시스템 설계·ADR', shortLabel: '시스템', icon: '' },
+      spec: { key: 'spec', label: '스펙·다이어그램', shortLabel: '스펙', icon: '' }
     };
     return map[track] || map.all;
   }
@@ -2306,10 +3622,10 @@ class TypingReflexApp {
 
   getDifficultyMeta(diff) {
     const map = {
-      all: { key: 'all', label: '전체', icon: '📚' },
-      beginner: { key: 'beginner', label: '초급', icon: '🌱' },
-      intermediate: { key: 'intermediate', label: '중급', icon: '⚡' },
-      advanced: { key: 'advanced', label: '고급', icon: '🔥' }
+      all: { key: 'all', label: '전체', icon: '' },
+      beginner: { key: 'beginner', label: '초급', icon: '' },
+      intermediate: { key: 'intermediate', label: '중급', icon: '' },
+      advanced: { key: 'advanced', label: '고급', icon: '' }
     };
     return map[diff] || map.all;
   }
@@ -2418,10 +3734,12 @@ class TypingReflexApp {
     if (this.elCodeProblemSelect) this.elCodeProblemSelect.value = String(targetIdx);
     this.loadCodeLabLesson(this.codeLab.lang, targetIdx);
 
-    if (this.isEditableCodeMode() && this.elCodeSandboxTextarea) {
-      setTimeout(() => this.elCodeSandboxTextarea.focus(), 60);
-    } else if (this.elCodeHiddenInput) {
-      setTimeout(() => this.elCodeHiddenInput.focus(), 60);
+    if (!this.isAnyModalBlockingTyping()) {
+      if (this.isEditableCodeMode() && this.elCodeSandboxTextarea) {
+        setTimeout(() => this.elCodeSandboxTextarea.focus(), 60);
+      } else if (this.elCodeHiddenInput) {
+        setTimeout(() => this.elCodeHiddenInput.focus(), 60);
+      }
     }
   }
 
@@ -2461,6 +3779,9 @@ class TypingReflexApp {
       this.elCodeProgressPill.textContent = `${parts.join('·')} ${filteredSolved}/${filteredTotal}`;
       this.elCodeProgressPill.title = `선택 필터 완료 수 (전체 ${allSolved}/${allTotal})`;
     }
+    if (this.elHubProgressText) {
+      this.elHubProgressText.textContent = `현재 완료한 레슨: ${allSolved} / ${allTotal}`;
+    }
   }
 
   startCodeLabMode() {
@@ -2477,45 +3798,52 @@ class TypingReflexApp {
       : (filtered.length > 0 ? filtered[0].originalIndex : 0);
 
     this.loadCodeLabLesson(this.codeLab.lang, initialIdx);
-    if (this.isEditableCodeMode() && this.elCodeSandboxTextarea) {
-      setTimeout(() => this.elCodeSandboxTextarea.focus(), 80);
-    } else if (this.elCodeHiddenInput) {
-      setTimeout(() => this.elCodeHiddenInput.focus(), 80);
+    if (!this.isAnyModalBlockingTyping()) {
+      if (this.isEditableCodeMode() && this.elCodeSandboxTextarea) {
+        setTimeout(() => this.elCodeSandboxTextarea.focus(), 80);
+      } else if (this.elCodeHiddenInput) {
+        setTimeout(() => this.elCodeHiddenInput.focus(), 80);
+      }
     }
   }
 
   populateCodeLabProblems() {
-    if (!this.elCodeProblemSelect || !window.CODE_CURRICULUM) return;
+    if (!window.CODE_CURRICULUM) return;
     const filtered = this.getFilteredCodeLabLessons(this.codeLab.lang, this.codeLab.difficulty, this.codeLab.track);
-    this.elCodeProblemSelect.innerHTML = '';
 
-    const tiers = {
-      1: '🌱 초급 · Tier 1: 문법 · 기초 계약',
-      2: '⚡ 중급 · Tier 2: 자료구조 · AI 처리',
-      3: '⚡ 중급 · Tier 3: 알고리즘 · 아키텍처',
-      4: '🔥 고급 · Tier 4: 시스템 설계 · 복원력 패턴'
-    };
+    if (this.elCodeProblemSelect) {
+      this.elCodeProblemSelect.innerHTML = '';
 
-    const grouped = {};
-    filtered.forEach(({ lesson, originalIndex }) => {
-      if (!grouped[lesson.tier]) grouped[lesson.tier] = [];
-      grouped[lesson.tier].push({ ...lesson, index: originalIndex });
-    });
+      const tiers = {
+        1: '초급 · Tier 1: 문법 · 기초 계약',
+        2: '중급 · Tier 2: 자료구조 · AI 처리',
+        3: '중급 · Tier 3: 알고리즘 · 아키텍처',
+        4: '고급 · Tier 4: 시스템 설계 · 복원력 패턴'
+      };
 
-    Object.keys(grouped).sort().forEach(tierNum => {
-      const optGroup = document.createElement('optgroup');
-      optGroup.label = tiers[tierNum] || `Tier ${tierNum}`;
-      grouped[tierNum].forEach(item => {
-        const opt = document.createElement('option');
-        opt.value = item.index;
-        const solvedMark = this.codeLab.solvedLessons.has(item.id) ? '✅ ' : '';
-        const tMeta = this.getTrackMeta(this.getLessonTrack(item));
-        opt.textContent = `${solvedMark}[${tMeta.shortLabel}·T${item.tier}] ${item.title}`;
-        if (item.index === this.codeLab.lessonIndex) opt.selected = true;
-        optGroup.appendChild(opt);
+      const grouped = {};
+      filtered.forEach(({ lesson, originalIndex }) => {
+        if (!grouped[lesson.tier]) grouped[lesson.tier] = [];
+        grouped[lesson.tier].push({ ...lesson, index: originalIndex });
       });
-      this.elCodeProblemSelect.appendChild(optGroup);
-    });
+
+      Object.keys(grouped).sort().forEach(tierNum => {
+        const optGroup = document.createElement('optgroup');
+        optGroup.label = tiers[tierNum] || `Tier ${tierNum}`;
+        grouped[tierNum].forEach(item => {
+          const opt = document.createElement('option');
+          opt.value = item.index;
+          const solvedMark = this.codeLab.solvedLessons.has(item.id) ? '[완료] ' : '';
+          const tMeta = this.getTrackMeta(this.getLessonTrack(item));
+          opt.textContent = `${solvedMark}[${tMeta.shortLabel}·T${item.tier}] ${item.title}`;
+          if (item.index === this.codeLab.lessonIndex) opt.selected = true;
+          optGroup.appendChild(opt);
+        });
+        this.elCodeProblemSelect.appendChild(optGroup);
+      });
+    }
+
+    this.renderMenuCodeLabCourseGrid();
   }
 
   setCodeLabLanguage(lang) {
@@ -2825,11 +4153,16 @@ class TypingReflexApp {
       }, 30);
     }
 
-    if (isEditable && this.elCodeSandboxTextarea) {
-      this.elCodeSandboxTextarea.focus();
-    } else if (this.elCodeHiddenInput) {
-      this.elCodeHiddenInput.value = '';
-      this.elCodeHiddenInput.focus();
+    this.renderMenuCodeLabCourseGrid();
+    this.updateStudioBreadcrumb();
+
+    if (!this.isAnyModalBlockingTyping()) {
+      if (isEditable && this.elCodeSandboxTextarea) {
+        this.elCodeSandboxTextarea.focus();
+      } else if (this.elCodeHiddenInput) {
+        this.elCodeHiddenInput.value = '';
+        this.elCodeHiddenInput.focus();
+      }
     }
   }
 
@@ -3272,7 +4605,7 @@ class TypingReflexApp {
   }
 
   handleCodeLabInputKey(ch) {
-    if (this.currentMode !== 'practice_code' || this.isCodeLabModalOpen()) return;
+    if (this.currentMode !== 'practice_code' || this.isAnyModalBlockingTyping()) return;
 
     if (this.codeLab.typeMode === 'skeleton' && this.codeLab.skeletonModel) {
       this.handleCodeLabSkeletonInputKey(ch);
@@ -3387,6 +4720,7 @@ class TypingReflexApp {
   }
 
   handleCodeLabBackspace() {
+    if (this.isAnyModalBlockingTyping()) return;
     if (this.codeLab.typeMode === 'skeleton' && this.codeLab.skeletonModel) {
       const blanks = this.codeLab.skeletonModel.blanks;
       const curBlank = blanks[this.codeLab.activeBlankIdx];
@@ -3417,7 +4751,7 @@ class TypingReflexApp {
   }
 
   advanceCodeLabNextLesson() {
-    const filtered = this.getFilteredCodeLabLessons(this.codeLab.lang, this.codeLab.difficulty);
+    const filtered = this.getFilteredCodeLabLessons(this.codeLab.lang, this.codeLab.difficulty, this.codeLab.track);
     if (filtered.length > 0) {
       const pos = filtered.findIndex(item => item.originalIndex === this.codeLab.lessonIndex);
       const nextItem = filtered[(pos + 1) % filtered.length];
@@ -3632,23 +4966,29 @@ class TypingReflexApp {
   setCodeLabWideMode(isWide, options = {}) {
     const wide = Boolean(isWide);
     this.codeLab.keyboardHidden = wide;
-    document.body.classList.toggle('codelab-kbd-hidden', wide);
-
-    if (this.elCodeKbdToggleBtn) {
-      this.elCodeKbdToggleBtn.classList.toggle('active', wide);
-      this.elCodeKbdToggleBtn.textContent = wide ? '⌨️ 키보드 보기' : '⌨️ 키보드 접기';
+    if (!options.skipSave && this.userSettings) {
+      this.userSettings.codelabWideDefault = wide;
+      this.saveUserSettings();
     }
-    [this.elCodeWideToggleBtn, this.elCodeStageWideBtn].forEach(btn => {
-      if (!btn) return;
-      btn.classList.toggle('active', wide);
-      btn.textContent = wide ? '⌨️ 기본 보기 (키보드)' : '📖 넓게 보기';
-    });
+
+    if (this.elCodeWideToggleBtn) {
+      this.elCodeWideToggleBtn.classList.toggle('active', wide);
+      this.elCodeWideToggleBtn.textContent = wide ? '기본 보기 (키보드)' : '넓게 보기';
+    }
+
+    if (this.currentMode !== 'practice_code') {
+      this.syncSettingsUI();
+      return;
+    }
+
+    document.body.classList.toggle('codelab-kbd-hidden', wide);
+    this.syncSettingsUI();
 
     if (this.isEditableCodeMode()) {
       this.syncSandboxGutter();
     }
 
-    if (!options.skipFocus) {
+    if (!options.skipFocus && !this.isAnyModalBlockingTyping()) {
       if (this.isEditableCodeMode() && this.elCodeSandboxTextarea) {
         this.elCodeSandboxTextarea.focus();
       } else if (this.elCodeHiddenInput) {

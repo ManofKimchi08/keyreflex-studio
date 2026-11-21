@@ -9,121 +9,182 @@
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23151419'/%3E%3Crect x='6' y='6' width='52' height='52' rx='10' fill='%23f97316'/%3E%3Ctext x='32' y='43' text-anchor='middle' font-size='32' fill='%23100f14' font-family='Segoe UI,sans-serif' font-weight='900'%3EK%3C/text%3E%3C/svg%3E" />
   <meta property="og:type" content="website" />
   <meta property="og:title" content="KeyReflex Studio — Tactile Mech 타이핑 · CodeLab 스튜디오" />
-  <meta property="og:description" content="인체공학 2D 손 가이드 · 순발력/HW 지연 측정 · AI 시대 6대 실무 트랙(47레슨) &amp; 4언어 실시간 CodeLab 스튜디오" />
+  <meta property="og:description" content="인체공학 2D 손 가이드 · 순발력/HW 지연 측정 · AI 시대 6대 실무 트랙(140레슨) &amp; 4언어 실시간 CodeLab 스튜디오" />
   <meta property="og:url" content="https://manofkimchi08.github.io/keyreflex-studio/" />
   <meta property="og:image" content="https://manofkimchi08.github.io/keyreflex-studio/docs/images/codelab_hybrid_state1.png" />
-  <link rel="stylesheet" href="styles.css?v=7.0" />
+  <link rel="stylesheet" href="styles.css?v=10.1" />
 </head>
 <body class="theme-tactile-mech">
   <div class="app-container">
-    <!-- 1. 상단 헤더: 타이틀, 모드 전환 탭, 한/영 언어 전환 -->
+    <!-- 1. 상단 Zen 헤더: 브랜드 · 통합 메뉴(B+C) · 현재 경로 브레드크럼 · 우측 빠른 설정 -->
     <header class="top-header">
-      <div class="brand-group">
-        <div class="brand-logo" aria-hidden="true">⌨</div>
-        <div class="brand-title">
-          <div class="brand-title-row">
-            <h1>KeyReflex Studio</h1>
-            <span class="hw-model-badge">TACTILE MECH · v1.5</span>
+      <div class="header-left-group">
+        <div class="brand-group">
+          <div class="brand-logo" aria-hidden="true">K</div>
+          <div class="brand-title">
+            <div class="brand-title-row">
+              <h1>KeyReflex Studio</h1>
+              <span class="hw-model-badge">v1.5</span>
+            </div>
           </div>
-          <p>이중사출 메카니컬 키보드 &amp; 2D 손 가이드 기반 반응속도 · 한/영 · CodeLab 스튜디오</p>
         </div>
+
+        <button type="button" class="studio-menu-trigger" id="studio-menu-btn" title="통합 메뉴 열기 (Ctrl+K)">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M2.5 4h11M2.5 8h11M2.5 12h11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+          <span>메뉴</span>
+          <kbd class="menu-kbd-hint">Ctrl+K</kbd>
+        </button>
+
+        <span class="studio-breadcrumb-text" id="studio-breadcrumb-btn">
+          순발력 (5회) · 전체 자판
+        </span>
       </div>
 
-      <nav class="mode-tabs" aria-label="연습 모드 선택">
-        <button class="mode-tab-btn active" data-mode="reflex_single">⚡ 순발력 측정 (5회)</button>
-        <button class="mode-tab-btn" data-mode="reflex_rush">🔥 30초 연속 리플렉스</button>
-        <button class="mode-tab-btn" data-mode="hw_diagnostic">🔧 키보드 HW 반응 측정</button>
-        <button class="mode-tab-btn" data-mode="practice_position">🎯 자리 연습</button>
-        <button class="mode-tab-btn" data-mode="practice_words">📝 낱말 연습</button>
-        <button class="mode-tab-btn" data-mode="practice_sentences">📖 짧은 글 연습</button>
-        <button class="mode-tab-btn" data-mode="practice_code">💻 코드 연습 (Code)</button>
-      </nav>
-
       <div class="header-controls">
-        <div class="lang-toggle-group" role="group" aria-label="언어 전환">
-          <button class="lang-switch-btn active" data-lang="ko">🇰🇷 한글 (두벌식)</button>
-          <button class="lang-switch-btn" data-lang="en">🇺🇸 영문 (QWERTY)</button>
+        <div class="studio-settings-menu-wrap" id="studio-settings-menu-wrap">
+          <button type="button" class="settings-menu-trigger" id="studio-settings-btn" aria-haspopup="true" aria-expanded="false" title="빠른 설정 열기 (상세 설정 단축키: Ctrl+,)">
+            <span id="studio-settings-summary">한글 · 도각 · 72%</span>
+            <span class="settings-caret" aria-hidden="true">▾</span>
+          </button>
+
+          <!-- 우측 상단 빠른 제어 팝오버 -->
+          <div class="settings-popover" id="settings-popover" role="dialog" aria-label="빠른 설정" style="display:none;">
+            <div class="settings-popover-caret" aria-hidden="true"></div>
+            <div class="pop-header">
+              <span class="pop-title">빠른 설정</span>
+              <span class="pop-hint">Ctrl+, 상세 설정</span>
+            </div>
+
+            <div class="pop-tiles-grid">
+              <button type="button" class="pop-tile is-active-teal" id="pop-tile-zones" aria-pressed="true">
+                <span class="pop-tile-title">손가락 구역 색상</span>
+                <span class="pop-tile-sub" id="pop-tile-zones-sub">켜짐 · 구역 컬러</span>
+              </button>
+              <button type="button" class="pop-tile" id="pop-tile-wide" aria-pressed="false">
+                <span class="pop-tile-title" id="pop-tile-wide-title">가상 키보드</span>
+                <span class="pop-tile-sub" id="pop-tile-wide-sub">표시 중</span>
+              </button>
+              <button type="button" class="pop-tile" id="pop-tile-heatmap" aria-pressed="false">
+                <span class="pop-tile-title">속도 히트맵</span>
+                <span class="pop-tile-sub" id="pop-tile-heatmap-sub">꺼짐</span>
+              </button>
+              <button type="button" class="pop-tile is-active-orange" id="pop-tile-lang">
+                <span class="pop-tile-title">입력 자판</span>
+                <span class="pop-tile-sub" id="pop-tile-lang-sub">한글 두벌식</span>
+              </button>
+            </div>
+
+            <div class="pop-section">
+              <div class="pop-slider-head">
+                <span class="pop-sec-label">손 일러스트 투명도</span>
+                <span class="pop-slider-val" id="pop-hand-opacity-val">72%</span>
+              </div>
+              <input type="range" class="studio-range-slider" id="pop-hand-opacity-slider" min="0.15" max="0.95" step="0.05" value="0.72" />
+            </div>
+
+            <div class="pop-section">
+              <span class="pop-sec-label">타건음 프로파일</span>
+              <div class="pop-sound-row" id="pop-sound-row">
+                <button type="button" class="pop-sound-btn active" data-sound="thock">도각</button>
+                <button type="button" class="pop-sound-btn" data-sound="tactile">갈축</button>
+                <button type="button" class="pop-sound-btn" data-sound="linear">적축</button>
+                <button type="button" class="pop-sound-btn" data-sound="clicky">청축</button>
+                <button type="button" class="pop-sound-btn" data-sound="mute">무음</button>
+              </div>
+            </div>
+
+            <div class="pop-section" id="pop-subfilter-section">
+              <span class="pop-sec-label" id="pop-subfilter-label">출제 범위</span>
+              <div class="pop-subfilter-chips" id="pop-subfilter-buttons"></div>
+            </div>
+
+            <div class="pop-footer">
+              <button type="button" class="pop-hub-cta" id="pop-open-hub-btn">상세 설정 (Ctrl+,)</button>
+              <button type="button" class="pop-mini-btn" id="pop-explain-btn" style="display:none;" title="전체 해설 모달 (F1)">해설</button>
+              <button type="button" class="pop-mini-btn danger" id="pop-reset-stats-btn" title="누적 통계 초기화">초기화</button>
+            </div>
+          </div>
         </div>
       </div>
     </header>
 
-    <!-- 2. 상단 실시간 측정 지표 바 -->
-    <section class="metrics-bar">
-      <div class="metric-card">
-        <span class="metric-label">사람 순발력 반응속도</span>
-        <span class="metric-value highlight-cyan" id="metric-reaction">-- ms</span>
-        <span class="metric-sub" id="metric-best">최고 기록: -- ms</span>
+    <!-- 2. 상단 접이식·크기 조절형 미니멀 통합 통계 패널 (3안 상단 배치) -->
+    <section class="telemetry-dock-wrap" id="telemetry-dock-wrap" aria-label="실시간 반응 및 손가락 통계">
+      <div class="telemetry-pull-row" id="telemetry-pull-row">
+        <button type="button" class="telemetry-pull-tab" id="telemetry-toggle-btn" aria-expanded="false" aria-controls="telemetry-sheet" title="실시간 통계 및 손가락 분석 펼치기 (Ctrl+I)">
+          <span>통계</span><span class="telemetry-pull-caret" aria-hidden="true">▾</span>
+        </button>
       </div>
-      <div class="metric-card">
-        <span class="metric-label">키보드 HW 입력/스위치 반응</span>
-        <span class="metric-value highlight-emerald" id="metric-hw-dwell">-- ms</span>
-        <span class="metric-sub" id="metric-hw-sub">파이프라인 지연: -- ms | 최단 눌림: -- ms</span>
-      </div>
-      <div class="metric-card">
-        <span class="metric-label">타건 속도</span>
-        <span class="metric-value" id="metric-speed">0</span>
-        <span class="metric-sub" id="metric-speed-unit">타/초 (KPS)</span>
-      </div>
-      <div class="metric-card">
-        <span class="metric-label">정확도 (Accuracy)</span>
-        <span class="metric-value" id="metric-accuracy">100%</span>
-        <span class="metric-sub">실시간 정오타 비율</span>
-      </div>
-      <div class="metric-card">
-        <span class="metric-label">연속 정타 콤보</span>
-        <span class="metric-value" id="metric-combo">0</span>
-        <span class="metric-sub">Combo Streak</span>
-      </div>
-    </section>
 
-    <!-- 3. 서브 필터(자리/손가락 범위 및 코딩 카테고리) 및 손 그래픽 옵션 툴바 -->
-    <section class="sub-toolbar">
-      <div class="sub-filter-group" id="sub-filter-bar">
-        <span class="sub-filter-label" id="sub-filter-label">출제 범위:</span>
-        <div class="sub-filter-buttons" id="sub-filter-buttons" style="display:flex; gap:6px; flex-wrap:wrap;">
-          <button class="sub-filter-btn active" data-filter="all">전체 자판</button>
-          <button class="sub-filter-btn" data-filter="home">기본 자리 (홈 로우)</button>
-          <button class="sub-filter-btn" data-filter="top">윗자리 (상단열)</button>
-          <button class="sub-filter-btn" data-filter="bottom">아랫자리 (하단열)</button>
-          <button class="sub-filter-btn" data-filter="weak">소지·약지 집중 훈련</button>
+      <div class="telemetry-sheet" id="telemetry-sheet" style="display:none;" role="region" aria-label="실시간 반응 및 손가락 밸런스">
+        <div class="telemetry-sheet-head">
+          <div class="telemetry-head-left">
+            <span class="telemetry-title">실시간 반응 &amp; 손가락 밸런스</span>
+            <span class="telemetry-weak-tag" id="telemetry-weak-tag">측정 대기 중 · Ctrl+I로 접기/펼치기</span>
+          </div>
+          <div class="telemetry-head-actions">
+            <span class="telemetry-size-badge" id="telemetry-size-badge" style="display:none;"></span>
+            <button type="button" class="telemetry-quiet-btn" id="telemetry-reset-size-btn" style="display:none;" title="박스 크기를 기본값으로 복원">기본 크기</button>
+            <button type="button" class="telemetry-quiet-btn" id="telemetry-heatmap-btn" title="키보드 속도 히트맵 오버레이 토글">히트맵</button>
+            <button type="button" class="telemetry-quiet-btn" id="telemetry-reset-stats-btn" title="누적 타건 및 손가락 통계 초기화">초기화</button>
+            <button type="button" class="telemetry-quiet-btn is-pill" id="telemetry-collapse-btn" title="통계 패널 접기 (Ctrl+I)">접기 ▴</button>
+          </div>
         </div>
-      </div>
 
-      <div class="visual-options-group">
-        <label class="option-item">
-          <span>✋ 손 투명도</span>
-          <input type="range" id="hand-opacity-slider" min="0.15" max="0.95" step="0.05" value="0.72" />
-          <span id="hand-opacity-value">72%</span>
-        </label>
+        <div class="telemetry-body">
+          <div class="telemetry-kpi-col">
+            <div class="telemetry-kpi-hero-grid">
+              <div class="telemetry-kpi-item">
+                <span class="telemetry-kpi-label">HW 스위치 반응</span>
+                <span class="telemetry-kpi-value is-teal" id="metric-hw-dwell">-- ms</span>
+                <span class="telemetry-kpi-sub" id="metric-hw-sub">입력지연: -- | 최단 눌림: --</span>
+              </div>
+              <div class="telemetry-kpi-item">
+                <span class="telemetry-kpi-label">순발력 반응속도</span>
+                <span class="telemetry-kpi-value is-orange" id="metric-reaction">-- ms</span>
+                <span class="telemetry-kpi-sub" id="metric-best">최고 기록: -- ms</span>
+              </div>
+            </div>
+            <div class="telemetry-kpi-sub-grid">
+              <div class="telemetry-kpi-mini">
+                <span class="telemetry-kpi-label">타건 속도</span>
+                <span class="telemetry-kpi-num" id="metric-speed">0</span>
+                <span class="telemetry-kpi-sub" id="metric-speed-unit">타/초 (KPS)</span>
+              </div>
+              <div class="telemetry-kpi-mini">
+                <span class="telemetry-kpi-label">정확도</span>
+                <span class="telemetry-kpi-num" id="metric-accuracy">100%</span>
+                <span class="telemetry-kpi-sub">실시간 정오타</span>
+              </div>
+              <div class="telemetry-kpi-mini">
+                <span class="telemetry-kpi-label">연속 콤보</span>
+                <span class="telemetry-kpi-num" id="metric-combo">0</span>
+                <span class="telemetry-kpi-sub">Combo Streak</span>
+              </div>
+            </div>
+          </div>
 
-        <label class="option-item" style="cursor:pointer;">
-          <input type="checkbox" id="toggle-zone-colors" checked />
-          <span>운지법 구역 색상</span>
-        </label>
+          <div class="telemetry-hands-col">
+            <div class="telemetry-hands-grid" id="finger-stats-grid"></div>
+          </div>
+        </div>
 
-        <label class="option-item">
-          <span>🔊 타건음</span>
-          <select id="sound-profile-select" class="option-select">
-            <option value="thock">도각도각 (무접점)</option>
-            <option value="tactile">사각사각 (갈축 택타일)</option>
-            <option value="linear">서걱서걱 (적축 리니어)</option>
-            <option value="clicky">찰칵찰칵 (청축)</option>
-            <option value="mute">음소거 (Mute)</option>
-          </select>
-        </label>
+        <div class="telemetry-resize-y" id="telemetry-resize-y" role="separator" aria-orientation="horizontal" title="위아래로 드래그해 높이 조절 · 더블클릭으로 기본 크기">
+          <span class="telemetry-drag-grip"></span>
+        </div>
+        <div class="telemetry-resize-x" id="telemetry-resize-x" role="separator" aria-orientation="vertical" title="좌우로 드래그해 너비 조절 · 더블클릭으로 기본 크기"></div>
+        <div class="telemetry-resize-corner" id="telemetry-resize-corner" title="대각선 드래그로 너비·높이 동시 조절 · 더블클릭으로 기본 크기" aria-hidden="true"></div>
       </div>
     </section>
 
-    <!-- 4. 중앙 프롬프트 & 반응속도 신호 스테이지 -->
+    <!-- 3. 중앙 프롬프트 & 반응속도 신호 스테이지 -->
     <main class="stage-wrapper">
       <div class="stage-top-bar">
         <div class="finger-guide-pill" id="active-finger-badge">
           <span class="badge-dot" style="background:#38bdf8"></span>
           양손 손가락을 홈 자리(ㅁㄴㅇㄹ / ㅓㅏㅣ)에 올려두세요
-        </div>
-        <div class="codelab-stage-quick-tools">
-          <button type="button" class="stage-quick-btn" id="codelab-settings-toggle-btn" title="손 투명도 · 운지법 색상 · 타건음 설정 열기/닫기">⚙️ 손·타건음</button>
-          <button type="button" class="stage-quick-btn stage-wide-btn" id="codelab-stage-wide-btn" title="키보드를 접고 에디터·해설을 2배 높이로 확장">📖 넓게 보기</button>
         </div>
       </div>
 
@@ -210,82 +271,26 @@
         </div>
       </div>
 
-      <!-- 4-D. KeyReflex CodeLab: 실시간 실행형 알고리즘 & 언어 마스터리 스테이지 -->
+      <!-- 4-D. KeyReflex CodeLab: 슬림 1줄 액션 바 + 실시간 스플릿 워크스페이스 -->
       <div id="codelab-stage" style="display:none;">
         <div class="codelab-header">
           <div class="codelab-header-row">
-            <!-- 언어 / 스펙 탭 (JavaScript, Python, C, Spec/Diagram) -->
-            <div class="codelab-lang-selector" role="group" aria-label="프로그래밍 언어 및 스펙 선택">
-              <button class="codelab-lang-btn active" data-codelang="javascript">
-                <span class="lang-icon">🟡</span> JS
-              </button>
-              <button class="codelab-lang-btn" data-codelang="python">
-                <span class="lang-icon">🐍</span> Python
-              </button>
-              <button class="codelab-lang-btn" data-codelang="c">
-                <span class="lang-icon">🔷</span> C
-              </button>
-              <button class="codelab-lang-btn" data-codelang="spec" title="JSON Schema 계약 및 아키텍처 다이어그램 설계">
-                <span class="lang-icon">📜</span> 스펙·설계
-              </button>
-            </div>
-
-            <!-- 트랙 필터 (알고리즘 · 설계·아키텍처 · 리팩터링 · AI·RAG · 시스템·ADR · 스펙) -->
-            <div class="codelab-track-picker">
-              <label for="codelab-track-select">트랙:</label>
-              <select id="codelab-track-select" class="codelab-select codelab-track-select">
-                <option value="all">📚 전체 트랙</option>
-                <option value="algorithm">📐 알고리즘</option>
-                <option value="architecture">🏗️ 설계·아키텍처</option>
-                <option value="refactoring">🔄 리팩터링</option>
-                <option value="ai">🤖 AI·RAG 인프라</option>
-                <option value="system_design">⚖️ 시스템 설계·ADR</option>
-                <option value="spec">📜 스펙·다이어그램</option>
-              </select>
-            </div>
-
-            <!-- 코딩 난이도 필터 (전체 · 초급 · 중급 · 고급) -->
-            <div class="codelab-difficulty-selector" role="group" aria-label="코딩 난이도 선택">
-              <button type="button" class="codelab-diff-btn active" data-diff="all" title="초·중·고급 전체 커리큘럼 표시">전체</button>
-              <button type="button" class="codelab-diff-btn" data-diff="beginner" title="기초 문법 · 조건/반복문 입문 (Tier 1)">🌱 초급</button>
-              <button type="button" class="codelab-diff-btn" data-diff="intermediate" title="자료구조 · 실전 알고리즘 · 설계 (Tier 2~3)">⚡ 중급</button>
-              <button type="button" class="codelab-diff-btn" data-diff="advanced" title="실무 아키텍처 · 시스템 패턴 (Tier 4)">🔥 고급</button>
-            </div>
-
-            <!-- 문제/스니펫 선택 드롭다운 -->
-            <div class="codelab-problem-picker">
-              <label for="codelab-problem-select">코스:</label>
-              <select id="codelab-problem-select" class="codelab-select"></select>
-              <span class="codelab-progress-pill" id="codelab-progress-pill" title="테스트 케이스를 모두 통과한 문제 수">완료 0/47</span>
-              <span class="codelab-pyodide-pill state-idle" id="codelab-pyodide-status" style="display:none;" title="Python WebAssembly(Pyodide) 런타임 준비 상태">🐍 대기</span>
-            </div>
-          </div>
-
-          <div class="codelab-header-row">
-            <!-- 4대 타건·실습 모드 (Flow vs Skeleton vs Sandbox vs AI Code Audit) -->
-            <div class="codelab-mode-toggle" role="group" aria-label="타건 및 리뷰 모드 선택">
-              <button class="codelab-type-mode-btn active" data-typemode="flow" title="전체 코드를 정밀하게 따라치며 구문 각인">
-                🌊 전체 타건 (Flow)
-              </button>
-              <button class="codelab-type-mode-btn" data-typemode="skeleton" title="핵심 로직 빈칸(____)만 기억에서 인출하여 직접 채우기">
-                🧩 빈칸 인출 (Skeleton)
-              </button>
-              <button class="codelab-type-mode-btn" data-typemode="sandbox" title="코드를 자유롭게 수정·리팩터링하고 즉시 테스트 실행">
-                🛠️ 자유 수정 (Sandbox)
-              </button>
-              <button class="codelab-type-mode-btn" data-typemode="audit" title="AI가 작성한 결함 코드에서 버그를 찾아 최소 타건으로 수정하기">
-                🔍 AI 코드 리뷰
-              </button>
+            <div class="codelab-header-left">
+              <div class="finger-guide-pill codelab-finger-pill" id="codelab-finger-badge">
+                <span class="badge-dot" style="background:#38bdf8"></span>
+                양손 손가락을 홈 자리(ㅁㄴㅇㄹ / ㅓㅏㅣ)에 올려두세요
+              </div>
             </div>
 
             <!-- 실행 및 제어 액션 버튼 -->
             <div class="codelab-actions">
+              <span class="codelab-progress-pill" id="codelab-progress-pill" title="테스트 케이스를 모두 통과한 문제 수">완료 0/140</span>
+              <span class="codelab-pyodide-pill state-idle" id="codelab-pyodide-status" style="display:none;" title="Python WebAssembly(Pyodide) 런타임 준비 상태">Pyodide 대기</span>
               <button class="codelab-run-btn" id="codelab-run-btn" title="인브라우저 샌드박스에서 즉시 실행하고 테스트 케이스 채점 (Ctrl+Enter)">
-                ▶ 코드 실행 (Ctrl+Enter)
+                실행 (Ctrl+Enter)
               </button>
-              <button class="secondary-btn highlight-btn" id="codelab-explain-toggle-btn" title="사이드 상세 해설 탭 또는 전체 해설 모달 열기 (단축키: F1)">💡 상세 해설 (F1)</button>
-              <button class="secondary-btn" id="codelab-reset-btn" title="현재 문제 초기화">🔄 초기화</button>
-              <button class="secondary-btn" id="codelab-next-btn" title="다음 문제">⏭️ 다음</button>
+              <button class="secondary-btn" id="codelab-reset-btn" title="현재 문제 초기화">초기화</button>
+              <button class="secondary-btn" id="codelab-next-btn" title="다음 문제">다음</button>
             </div>
           </div>
         </div>
@@ -300,7 +305,6 @@
               <div class="editor-header-tools">
                 <button type="button" class="editor-tool-btn" id="codelab-hint-btn" style="display:none;" title="현재 빈칸 정답 힌트 보기 (F2)">👁️ 빈칸 힌트</button>
                 <button type="button" class="editor-tool-btn" id="codelab-sandbox-reset-btn" style="display:none;" title="자유 수정 에디터를 원래 레슨 코드로 복원">↺ 원본 복원</button>
-                <button type="button" class="editor-tool-btn" id="codelab-kbd-toggle-btn" title="하단 가상 키보드 및 손 가이드 표시/접기">⌨️ 키보드 접기</button>
               </div>
             </div>
             <div class="editor-ime-banner" id="codelab-ime-banner" style="display:none;">
@@ -354,7 +358,6 @@
                 <button type="button" class="desc-tab-btn active" data-desctab="overview" id="btn-tab-overview">📋 문제 개요</button>
                 <button type="button" class="desc-tab-btn" data-desctab="explanation" id="btn-tab-explanation">💡 라인별 해설 <span class="tab-count-pill" id="codelab-explain-count"></span></button>
                 <button type="button" class="desc-tab-btn" data-desctab="tests" id="btn-tab-tests">🧪 테스트·콘솔 <span class="tab-status-pill" id="codelab-tab-tests-pill">대기</span></button>
-                <button type="button" class="desc-tab-btn-icon" id="codelab-card-modal-btn" title="전체 해설 넓게 보기 (단축키: F1)">🔍</button>
               </div>
 
               <!-- 단일 다크 스크롤 컨텐츠 영역 -->
@@ -450,21 +453,9 @@
         <span class="keyboard-hint-text">💡 눌러야 할 자모에 맞춰 반투명 일러스트 손가락이 목표 키 위로 뻗어 안내합니다</span>
       </div>
     </section>
-
-    <!-- 6. 하단 손가락별 반응속도(ms) 및 정확도 분석 리포트 -->
-    <section class="analytics-panel">
-      <div class="analytics-header">
-        <h2>📊 손가락별 평균 반응속도 (ms) &amp; 정확도 분석</h2>
-        <div class="analytics-actions">
-          <button class="secondary-btn" id="btn-toggle-heatmap">🗺️ 키보드 반응속도 히트맵</button>
-          <button class="secondary-btn" id="btn-reset-stats">🔄 기록 초기화</button>
-        </div>
-      </div>
-      <div class="finger-stats-grid" id="finger-stats-grid"></div>
-    </section>
   </div>
 
-  <!-- KeyReflex CodeLab: 코드 상세 해설 모달 다이얼로그 (F1 / 🔍) -->
+  <!-- KeyReflex CodeLab: 코드 상세 해설 모달 다이얼로그 (F1) -->
   <div id="codelab-modal-overlay" class="codelab-modal-overlay" style="display:none;">
     <div class="codelab-modal-content">
       <div class="codelab-modal-header">
@@ -494,13 +485,424 @@
     </div>
   </div>
 
+  <!-- 안 B+C 통합 메뉴창: 글로벌 검색 + 연습/코스 선택 + 실시간 퀵 설정 + 상세 설정 허브 -->
+  <div id="studio-menu-overlay" class="settings-hub-overlay studio-menu-overlay" style="display:none;" role="dialog" aria-modal="true" aria-label="KeyReflex Studio 통합 메뉴">
+    <div class="studio-menu-modal">
+      <!-- 상단 글로벌 검색 헤더 (안 C) -->
+      <div class="menu-search-header">
+        <div class="menu-header-title-wrap">
+          <span class="menu-header-title">통합 메뉴</span>
+          <span class="hub-shortcut-pill">Ctrl+K</span>
+        </div>
+
+        <div class="menu-search-wrap">
+          <svg class="menu-search-icon" width="15" height="15" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="1.8"/>
+            <path d="M13.5 13.5L17.5 17.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+          <input type="text" id="menu-search-input" class="menu-search-input" placeholder="연습 모드, 코스 제목, 트랙, 언어, 타건음 설정 검색... (Enter로 바로 실행)" autocomplete="off" spellcheck="false" />
+          <button type="button" id="menu-search-clear-btn" class="menu-search-clear-btn" style="display:none;" title="검색어 지우기">✕</button>
+        </div>
+
+        <button type="button" class="modal-close-btn" id="menu-close-btn" title="닫기 (Esc)">✕</button>
+      </div>
+
+      <!-- 3단 바디: 좌측 레일(안 B 2그룹) | 중앙 연습/코스/설정 패널 | 우측 퀵 설정 독(안 C) -->
+      <div class="studio-menu-body" id="studio-menu-body">
+        <!-- 좌측 카테고리 레일 -->
+        <nav class="menu-rail" aria-label="통합 메뉴 카테고리">
+          <div class="menu-rail-group">
+            <div class="menu-rail-group-label">연습하기</div>
+            <button type="button" class="menu-rail-btn active" data-menutab="reflex">
+              <span class="menu-rail-title">순발력 · HW 진단</span>
+              <span class="menu-rail-sub">단일 5회 · 30초 · NKRO</span>
+            </button>
+            <button type="button" class="menu-rail-btn" data-menutab="typing">
+              <span class="menu-rail-title">타자 기초 · 문학</span>
+              <span class="menu-rail-sub">자리 · 낱말 · 짧은 글</span>
+            </button>
+            <button type="button" class="menu-rail-btn" data-menutab="codelab">
+              <span class="menu-rail-title">코드 연습 (CodeLab)</span>
+              <span class="menu-rail-sub">140코스 · 6트랙 · AI 리뷰</span>
+            </button>
+          </div>
+
+          <div class="menu-rail-group is-settings-group">
+            <div class="menu-rail-group-label">환경 설정</div>
+            <button type="button" class="menu-rail-btn" data-menutab="settings_keyboard">
+              <span class="menu-rail-title">키보드 · 손 가이드</span>
+              <span class="menu-rail-sub">자판 · 투명도 · 색상 · 히트맵</span>
+            </button>
+            <button type="button" class="menu-rail-btn" data-menutab="settings_sound">
+              <span class="menu-rail-title">사운드 · 타건 피드백</span>
+              <span class="menu-rail-sub">스위치 5종 타건음</span>
+            </button>
+            <button type="button" class="menu-rail-btn" data-menutab="settings_data">
+              <span class="menu-rail-title">통계 · 데이터 · 단축키</span>
+              <span class="menu-rail-sub">초기화 · 단축키 일람</span>
+            </button>
+          </div>
+        </nav>
+
+        <!-- 중앙 메인 영역 -->
+        <div class="menu-center dark-scroll">
+          <!-- 실시간 검색 결과 오버레이 (검색어 입력 시 노출) -->
+          <div class="menu-search-results" id="menu-search-results" style="display:none;"></div>
+
+          <!-- 1. 순발력 · HW 진단 패널 -->
+          <div class="menu-pane active" id="menu-pane-reflex">
+            <div class="menu-pane-header">
+              <div>
+                <h3 class="menu-pane-title">순발력 측정 · 하드웨어 진단</h3>
+                <p class="menu-pane-desc">반응속도 테스트 또는 키보드 스위치 입력 지연·동시입력을 진단합니다.</p>
+              </div>
+            </div>
+
+            <div class="menu-mode-grid">
+              <button type="button" class="mode-tab-btn menu-mode-card active" data-mode="reflex_single">
+                <span class="mmc-title">순발력 (5회)</span>
+                <span class="mmc-desc">무작위 키 신호에 대한 반응속도 5회 평균 측정</span>
+              </button>
+              <button type="button" class="mode-tab-btn menu-mode-card" data-mode="reflex_rush">
+                <span class="mmc-title">30초 리플렉스</span>
+                <span class="mmc-desc">30초 제한 시간 내 연속 타겟 반응속도 도전</span>
+              </button>
+              <button type="button" class="mode-tab-btn menu-mode-card" data-mode="hw_diagnostic">
+                <span class="mmc-title">HW 진단</span>
+                <span class="mmc-desc">스위치 눌림 시간 · 폴링레이트 · 채터링 · NKRO 확인</span>
+              </button>
+            </div>
+
+            <div class="menu-subfilter-box" id="menu-reflex-subfilters-wrap">
+              <div class="menu-subfilter-head">순발력 출제 범위</div>
+              <div class="menu-subfilter-chips" id="menu-reflex-subfilters"></div>
+            </div>
+          </div>
+
+          <!-- 2. 타자 기초 · 문학 패널 -->
+          <div class="menu-pane" id="menu-pane-typing">
+            <div class="menu-pane-header">
+              <div>
+                <h3 class="menu-pane-title">자리 · 낱말 · 짧은 글 연습</h3>
+                <p class="menu-pane-desc">한글 두벌식과 영문 QWERTY 자판 운지 위치 및 리듬을 훈련합니다.</p>
+              </div>
+            </div>
+
+            <div class="menu-mode-grid">
+              <button type="button" class="mode-tab-btn menu-mode-card" data-mode="practice_position">
+                <span class="mmc-title">자리 연습</span>
+                <span class="mmc-desc">자모·영문 키 위치별 집중 단타 반복 훈련</span>
+              </button>
+              <button type="button" class="mode-tab-btn menu-mode-card" data-mode="practice_words">
+                <span class="mmc-title">낱말 연습</span>
+                <span class="mmc-desc">개발자 영단어 및 일상 빈출 단어 연속 입력</span>
+              </button>
+              <button type="button" class="mode-tab-btn menu-mode-card" data-mode="practice_sentences">
+                <span class="mmc-title">짧은 글 연습</span>
+                <span class="mmc-desc">한국 문학 구절 및 영미 고전 문장 타건</span>
+              </button>
+            </div>
+
+            <div class="menu-subfilter-box" id="menu-typing-subfilters-wrap">
+              <div class="menu-subfilter-head" id="menu-typing-subfilter-label">출제 범위 / 테마</div>
+              <div class="menu-subfilter-chips" id="menu-typing-subfilters"></div>
+            </div>
+          </div>
+
+          <!-- 3. 코드 연습 (CodeLab) 2열 코스 허브 -->
+          <div class="menu-pane" id="menu-pane-codelab">
+            <div class="menu-pane-header">
+              <div>
+                <h3 class="menu-pane-title">코드 연습 (CodeLab) 커리큘럼</h3>
+                <p class="menu-pane-desc">언어·트랙·난이도·실습 방식을 고른 뒤 아래 코스 카드를 클릭해 바로 시작하세요.</p>
+              </div>
+              <div class="menu-codelab-head-actions">
+                <span class="menu-progress-pill" id="menu-codelab-progress">완료 0 / 140</span>
+                <button type="button" class="mode-tab-btn menu-codelab-activate-btn" data-mode="practice_code">코드 연습 활성화</button>
+              </div>
+            </div>
+
+            <!-- 언어 · 트랙 · 난이도 필터 -->
+            <div class="menu-codelab-filters">
+              <div class="menu-filter-top-row">
+                <div class="codelab-lang-selector" role="group" aria-label="프로그래밍 언어 및 스펙 선택">
+                  <button type="button" class="codelab-lang-btn active" data-codelang="javascript">JS</button>
+                  <button type="button" class="codelab-lang-btn" data-codelang="python">Python</button>
+                  <button type="button" class="codelab-lang-btn" data-codelang="c">C</button>
+                  <button type="button" class="codelab-lang-btn" data-codelang="spec" title="JSON Schema 계약 및 아키텍처 다이어그램 설계">스펙·설계</button>
+                </div>
+
+                <div class="menu-track-diff-group">
+                  <select id="codelab-track-select" class="codelab-select codelab-track-select" aria-label="트랙 필터">
+                    <option value="all">전체 트랙</option>
+                    <option value="algorithm">알고리즘</option>
+                    <option value="architecture">설계·아키텍처</option>
+                    <option value="refactoring">리팩터링</option>
+                    <option value="ai">AI·RAG 인프라</option>
+                    <option value="system_design">시스템 설계·ADR</option>
+                    <option value="spec">스펙·다이어그램</option>
+                  </select>
+
+                  <div class="codelab-difficulty-selector" role="group" aria-label="코딩 난이도 선택">
+                    <button type="button" class="codelab-diff-btn active" data-diff="all">전체</button>
+                    <button type="button" class="codelab-diff-btn" data-diff="beginner">초급</button>
+                    <button type="button" class="codelab-diff-btn" data-diff="intermediate">중급</button>
+                    <button type="button" class="codelab-diff-btn" data-diff="advanced">고급</button>
+                  </div>
+                </div>
+
+                <!-- 테스트 및 접근성 연동을 위한 동기화 셀렉트 -->
+                <select id="codelab-problem-select" class="sr-only-select" aria-label="코스 선택"></select>
+              </div>
+
+              <!-- 4대 실습 방식 -->
+              <div class="menu-method-grid" role="group" aria-label="타건 및 리뷰 모드 선택">
+                <button type="button" class="codelab-type-mode-btn menu-method-card active" data-typemode="flow" title="전체 코드를 따라치며 구문 각인">
+                  <span class="mm-title">전체 타건 (Flow)</span>
+                  <span class="mm-sub">구문 리듬 타이핑</span>
+                </button>
+                <button type="button" class="codelab-type-mode-btn menu-method-card" data-typemode="skeleton" title="핵심 로직 빈칸(____)만 인출하여 채우기">
+                  <span class="mm-title">빈칸 인출 (Skeleton)</span>
+                  <span class="mm-sub">핵심 로직 채우기</span>
+                </button>
+                <button type="button" class="codelab-type-mode-btn menu-method-card" data-typemode="sandbox" title="코드를 자유롭게 수정하고 테스트 실행">
+                  <span class="mm-title">자유 수정 (Sandbox)</span>
+                  <span class="mm-sub">직접 편집 · 검증</span>
+                </button>
+                <button type="button" class="codelab-type-mode-btn menu-method-card" data-typemode="audit" title="AI 결함 코드에서 버그를 찾아 수정하기">
+                  <span class="mm-title">AI 코드 리뷰</span>
+                  <span class="mm-sub">결함 탐지 · 수정</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- 2열 코스 카드 그리드 -->
+            <div class="menu-course-grid" id="menu-codelab-course-grid"></div>
+          </div>
+
+          <!-- 4. 상세 설정: 키보드 · 손 가이드 & CodeLab 레이아웃 -->
+          <div class="menu-pane" id="menu-pane-settings_keyboard">
+            <div class="hub-pane-heading">키보드 &amp; 2D 손 가이드 설정</div>
+
+            <div class="hub-setting-row">
+              <div class="hub-row-info">
+                <span class="hub-row-title">입력 자판 레이아웃 (일반 모드)</span>
+                <span class="hub-row-desc">한글 두벌식과 영문 QWERTY 자판 전환 (CodeLab은 영문 자동 고정)</span>
+              </div>
+              <div class="hub-seg-ctrl">
+                <button type="button" class="hub-seg-btn active" id="hub-lang-ko" data-lang="ko">한글 두벌식</button>
+                <button type="button" class="hub-seg-btn" id="hub-lang-en" data-lang="en">영문 (EN)</button>
+              </div>
+            </div>
+
+            <div class="hub-setting-row" id="hub-subfilter-row">
+              <div class="hub-row-info">
+                <span class="hub-row-title" id="hub-subfilter-title">연습 출제 범위 / 테마</span>
+                <span class="hub-row-desc">현재 연습 모드에서 집중 훈련할 키 영역이나 주제를 선택합니다</span>
+              </div>
+              <select class="hub-select" id="hub-subfilter-select"></select>
+            </div>
+
+            <div class="hub-setting-row">
+              <div class="hub-row-info">
+                <span class="hub-row-title">2D 손 일러스트 투명도</span>
+                <span class="hub-row-desc">가상 키보드 위 반투명 손 가이드 불투명도 (15% ~ 95%)</span>
+              </div>
+              <div class="hub-slider-ctrl">
+                <input type="range" class="studio-range-slider" id="hub-hand-opacity-slider" min="0.15" max="0.95" step="0.05" value="0.72" />
+                <span class="pop-slider-val" id="hub-hand-opacity-val">72%</span>
+              </div>
+            </div>
+
+            <div class="hub-setting-row">
+              <div class="hub-row-info">
+                <span class="hub-row-title">손가락 구역 컬러 표시</span>
+                <span class="hub-row-desc">열손가락 담당 키캡 영역을 파스텔 구역 색상으로 구분 표시합니다</span>
+              </div>
+              <label class="hub-switch">
+                <input type="checkbox" id="hub-toggle-zones" checked />
+                <span class="hub-switch-slider"></span>
+              </label>
+            </div>
+
+            <div class="hub-setting-row">
+              <div class="hub-row-info">
+                <span class="hub-row-title">키보드 반응속도 히트맵 오버레이</span>
+                <span class="hub-row-desc">키별 평균 반응속도와 오타율을 가상 키보드 키캡 위에 시각화합니다</span>
+              </div>
+              <label class="hub-switch">
+                <input type="checkbox" id="hub-toggle-heatmap" />
+                <span class="hub-switch-slider"></span>
+              </label>
+            </div>
+
+            <div class="hub-setting-row">
+              <div class="hub-row-info">
+                <span class="hub-row-title">CodeLab 화면 레이아웃</span>
+                <span class="hub-row-desc">넓게 보기를 선택하면 키보드를 도킹하고 2.1× 풀높이로 개요+해설을 동시 표시합니다</span>
+              </div>
+              <div class="hub-seg-ctrl">
+                <button type="button" class="hub-seg-btn active" id="hub-codelab-wide-off">기본 (키보드 ON)</button>
+                <button type="button" class="hub-seg-btn" id="hub-codelab-wide-on">넓게 보기 (2.1×)</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 5. 상세 설정: 사운드 · 타건 피드백 -->
+          <div class="menu-pane" id="menu-pane-settings_sound">
+            <div class="hub-pane-heading">스위치 타건음 &amp; 피드백</div>
+            <div class="hub-sound-grid" id="hub-sound-grid">
+              <button type="button" class="hub-sound-card active" data-sound="thock">
+                <span class="hsc-name">도각도각 (무접점 Thock)</span>
+                <span class="hsc-desc">묵직하고 정갈한 토프레 무접점 키보드 사운드</span>
+              </button>
+              <button type="button" class="hub-sound-card" data-sound="tactile">
+                <span class="hsc-name">사각사각 (갈축 Tactile)</span>
+                <span class="hsc-desc">구분감 있는 경쾌한 넌클릭 택타일 타건음</span>
+              </button>
+              <button type="button" class="hub-sound-card" data-sound="linear">
+                <span class="hsc-name">서걱서걱 (적축 Linear)</span>
+                <span class="hsc-desc">걸림 없이 부드럽고 매끄러운 리니어 스위치음</span>
+              </button>
+              <button type="button" class="hub-sound-card" data-sound="clicky">
+                <span class="hsc-name">찰칵찰칵 (청축 Clicky)</span>
+                <span class="hsc-desc">또렷한 클릭 바 발음의 클래식 기계식 사운드</span>
+              </button>
+              <button type="button" class="hub-sound-card" data-sound="mute">
+                <span class="hsc-name">음소거 (Mute)</span>
+                <span class="hsc-desc">모든 합성 타건음 및 효과음 비활성화</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 6. 상세 설정: 통계 · 데이터 · 단축키 -->
+          <div class="menu-pane" id="menu-pane-settings_data">
+            <div class="hub-pane-heading">통계 · 커리큘럼 진도 · 단축키</div>
+
+            <div class="hub-setting-row">
+              <div class="hub-row-info">
+                <span class="hub-row-title">전체 화면 알고리즘 &amp; 아키텍처 해설</span>
+                <span class="hub-row-desc">소스 코드 전문 · 줄별 분석 · Before 비교 · ADR 근거를 모달에서 정독합니다</span>
+              </div>
+              <button type="button" class="secondary-btn" id="hub-open-explain-btn">전체 해설 열기 (F1)</button>
+            </div>
+
+            <div class="hub-setting-row">
+              <div class="hub-row-info">
+                <span class="hub-row-title">커리큘럼 완료 진도 관리</span>
+                <span class="hub-row-desc" id="hub-codelab-progress-text">현재 완료한 레슨: 0 / 140</span>
+              </div>
+              <button type="button" class="hub-danger-btn" id="hub-reset-codelab-btn">진도 초기화</button>
+            </div>
+
+            <div class="hub-setting-row">
+              <div class="hub-row-info">
+                <span class="hub-row-title">누적 타건 · 손가락 반응속도 기록 초기화</span>
+                <span class="hub-row-desc">손가락별 평균 ms, 정확도, 키 히트맵, CodeLab 취약 기호 통계를 비웁니다</span>
+              </div>
+              <button type="button" class="hub-danger-btn" id="hub-reset-stats-btn">기록 초기화</button>
+            </div>
+
+            <div class="hub-setting-row">
+              <div class="hub-row-info">
+                <span class="hub-row-title">키보드 HW 측정 버퍼 초기화</span>
+                <span class="hub-row-desc">최단 릴리즈, 추정 폴링레이트, 채터링 로그를 초기화합니다</span>
+              </div>
+              <button type="button" class="secondary-btn" id="hub-reset-hw-btn">HW 측정 초기화</button>
+            </div>
+
+            <div class="hub-shortcuts-box">
+              <div class="hub-shortcuts-title">스튜디오 전역 · CodeLab 단축키</div>
+              <div class="hub-shortcuts-grid">
+                <div><kbd>Ctrl + K</kbd> <span>통합 메뉴 열기/검색</span></div>
+                <div><kbd>Ctrl + ,</kbd> <span>환경 설정 바로 열기</span></div>
+                <div><kbd>Ctrl + I</kbd> <span>상단 통계 패널 접기/펼치기</span></div>
+                <div><kbd>Esc</kbd> <span>열린 메뉴 / 모달 닫기</span></div>
+                <div><kbd>Space</kbd> <span>순발력 측정 시작 / 재도전</span></div>
+                <div><kbd>Ctrl + Enter</kbd> <span>CodeLab 코드 실행 &amp; 채점</span></div>
+                <div><kbd>F1</kbd> <span>CodeLab 전체 상세 해설 모달</span></div>
+                <div><kbd>F2</kbd> <span>Skeleton 빈칸 정답 고스트 힌트</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 우측 실시간 퀵 설정 독 (안 C: 연습 탭 선택 시 상시 노출) -->
+        <aside class="menu-quick-dock" id="menu-quick-dock" aria-label="실시간 스튜디오 설정">
+          <div class="dock-head">
+            <span class="dock-title">실시간 스튜디오 설정</span>
+            <span class="dock-live-pill">즉시 반영</span>
+          </div>
+
+          <div class="pop-tiles-grid">
+            <button type="button" class="pop-tile is-active-teal" id="dock-tile-zones" aria-pressed="true">
+              <span class="pop-tile-title">손가락 구역 색상</span>
+              <span class="pop-tile-sub" id="dock-tile-zones-sub">켜짐 · 구역 컬러</span>
+            </button>
+            <button type="button" class="pop-tile" id="dock-tile-wide" aria-pressed="false">
+              <span class="pop-tile-title" id="dock-tile-wide-title">가상 키보드</span>
+              <span class="pop-tile-sub" id="dock-tile-wide-sub">표시 중</span>
+            </button>
+            <button type="button" class="pop-tile" id="dock-tile-heatmap" aria-pressed="false">
+              <span class="pop-tile-title">속도 히트맵</span>
+              <span class="pop-tile-sub" id="dock-tile-heatmap-sub">꺼짐</span>
+            </button>
+            <button type="button" class="pop-tile is-active-orange" id="dock-tile-lang">
+              <span class="pop-tile-title">입력 자판</span>
+              <span class="pop-tile-sub" id="dock-tile-lang-sub">한글 두벌식</span>
+            </button>
+          </div>
+
+          <div class="pop-section">
+            <div class="pop-slider-head">
+              <span class="pop-sec-label">손 일러스트 투명도</span>
+              <span class="pop-slider-val" id="dock-hand-opacity-val">72%</span>
+            </div>
+            <input type="range" class="studio-range-slider" id="dock-hand-opacity-slider" min="0.15" max="0.95" step="0.05" value="0.72" />
+          </div>
+
+          <div class="pop-section">
+            <span class="pop-sec-label">타건음 프로파일</span>
+            <div class="pop-sound-row" id="dock-sound-row">
+              <button type="button" class="pop-sound-btn dock-sound-btn active" data-sound="thock">도각</button>
+              <button type="button" class="pop-sound-btn dock-sound-btn" data-sound="tactile">갈축</button>
+              <button type="button" class="pop-sound-btn dock-sound-btn" data-sound="linear">적축</button>
+              <button type="button" class="pop-sound-btn dock-sound-btn" data-sound="clicky">청축</button>
+              <button type="button" class="pop-sound-btn dock-sound-btn" data-sound="mute">무음</button>
+            </div>
+          </div>
+
+          <div class="dock-actions-card">
+            <span class="pop-sec-label">상세 도구 &amp; 데이터</span>
+            <div class="dock-actions-grid">
+              <button type="button" class="dock-action-btn" id="dock-explain-btn" style="display:none;">전체 해설 (F1)</button>
+              <button type="button" class="dock-action-btn" id="dock-open-full-settings-btn">상세 설정 보기</button>
+              <button type="button" class="dock-action-btn danger" id="dock-reset-stats-btn">통계 초기화</button>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <div class="hub-footer">
+        <span class="hub-footer-hint">모든 연습 코스 선택과 설정 변경은 브라우저(localStorage)에 자동 저장되며 즉시 반영됩니다.</span>
+        <div class="hub-footer-actions">
+          <button type="button" class="secondary-btn" id="hub-restore-defaults-btn">기본값 복원</button>
+          <button type="button" class="primary-btn modal-confirm-btn" id="menu-confirm-btn">완료 · 바로 연습 (Esc)</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="js/data.js"></script>
   <script src="js/sound.js"></script>
   <script src="js/handRenderer.js?v=12.0"></script>
-  <script src="js/codeCurriculum.js?v=6.0"></script>
-  <script src="js/codeCurriculumExtras.js?v=6.0"></script>
+  <script src="js/codeCurriculum.js?v=7.0"></script>
+  <script src="js/codeCurriculumExtras.js?v=7.0"></script>
+  <script src="js/curriculumBeginnerPack.js?v=1.0"></script>
+  <script src="js/curriculumIntermediatePack.js?v=1.0"></script>
+  <script src="js/curriculumAdvancedPack.js?v=1.0"></script>
   <script src="js/specEngine.js?v=6.0"></script>
   <script src="js/codeRunner.js?v=6.0"></script>
-  <script src="js/app.js?v=7.0"></script>
+  <script src="js/app.js?v=10.1"></script>
 </body>
 </html>
