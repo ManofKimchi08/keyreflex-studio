@@ -8,44 +8,62 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Live Web App](https://img.shields.io/badge/Live%20Web-GitHub%20Pages-14b8a6?logo=githubpages)](https://manofkimchi08.github.io/keyreflex-studio/)
 [![Platform](https://img.shields.io/badge/Platform-Web%20%7C%20Windows-success.svg)](#)
-[![Version](https://img.shields.io/badge/Release-v1.5.0-informational.svg)](https://github.com/ManofKimchi08/keyreflex-studio/releases)
+[![Version](https://img.shields.io/badge/Release-v1.6.0-informational.svg)](https://github.com/ManofKimchi08/keyreflex-studio/releases)
 [![UI Theme](https://img.shields.io/badge/Design-Tactile%20Mech%20Studio-f97316.svg)](#)
 [![Pure Vanilla](https://img.shields.io/badge/Tech-HTML5%20%7C%20SVG%20%7C%20Pyodide%20WASM-orange.svg)](#)
 
 ### 👉 [🌐 웹 브라우저에서 바로 실행하기 — KeyReflex Studio Live](https://manofkimchi08.github.io/keyreflex-studio/)
 
-<img src="docs/images/codelab_hybrid_state1.png" alt="KeyReflex Studio v1.5.0 CodeLab 하이브리드 UI 화면" width="950" />
+<img src="docs/images/codelab_clean_v160.png" alt="KeyReflex Studio v1.6.0 CodeLab 화면" width="950" />
 
 </div>
 
 ---
 
-## ✨ v1.5.0 주요 신기능 (Hybrid UX & AI 시대 엔지니어링 트랙)
+## ✨ v1.6.0 주요 신기능 (140코스 확장 · 상단 리사이즈 텔레메트리 · 통합 메뉴)
 
-- **⚡ CodeLab 하이브리드 UX ("Studio Pro")**:
-  - **상단 슬림화 + 우측 단일 통합 3-탭 (`📋 문제 개요` · `💡 라인별 해설` · `🧪 테스트·콘솔`)**: 3단 카드 적층과 3중 흰색 스크롤바를 완전히 제거하고 가용 높이를 `+41%`(`475px`)로 확장했습니다. (`⚙️ 손·타건음` 버튼으로 필요 시 설정 바 토글)
-  - **`📖 넓게 보기` 2.1× 풀높이 자동 확장 (`725px`)**: 키보드를 하단 슬림 도킹 바로 접고 `문제 개요`와 `라인별 상세 해설`을 한 화면에 동시에 펼쳐 읽을 수 있습니다.
-  - **에디터 ↔ 해설 양방향 라인 동기화**: 현재 입력 중인 줄(`L#`)이 좌측 에디터와 우측 해설 카드에 동시 강조되며, 해설 카드를 호버·클릭하면 에디터 해당 줄이 강조/이동됩니다.
-  - **가독성 최적화**: `13~13.5px` 해설 타이포, 다크 슬림 스크롤바, 합자 비활성화(`<=`, `===` 원형 유지), 제목 비잘림 2줄 표시.
-- **🤖 AI 시대 6대 실무 트랙 · 초/중/고급 난이도 필터 · 47개 커리큘럼** (`JS 17 · Python 15 · C 11 · 📜 스펙·설계 4`):
-  - **6개 트랙**: `📐 알고리즘(22)` · `🏗️ 설계·아키텍처(7)` · `🔄 리팩터링(4)` · `🤖 AI·RAG 인프라(5)` · `⚖️ 시스템 설계·ADR(5)` · `📜 스펙·다이어그램(4)`
-  - **4대 실습 모드**: `🌊 전체 타건 (Flow)` · `🧩 빈칸 인출 (Skeleton)` · `🛠️ 자유 수정 (Sandbox)` · **`🔍 AI 코드 리뷰 (Audit)`**(AI 결함 코드에서 버그 줄만 찾아 최소 타건으로 수정 & 해결)
-  - **아키텍처 인터랙티브 카드**: `🗺️ 실시간 Mermaid → SVG 다이어그램 프리뷰`, `⚖️ 시스템 설계 판단 (ADR)` 트레이드오프 선택 위젯, `🔄 Before: 기존 스파게티 레거시 코드` 비교 카드(접기/펼치기 지원).
-- **🖐️ 2D 벡터 손가락 IK 왜곡 수정 (`handRenderer.js?v=12.0`)**: 좌/우 소지·외곽 키 도달(`Shift` + `[`, `` ` `` 등) 시 손가락 꺾임/S-루프 왜곡을 원천 해결했습니다.
+- **📚 CodeLab 140코스 대규모 확장 (`47 → 140레슨` · 3대 자체 제작 팩 + 전수 런타임 검수)**:
+  - **언어 (140)**: `JavaScript 46` · `Python 42` · `C99 34` · `Spec/DSL 18`
+  - **난이도 (140)**: `초급 49` · `중급 53` · `고급 38` (`curriculumBeginnerPack.js` +30 · `curriculumIntermediatePack.js` +22 · `curriculumAdvancedPack.js` +24)
+  - **6대 트랙 (140)**: `알고리즘 60` · `아키텍처 15` · `시스템 설계 15` · `리팩토링 15` · `AI 엔지니어링 17` · `스펙·다이어그램 18`
+  - **140/140 전수 검증 완료**: JS 클로저, Pyodide WASM, C99 트랜스파일러, JSON Schema/Mermaid DSL 실행 정답, `Audit` 버그 코드 의도적 실패, 스켈레톤 복원, 비공백 전 줄 `lineByLine` 일치, 숨겨진 엣지 케이스까지 전부 통과했습니다.
+- **📊 상단 접이식 · 자유 리사이즈 통합 텔레메트리 시트 (`Ctrl+I`)**:
+  - 분리되어 있던 상단 메트릭 바 + 하단 10손가락 분석 패널을 **상단 1개 접이식 시트**로 통합하고, 기본 접힘 풀탭(`통계 ▾`)으로 작업 공간을 확보했습니다.
+  - **대칭 2-Hand 10지 슬림 바 + 5대 KPI + 히트맵 토글**: 가장 느린 손가락(`보완 포인트`) 자동 강조와 히트맵 원클릭 전환을 제공합니다.
+  - **자유 크기 조절 & 영구 저장**: 하단·우측·코너 핸들을 드래그해 박스 폭/높이를 조절하고(더블클릭 시 초기화), 상태와 크기를 `localStorage`에 저장합니다.
+- **🎛️ 통합 메뉴 (`Ctrl+K`) & 상단 네비게이션 정리**:
+  - 중복 메뉴 버튼을 정리해 좌측 **`메뉴 (Ctrl+K)`**와 우측 **`빠른 설정 (Ctrl+,)`**으로 일원화하고, 브레드크럼을 읽기 전용 표시로 정리했습니다.
+  - 메뉴/상단바/텔레메트리/코스 제목의 불필요한 이모지를 제거하고 `운지법`을 `손가락 구역`으로 통일했으며, 실시간 검색과 3-Way 설정 동기화를 지원합니다.
 
 <div align="center">
 
-| ⚡ 하이브리드 상태 1 · 단일 통합 탭 (키보드 ON · 475px) | 📖 하이브리드 상태 2 · 넓게 보기 (2.1× 풀높이 · 725px) |
+| 📋 140코스 통합 CodeLab 메뉴 (`Ctrl+K`) | 💻 v1.6 클린 CodeLab 스튜디오 |
 | :---: | :---: |
-| <img src="docs/images/codelab_hybrid_state1.png" alt="CodeLab 하이브리드 상태 1 화면" width="460" /> | <img src="docs/images/codelab_hybrid_wide.png" alt="CodeLab 넓게 보기 2.1배 확장 화면" width="460" /> |
-| 3중 스크롤바 제거 + L4 양방향 동기화 + 하단 고정 상태바 | `📖 넓게 보기` 시 키보드 도킹 + `개요`·`라인 해설` 동시 조망 |
+| <img src="docs/images/codelab_140_menu.png" alt="140코스 통합 CodeLab 메뉴 화면" width="460" /> | <img src="docs/images/codelab_clean_v160.png" alt="v1.6 클린 CodeLab 스튜디오 화면" width="460" /> |
+| 언어(46/42/34/18)·트랙(6대)·난이도(초/중/고) 필터 + 우측 빠른 설정 도크 | `v1.6` 슬림 헤더 · 읽기 전용 브레드크럼 · 기본 접힘 상단 `통계` 풀탭 |
 
-| 🔍 AI 코드 리뷰 (`Audit`) & `Before` 레거시 비교 | 📜 스펙·아키텍처 실시간 `SVG` 다이어그램 & `ADR` |
+| 📈 상단 통합 텔레메트리 시트 (`Ctrl+I`) | 📐 드래그 리사이즈 & 콤팩트 레이아웃 |
 | :---: | :---: |
-| <img src="docs/images/codelab_ai_audit.png" alt="AI 코드 리뷰 모드 화면" width="460" /> | <img src="docs/images/codelab_spec_diagram_adr.png" alt="실시간 SVG 다이어그램 및 ADR 화면" width="460" /> |
-| AI가 심은 결함을 찾아 최소 타건으로 수정하고 실패 테스트 해결 | Mermaid DSL 작성 즉시 우측 SVG 토폴로지 반영 + ADR 트레이드오프 |
+| <img src="docs/images/telemetry_expanded_top.png" alt="상단 통합 텔레메트리 시트 화면" width="460" /> | <img src="docs/images/telemetry_resized.png" alt="텔레메트리 드래그 리사이즈 화면" width="460" /> |
+| 5대 KPI + 대칭 2-Hand 10지 반응속도·정확도 바 + 취약 손가락 강조 | 하단·우측·코너 드래그 크기 조절 · 더블클릭 초기화 · 상태 영구 저장 |
 
 </div>
+
+---
+
+## ✨ v1.5.0 핵심 기능 (Hybrid UX & AI 시대 엔지니어링 트랙)
+
+- **⚡ CodeLab 하이브리드 UX ("Studio Pro")**: 우측 단일 통합 3-탭(`문제 개요` · `라인별 해설` · `테스트·콘솔`), `넓게 보기` 2.1× 풀높이 전환(`725px`), 에디터 ↔ 해설 양방향 라인 동기화, 코드 합자 비활성화.
+- **🤖 AI 실무 훈련 도구**: **`AI 코드 리뷰 (Audit)`** 모드(결함 줄 최소 타건 수정), `실시간 Mermaid → SVG` 아키텍처 프리뷰, `시스템 설계 판단 (ADR)`, `Before` 레거시 코드 비교 카드.
+- **🖐️ 2D 벡터 손가락 IK 왜곡 수정 (`handRenderer.js`)**: 외곽 키 도달 시 소지 S-루프 왜곡 해결.
+
+| ⚡ 하이브리드 상태 1 · 단일 통합 탭 | 📖 하이브리드 상태 2 · 넓게 보기 (2.1×) |
+| :---: | :---: |
+| <img src="docs/images/codelab_hybrid_state1.png" alt="CodeLab 하이브리드 상태 1 화면" width="460" /> | <img src="docs/images/codelab_hybrid_wide.png" alt="CodeLab 넓게 보기 2.1배 확장 화면" width="460" /> |
+
+| 🔍 AI 코드 리뷰 (`Audit`) & `Before` 비교 | 📜 스펙·아키텍처 실시간 `SVG` 다이어그램 & `ADR` |
+| :---: | :---: |
+| <img src="docs/images/codelab_ai_audit.png" alt="AI 코드 리뷰 모드 화면" width="460" /> | <img src="docs/images/codelab_spec_diagram_adr.png" alt="실시간 SVG 다이어그램 및 ADR 화면" width="460" /> |
 
 ---
 
@@ -71,8 +89,8 @@
 
 ---
 
-### 3. 💻 KeyReflex CodeLab: 3대 언어(JavaScript, Python, C) 실시간 실행형 타자 & 알고리즘 마스터리
-단순한 텍스트 입력을 넘어 **실제 동작하는 프로그래밍 언어의 구문 감각, 100대 실전 알고리즘 템플릿, 그리고 브라우저 내 즉시 실행 및 테스트 케이스 자동 채점**을 하나로 통합한 인터랙티브 코드 훈련 환경입니다.
+### 3. 💻 KeyReflex CodeLab: 4대 언어(JavaScript, Python, C99, Spec/DSL) 실시간 실행 · 140코스 스튜디오
+단순한 텍스트 입력을 넘어 **실제 동작하는 프로그래밍 언어·시스템 설계 스펙의 구문 감각, 140개 실전 알고리즘/실무 문제, 그리고 브라우저 내 즉시 실행 및 테스트 케이스 자동 채점**을 하나로 통합한 인터랙티브 코드 훈련 환경입니다.
 
 <div align="center">
 <img src="docs/images/codelab_main.png" alt="KeyReflex CodeLab 실행 화면" width="950" />
@@ -93,11 +111,10 @@
 - **오프라인 시맨틱 구문 강조 & 확장 스플릿 에디터 (`v1.4.0`)**:
   - **🎨 전 모드 구문 강조 (Semantic Highlighting)**: 외부 CDN 없이 동작하는 자체 토크나이저로 Flow(미타건 반투명 · 완료 고대비), Skeleton, Sandbox(실시간 백드롭 동기화), 라인별 해설, F1 모달 전체에 키워드·타입·함수·문자열 컬러 적용
   - **📐 드래그 스플릿 리사이저 & 1-Line OLED 바**: 에디터/해설 비율을 자유롭게 드래그 조절(더블클릭 58% 초기화 · `localStorage` 영구 저장), 슬림 OLED 텔레메트리 바로 에디터 가용 높이 확대(한 화면 내 키보드 동시 표시), 우측 문제 개요 + 테스트 + 콘솔 + 취약 기호 동시 가시성 및 접기 토글 지원
-- **4-Tier 체계적 프로그래밍 커리큘럼 (총 25개 실습 문제: JS 8 · Python 9 · C 8)**:
-  - **Tier 1 (문법 & 연산자)**: 화살표 함수, 구조분해할당, 리스트 컴프리헨션, 포인터 스왑
-  - **Tier 2 (자료구조)**: 큐/덱(Deque), 스택 괄호 검사, 해시맵/딕셔너리 빈도수, 포인터 문자열 회문·길이, 배열 누적합
-  - **Tier 3 (실전 알고리즘)**: 이진 탐색(Binary Search), 투 썸(Two Sum), 팰린드롬, DP 피보나치, 배열 제자리 역순
-  - **Tier 4 (실무 & 시스템 패턴)**: 디바운스(Debounce), O(1) LRU 캐시, `@memoize` 클로저 데코레이터, API Rate Limiter, C 비트마스크 권한·원형 버퍼(Ring Buffer)
+- **6대 트랙 · 3단계 난이도 · 140개 체계적 실전 커리큘럼 (총 140개 실습 문제: JS 46 · Python 42 · C 34 · Spec 18)**:
+  - **난이도**: 초급(**49**) · 중급(**53**) · 고급(**38**) — 기초 문법부터 분산 캐시·일관된 해싱·CQRS/멀티에이전트 아키텍처까지 단계별 확장
+  - **6개 트랙**: 알고리즘(**60**) · 아키텍처(**15**) · 시스템 설계(**15**) · 리팩토링(**15**) · AI 엔지니어링(**17**) · 스펙·다이어그램(**18**)
+  - **4대 실습 모드**: 전체 타건(`Flow`) · 빈칸 인출(`Skeleton`) · 자유 수정(`Sandbox`) · AI 코드 리뷰(`Audit` — 결함 코드 디버깅)
 - **💡 라인별 코드 상세 해설 & 핵심 원리 (Deep-Dive Explanation)**:
   - **라인별 정밀 분석**: 코드의 각 줄이 수행하는 역할, 문법적 의미, 함수 반환값 해설 제공
   - **실시간 라인 힌트 바**: 타이핑 중인 현재 라인 번호와 코드의 상세 해설이 에디터 하단에 실시간으로 연동되어 "내가 지금 치는 코드가 무엇을 하는지" 직관적으로 이해
@@ -135,12 +152,16 @@
 
 | 단축키 / 컨트롤 | 적용 영역 | 동작 설명 |
 | :---: | :---: | :--- |
+| **`Ctrl + K`** | 전역 스튜디오 | 통합 메뉴(모드/140코스/설정) 열기·닫기 및 실시간 검색 포커스 |
+| **`Ctrl + ,`** | 전역 스튜디오 | 통합 메뉴 내 상세 설정 탭 즉시 열기 |
+| **`Ctrl + I`** | 전역 스튜디오 | 상단 통합 텔레메트리 시트(5대 KPI + 10지 바) 접기/펼치기 |
 | **`Ctrl + Enter`** | CodeLab 전체 | 현재 코드 실행 및 테스트 케이스 전체 채점 |
 | **`F1`** | CodeLab 전체 | 소스 코드 + 라인별 해설 + 복잡도 전체 모달 열기/닫기(`ESC`) |
 | **`F2`** | Skeleton 모드 | 빈칸 정답 고스트 힌트 표시/숨김 토글 |
 | **`Tab` / `Shift + Tab`** | Flow · Skeleton · Sandbox | 4칸 들여쓰기 자동 스킵 / 다음 빈칸 이동 / Sandbox 4칸 들여쓰기·내어쓰기 |
+| **텔레메트리 핸들 드래그 / 더블클릭** | 상단 텔레메트리 시트 | 하단·우측·코너 핸들 드래그로 폭/높이 자유 조절 및 저장 / **더블클릭 시 기본 크기 초기화** |
 | **스플릿 리사이저 드래그 / 더블클릭** | CodeLab 스플릿 바 (`⋮`) | 좌측 에디터·우측 패널 비율(`42%`~`74%`) 조절 및 `localStorage` 저장 / **더블클릭 시 58% 초기화** |
-| **우측 상단 `▾` 접기 / `키보드 접기`** | CodeLab 패널 & 하단 키보드 | 설명 영역 접기 또는 하단 가상 키보드 패널 표시/숨김 토글 |
+| **우측 상단 `넓게 보기` / `키보드 접기`** | CodeLab 패널 & 하단 키보드 | 키보드 도킹 2.1× 풀높이 보기 또는 하단 가상 키보드 패널 표시/숨김 토글 |
 
 ---
 
@@ -197,21 +218,25 @@
 keyreflex-studio/
 ├── .nojekyll                      # GitHub Pages 정적 자산 고속 서빙 설정
 ├── docs/
+│   ├── RELEASE_v1.6.0.md          # v1.6.0 릴리즈 노트 & 스크린샷 문서
 │   ├── RELEASE_v1.5.0.md          # v1.5.0 릴리즈 노트 & 스크린샷 문서
 │   ├── RELEASE_v1.4.0.md          # v1.4.0 릴리즈 노트
 │   └── images/                    # README 및 릴리즈 문서용 고해상도 스크린샷
 ├── js/
-│   ├── app.js                     # 핵심 훈련 모드 상태 머신, 하이브리드 UX & 라인 동기화 엔진
+│   ├── app.js                     # 핵심 훈련 모드 상태 머신, 통합 메뉴, 텔레메트리 시트 & 라인 동기화
 │   ├── data.js                    # ANSI 쿼티 & 두벌식 키보드 레이아웃, 한글 자모 데이터셋
 │   ├── handRenderer.js            # 3D 이중사출 PBT 키캡 SVG & 축 가중치 기반 2D 손 IK 렌더러
 │   ├── sound.js                   # Web Audio API 기반 기계식/무접점 타건 합성음 엔진
 │   ├── codeCurriculum.js          # 기본 알고리즘 커리큘럼 (JS, Python, C)
-│   ├── codeCurriculumExtras.js    # AI 시대 6대 트랙 · 47레슨 확장 커리큘럼 & ADR/Audit 데이터
+│   ├── codeCurriculumExtras.js    # AI 시대 6대 트랙 · 기본 64레슨 확장 & ADR/Audit 데이터
+│   ├── curriculumBeginnerPack.js  # 자체 제작 초급 모듈 팩 (+30레슨)
+│   ├── curriculumIntermediatePack.js # 자체 제작 중급 모듈 팩 (+22레슨)
+│   ├── curriculumAdvancedPack.js  # 자체 제작 고급 모듈 팩 (+24레슨)
 │   ├── specEngine.js              # 실시간 Mermaid → SVG 다이어그램 렌더러 & JSON 스키마 검증기
 │   └── codeRunner.js              # 인브라우저 4언어(JS, Pyodide WASM, C99, Spec) 실행 샌드박스
-├── index.html                     # 메인 인터페이스 (Tactile Mech Studio & CodeLab 하이브리드 UI)
-├── styles.css                     # Tactile Mech Studio · OLED 메트릭 · 다크 스크롤 스타일시트
-├── KeyReflex-Studio.exe           # 원클릭 무설치 단일 독립 데스크톱 실행 파일 (v1.5.0)
+├── index.html                     # 메인 인터페이스 (Tactile Mech Studio & 통합 메뉴/텔레메트리 UI)
+├── styles.css                     # Tactile Mech Studio · 리사이즈 시트 · 다크 스크롤 스타일시트
+├── KeyReflex-Studio.exe           # 원클릭 무설치 단일 독립 데스크톱 실행 파일 (v1.6.0)
 ├── LICENSE                        # MIT 라이선스
 └── README.md                      # 종합 프로젝트 문서
 ```
@@ -228,6 +253,11 @@ keyreflex-studio/
 ---
 
 ## 📋 업데이트 히스토리 (Changelog)
+
+### `v1.6.0` — 140코스 CodeLab 확장 · 상단 리사이즈 텔레메트리 · 통합 메뉴 정리
+- **📚 CodeLab 140코스 확장 및 전수 검증**: 자체 제작 3대 모듈 팩(`curriculumBeginnerPack.js` +30, `curriculumIntermediatePack.js` +22, `curriculumAdvancedPack.js` +24) 및 기존 커리큘럼 균형화로 총 **140레슨**(`JS 46 · Python 42 · C 34 · Spec 18`, `초급 49 · 중급 53 · 고급 38`, 6대 트랙) 구축, 전 문항 정답·버그 코드·스켈레톤·라인해설·복잡도·엣지 케이스 140/140 통과.
+- **📊 상단 접이식 · 자유 리사이즈 통합 텔레메트리 시트 (`Ctrl+I`)**: 상단 KPI 바 + 하단 10손가락 분석을 상단 단일 시트로 통합하고, 대칭 10지 바·취약 손가락 강조·히트맵 토글·드래그 크기 조절/더블클릭 초기화·`localStorage` 저장 지원.
+- **🎛️ 통합 메뉴 (`Ctrl+K`) & 상단 네비게이션 정리**: 중복 메뉴 버튼 제거, 읽기 전용 브레드크럼, 이모지 제거 및 `손가락 구역` 용어 통일, 3-Way 설정 동기화, `KeyReflex-Studio.exe` `v1.6.0` 재빌드.
 
 ### `v1.5.0` — CodeLab 하이브리드 UX · AI 시대 6대 트랙(47레슨) · 손가락 IK 수정 · 웹 배포
 - **🌐 GitHub Pages 공식 웹 배포**: `.nojekyll`, SVG 파비콘, OpenGraph 메타를 추가해 [웹 라이브 버전](https://manofkimchi08.github.io/keyreflex-studio/)으로 즉시 실행 가능.
